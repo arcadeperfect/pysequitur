@@ -1,4 +1,4 @@
-from pysequitur import hello_world, greet, Sequence, SequenceParser
+from pysequitur import Sequence, SequenceParser
 
 
 file_list = [
@@ -42,4 +42,5 @@ file_list = [
 if __name__ == "__main__":
     parser = SequenceParser()
     parsed = parser.find_sequences(file_list)
-    print(parsed)
+    for p in parsed:
+        print(p)

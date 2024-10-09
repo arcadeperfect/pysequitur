@@ -7,4 +7,4 @@ class Sequence:
         self.extension = extension
 
     def __str__(self):
-        return f"name: {self.name} first_frame: {self.first_frame} last_frame: {self.last_frame} extension: {self.extension}"
+        return f"name: {self.name} | first_frame: {self.first_frame} | last_frame: {self.last_frame} | extension: {self.extension}"

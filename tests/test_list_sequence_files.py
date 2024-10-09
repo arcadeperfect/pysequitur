@@ -1,6 +1,9 @@
-from pysequitur import find_sequences, list_sequence_files
+from pysequitur import SequenceParser
 
 def test_list_sequence_files():
+
+    sequenceParser = SequenceParser()
+
     # Synthetic data with various scenarios
     file_list = [
         # Basic sequences
@@ -57,18 +60,17 @@ def test_list_sequence_files():
     ]
 
     for sequence_name, extension, expected_result in test_cases:
-        result = list_sequence_files(file_list, sequence_name, extension)
+        result = sequenceParser.list_sequence_files(file_list, sequence_name, extension)
         assert result == expected_result, f"Failed for sequence '{sequence_name}' with extension '{extension}'"
 
     # Additional edge cases
-    assert list_sequence_files([], "any", "ext") == [], "Should return empty list for empty input"
-    assert list_sequence_files(file_list, "not_a_sequence", "txt") == [], "Should return empty list for non-sequence file"
-    assert list_sequence_files(file_list, "random", "doc") == [], "Should return empty list for non-existent sequence"
+    assert sequenceParser.list_sequence_files([], "any", "ext") == [], "Should return empty list for empty input"
+    assert sequenceParser.list_sequence_files(file_list, "not_a_sequence", "txt") == [], "Should return empty list for non-sequence file"
+    assert sequenceParser.list_sequence_files(file_list, "random", "doc") == [], "Should return empty list for non-existent sequence"
 
     # Test with a very long list of files (performance test)
     long_file_list = [f"long_sequence_{i:04d}.exr" for i in range(1, 10001)]
-    long_result = list_sequence_files(long_file_list, "long_sequence", "exr")
+    long_result = sequenceParser.list_sequence_files(long_file_list, "long_sequence", "exr")
     assert len(long_result) == 10000, "Should handle very long sequences efficiently"
 
-if __name__ == "__main__":
-    pytest.main([__file__])
+
