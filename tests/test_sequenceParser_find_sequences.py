@@ -35,6 +35,10 @@ def test_find_sequences():
         # Sequences with special characters
         "effect@001.nk", "effect@002.nk", "effect@003.nk",
         "comp#01.psd", "comp#02.psd", "comp#03.psd",
+
+        # Sequences that might yield the same name
+        "name_conflict_001.exr", "name_conflict_002.exr", "name_conflict_003.exr",
+        "name_conflict.001.exr", "name_conflict.002.exr", "name_conflict.003.exr",
     ]
 
     # Instantiate SequenceParser
@@ -52,7 +56,8 @@ def test_find_sequences():
             ],
             first_frame=1,
             last_frame=5,
-            extension='exr'
+            extension='exr',
+            separator='_'
         ),
         Sequence(
             name='shot',
@@ -61,7 +66,8 @@ def test_find_sequences():
             ],
             first_frame=1,
             last_frame=5,
-            extension='jpg'
+            extension='jpg',
+            separator='_',
         ),
         Sequence(
             name='frame',
@@ -70,7 +76,8 @@ def test_find_sequences():
             ],
             first_frame=1,
             last_frame=5,
-            extension='png'
+            extension='png',
+            separator='.',
         ),
         Sequence(
             name='scene',
@@ -79,7 +86,8 @@ def test_find_sequences():
             ],
             first_frame=1,
             last_frame=5,
-            extension='dpx'
+            extension='dpx',
+            separator=' '
         ),
         Sequence(
             name='take',
@@ -88,7 +96,8 @@ def test_find_sequences():
             ],
             first_frame=1,
             last_frame=5,
-            extension=''
+            extension='',
+            separator='_',
         ),
         Sequence(
             name='comp',
@@ -97,7 +106,8 @@ def test_find_sequences():
             ],
             first_frame=1,
             last_frame=5,
-            extension='tif'
+            extension='tif',
+            separator='_',
         ),
         Sequence(
             name='anim',
@@ -106,7 +116,8 @@ def test_find_sequences():
             ],
             first_frame=1,
             last_frame=3,
-            extension='mov'
+            extension='mov',
+            separator='-',
         ),
         Sequence(
             name='fx',
@@ -115,7 +126,8 @@ def test_find_sequences():
             ],
             first_frame=1,
             last_frame=3,
-            extension='mp4'
+            extension='mp4',
+            separator='_',
         ),
         Sequence(
             name='very_long_sequence_name',
@@ -124,7 +136,8 @@ def test_find_sequences():
             ],
             first_frame=1,
             last_frame=3,
-            extension='exr'
+            extension='exr',
+            separator='_',
         ),
         Sequence(
             name='shot_with_high_numbers',
@@ -133,7 +146,8 @@ def test_find_sequences():
             ],
             first_frame=998,
             last_frame=1000,
-            extension='jpg'
+            extension='jpg',
+            separator='_',
         ),
         Sequence(
             name='shot_a',
@@ -142,7 +156,8 @@ def test_find_sequences():
             ],
             first_frame=1,
             last_frame=3,
-            extension='exr'
+            extension='exr',
+            separator='_',
         ),
         Sequence(
             name='shot_ab',
@@ -151,7 +166,8 @@ def test_find_sequences():
             ],
             first_frame=1,
             last_frame=3,
-            extension='exr'
+            extension='exr',
+            separator='_',
         ),
         Sequence(
             name='effect',
@@ -160,7 +176,8 @@ def test_find_sequences():
             ],
             first_frame=1,
             last_frame=3,
-            extension='nk'
+            extension='nk',
+            separator='@',
         ),
         Sequence(
             name='comp',
@@ -169,24 +186,41 @@ def test_find_sequences():
             ],
             first_frame=1,
             last_frame=3,
-            extension='psd'
+            extension='psd',
+            separator='#',
+        ),
+        Sequence(
+            name='name_conflict',
+            files=[
+                    "name_conflict_001.exr", "name_conflict_002.exr", "name_conflict_003.exr"
+            ],
+            first_frame=1,
+            last_frame=3,
+            extension='exr',
+            separator='_',
+        ),
+           Sequence(
+            name='name_conflict',
+            files=[
+                    "name_conflict.001.exr", "name_conflict.002.exr", "name_conflict.003.exr"
+            ],
+            first_frame=1,
+            last_frame=3,
+            extension='exr',
+            separator='.',
         ),
     ]
 
     # Convert the list of sequences to a dictionary for easier comparison
     sequences_dict = {}
     for seq in sequences:
-        key = seq.name
-        if key in sequences_dict:
-            # If the sequence name already exists, we need to differentiate them
-            key = f"{seq.name}_{seq.extension}"
+        key = f"{seq.name}_{seq.separator}_{seq.extension}"
         sequences_dict[key] = seq
 
     expected_sequences_dict = {}
     for seq in expected_sequences:
-        key = seq.name
-        if key in expected_sequences_dict:
-            key = f"{seq.name}_{seq.extension}"
+        key = f"{seq.name}_{seq.separator}_{seq.extension}"
+      
         expected_sequences_dict[key] = seq
 
     # Now compare the sequences

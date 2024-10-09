@@ -39,8 +39,12 @@ file_list = [
 
 
 
+
+
+
 if __name__ == "__main__":
     parser = SequenceParser()
-    parsed = parser.find_sequences(file_list)
-    for p in parsed:
-        print(p)
+    # for file in file_list:
+    #     f = file.split('.')[0]
+    # print(parser.list_sequence_files(file_list,"shot_a", 'exr'))
+    print(parser.find_sequences(file_list))
