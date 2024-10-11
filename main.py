@@ -1,5 +1,5 @@
 from pysequitur import FileSequence, SequenceParser, Item
-import pathlib
+from pathlib import Path
 
 file_list = [
         # Basic sequences
@@ -39,9 +39,11 @@ file_list = [
 
 if __name__ == "__main__":
 
-    path = "/Users/andy/Downloads"
 
-    sequences = FileSequence._parse_filename_list(file_list, path)
-    
-    for s in sequences:
-        print(s)
+    path = Path("/a/b/c")
+    file = "render_001_moist.exr"
+
+    item = FileSequence._parse_filename(file, path )
+
+
+    print(item.path)

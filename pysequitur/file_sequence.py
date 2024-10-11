@@ -2,6 +2,7 @@ from enum import Flag, auto
 import pathlib
 import re
 
+
 class Problems(Flag):
     MISSING_FRAMES = auto()
     INCONSISTENT_PADDING = auto()
@@ -10,7 +11,7 @@ class Problems(Flag):
 
 
 class Item:
-    def __init__(self, name, frame_number, extension, directory, separator=None):
+    def __init__(self, name, frame_number, extension, directory, separator=None, post_numeral=None):
 
         if not isinstance(name, str):
             raise ValueError("name must be a string")
@@ -31,24 +32,31 @@ class Item:
         self.frame = frame_number
         self.extension = extension
         self.separator = separator
+        self.post_numeral = post_numeral
         self.path = pathlib.Path(directory, self.filename)
 
     def __str__(self):
-        return f"{self.path}"
+
+        string = f"name: {self.name} \n frame: {self.frame} \n extension: {self.extension} \n separator: {
+            self.separator} \n post_numeral: {self.post_numeral} \n path: {self.path} \n"
+
+        return string
 
     def __repr__(self):
         return f"{self.name} {self.frame} {self.extension}"
 
     @property
     def filename(self):
-        if self.separator:
-            return f"{self.name}{self.separator}{self.frame}.{self.extension}"
-        return f"{self.name}{self.frame}.{self.extension}"
+
+        s = self.separator if self.separator else ""
+        p = self.post_numeral if self.post_numeral else ""
+
+        return f"{self.name}{self.separator}{self.frame}{self.post_numeral}.{self.extension}"
 
     @property
     def directory(self):
         return self.path.parent
-    
+
     @property
     def padding(self):
         return len(self.frame)
@@ -61,10 +69,13 @@ class FileSequence:
         r'(?P<name>.*?)'
         r'(?P<separator>[^a-zA-Z\d]+)?'
         r'(?P<frame>\d+)'
-        r'.*?'
+        r'(?P<post_numeral>[^a-zA-Z\d]?.*?)'  # Optional separator is now part of post_numeral
         r'(?:\.(?P<ext>[^\.]+))?'
         r'$'
     )
+
+
+    
 
     @classmethod
     def _parse_filename(cls, filename, filepath):
@@ -84,14 +95,16 @@ class FileSequence:
             raise ValueError("invalid regex, must contain 'ext' group")
         if not "separator" in dict.keys():
             raise ValueError("invalid regex, must contain 'separator' group")
-        
+
         p = pathlib.Path(filepath)
 
         if not p:
             raise ValueError("invalid filepath")
 
-        return Item(dict['name'], dict['frame'], dict['ext'], p, dict['separator'])
-        
+        # return Item(dict['name'], dict['frame'], dict['ext'], p, dict['separator'])
+        return Item(dict['name'], dict['frame'], dict['ext'],
+                    p, dict['separator'], dict['post_numeral'])
+
     @classmethod
     def _parse_filename_list(cls, filename_list, path):
         """
@@ -100,7 +113,7 @@ class FileSequence:
         sequences = {}
 
         for file in filename_list:
-            
+
             parsed_item = cls._parse_filename(file, path)
             if not parsed_item:
                 continue
@@ -111,7 +124,7 @@ class FileSequence:
             extension = parsed_item.extension or ''
 
             # Remove diving character from the end of the name
-            # for example, 
+            # for example,
             # "name_" becomes "name"
             # "file." becomes "file"
             cleaned_name = re.sub(r'[^a-zA-Z0-9]+$', '', original_name)
@@ -130,10 +143,10 @@ class FileSequence:
 
             # print(sequences[key])
 
-            # this_item = Item(name = cleaned_name, 
-            #                  frame_number = frame, 
-            #                  extension = extension, 
-            #                  file_name = file, 
+            # this_item = Item(name = cleaned_name,
+            #                  frame_number = frame,
+            #                  extension = extension,
+            #                  file_name = file,
             #                  separator=separator)
 
             sequences[key]['items'].append(parsed_item)
@@ -197,16 +210,16 @@ class FileSequence:
 
         return equal
 
-    @staticmethod
-    @classmethod
-    def parse_filename(self, filename):
-        """
-        Parses a single filename and returns a dictionary of components.
-        """
-        match = re.match(self.pattern, filename)
-        if not match:
-            return None
-            return match.groupdict()
+    # @staticmethod
+    # @classmethod
+    # def parse_filename(self, filename):
+    #     """
+    #     Parses a single filename and returns a dictionary of components.
+    #     """
+    #     match = re.match(self.pattern, filename)
+    #     if not match:
+    #         return None
+    #         return match.groupdict()
 
     @property
     def existing_frames(self):

@@ -19,6 +19,7 @@ def test_Item(test_case):
     description = test_case['description']
     print(description)
 
+    absolute = Path((test_case['data']['file_absolute_path']))
     directory = Path((test_case['data']['directory']))
     name = test_case['data']['name']
     frame_number = test_case['data']['frame_number']
@@ -27,15 +28,11 @@ def test_Item(test_case):
     padding = test_case['data']['padding']
     stem = test_case['data']['file_stem']
     file_name = test_case['data']['file_name']
+    post_numeral = test_case['data']['post_numeral']
 
-    item = Item(name, frame_number, extension, directory, separator)
+    item = Item(name, frame_number, extension, directory, separator, post_numeral)
 
-    # print("\n------------") 
-    # print (f"item.frame: {item.frame}")
-    # print (test_case['data']['frame_number'])
-    # print(frame_number)
-    # print("------------")
-
+    assert item.path == absolute
     assert item.name == name
     assert item.frame == frame_number
     assert item.extension == extension
@@ -43,5 +40,4 @@ def test_Item(test_case):
     assert item.padding == padding
     assert item.path.stem == stem
     assert item.filename == file_name
-
-    
+    assert item.post_numeral == post_numeral
