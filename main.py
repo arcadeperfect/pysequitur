@@ -1,5 +1,5 @@
-from pysequitur import Sequence, SequenceParser
-
+from pysequitur import FileSequence, SequenceParser, Item
+import pathlib
 
 file_list = [
         # Basic sequences
@@ -37,14 +37,11 @@ file_list = [
     ]
 
 
-
-
-
-
-
 if __name__ == "__main__":
-    parser = SequenceParser()
-    # for file in file_list:
-    #     f = file.split('.')[0]
-    # print(parser.list_sequence_files(file_list,"shot_a", 'exr'))
-    print(parser.find_sequences(file_list))
+
+    path = "/Users/andy/Downloads"
+
+    sequences = FileSequence._parse_filename_list(file_list, path)
+    
+    for s in sequences:
+        print(s)

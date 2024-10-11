@@ -1,2 +1,2 @@
-from .sequence import Sequence
-from .sequence_parser import SequenceParser
+from .file_sequence import FileSequence
+from .sequence_parser import SequenceParser, Item

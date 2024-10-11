@@ -1,4 +1,4 @@
-from pysequitur import SequenceParser, Sequence
+from pysequitur import SequenceParser, FileSequence
 
 def test_find_sequences():
     # Synthetic data with various scenarios
@@ -39,6 +39,10 @@ def test_find_sequences():
         # Sequences that might yield the same name
         "name_conflict_001.exr", "name_conflict_002.exr", "name_conflict_003.exr",
         "name_conflict.001.exr", "name_conflict.002.exr", "name_conflict.003.exr",
+
+        # Sequences with different file formats
+        "alcohol.0001.exr", "alcohol.0002.exr", "alcohol.0003.exr",
+        "alcohol.0001.jpg", "alcohol.0002.jpg", "alcohol.0003.jpg",
     ]
 
     # Instantiate SequenceParser
@@ -49,7 +53,7 @@ def test_find_sequences():
 
     # Expected sequences
     expected_sequences = [
-        Sequence(
+        FileSequence(
             name='render',
             files=[
                 "render_001.exr", "render_002.exr", "render_003.exr", "render_004.exr", "render_005.exr"
@@ -59,7 +63,7 @@ def test_find_sequences():
             extension='exr',
             separator='_'
         ),
-        Sequence(
+        FileSequence(
             name='shot',
             files=[
                 "shot_0001.jpg", "shot_0002.jpg", "shot_0003.jpg", "shot_0004.jpg", "shot_0005.jpg"
@@ -69,7 +73,7 @@ def test_find_sequences():
             extension='jpg',
             separator='_',
         ),
-        Sequence(
+        FileSequence(
             name='frame',
             files=[
                 "frame.1.png", "frame.2.png", "frame.3.png", "frame.4.png", "frame.5.png"
@@ -79,7 +83,7 @@ def test_find_sequences():
             extension='png',
             separator='.',
         ),
-        Sequence(
+        FileSequence(
             name='scene',
             files=[
                 "scene 01.dpx", "scene 02.dpx", "scene 03.dpx", "scene 04.dpx", "scene 05.dpx"
@@ -89,7 +93,7 @@ def test_find_sequences():
             extension='dpx',
             separator=' '
         ),
-        Sequence(
+        FileSequence(
             name='take',
             files=[
                 "take_001", "take_002", "take_003", "take_004", "take_005"
@@ -99,7 +103,7 @@ def test_find_sequences():
             extension='',
             separator='_',
         ),
-        Sequence(
+        FileSequence(
             name='comp',
             files=[
                 "comp_0001.tif", "comp_00005.tif", "comp_002.tif", "comp_03.tif", "comp_4.tif"
@@ -109,7 +113,7 @@ def test_find_sequences():
             extension='tif',
             separator='_',
         ),
-        Sequence(
+        FileSequence(
             name='anim',
             files=[
                 "anim-001-v1.mov", "anim-002-v1.mov", "anim-003-v1.mov"
@@ -119,7 +123,7 @@ def test_find_sequences():
             extension='mov',
             separator='-',
         ),
-        Sequence(
+        FileSequence(
             name='fx',
             files=[
                 "fx_001_preview.mp4", "fx_002_preview.mp4", "fx_003_preview.mp4"
@@ -129,7 +133,7 @@ def test_find_sequences():
             extension='mp4',
             separator='_',
         ),
-        Sequence(
+        FileSequence(
             name='very_long_sequence_name',
             files=[
                 "very_long_sequence_name_001.exr", "very_long_sequence_name_002.exr", "very_long_sequence_name_003.exr"
@@ -139,7 +143,7 @@ def test_find_sequences():
             extension='exr',
             separator='_',
         ),
-        Sequence(
+        FileSequence(
             name='shot_with_high_numbers',
             files=[
                 "shot_with_high_numbers_0998.jpg", "shot_with_high_numbers_0999.jpg", "shot_with_high_numbers_1000.jpg"
@@ -149,7 +153,7 @@ def test_find_sequences():
             extension='jpg',
             separator='_',
         ),
-        Sequence(
+        FileSequence(
             name='shot_a',
             files=[
                 "shot_a_001.exr", "shot_a_002.exr", "shot_a_003.exr"
@@ -159,7 +163,7 @@ def test_find_sequences():
             extension='exr',
             separator='_',
         ),
-        Sequence(
+        FileSequence(
             name='shot_ab',
             files=[
                 "shot_ab_001.exr", "shot_ab_002.exr", "shot_ab_003.exr"
@@ -169,7 +173,7 @@ def test_find_sequences():
             extension='exr',
             separator='_',
         ),
-        Sequence(
+        FileSequence(
             name='effect',
             files=[
                 "effect@001.nk", "effect@002.nk", "effect@003.nk"
@@ -179,7 +183,7 @@ def test_find_sequences():
             extension='nk',
             separator='@',
         ),
-        Sequence(
+        FileSequence(
             name='comp',
             files=[
                 "comp#01.psd", "comp#02.psd", "comp#03.psd"
@@ -189,7 +193,7 @@ def test_find_sequences():
             extension='psd',
             separator='#',
         ),
-        Sequence(
+        FileSequence(
             name='name_conflict',
             files=[
                     "name_conflict_001.exr", "name_conflict_002.exr", "name_conflict_003.exr"
@@ -199,7 +203,7 @@ def test_find_sequences():
             extension='exr',
             separator='_',
         ),
-           Sequence(
+           FileSequence(
             name='name_conflict',
             files=[
                     "name_conflict.001.exr", "name_conflict.002.exr", "name_conflict.003.exr"
@@ -207,6 +211,26 @@ def test_find_sequences():
             first_frame=1,
             last_frame=3,
             extension='exr',
+            separator='.',
+        ),
+            FileSequence(
+            name='alcohol',
+            files=[
+                    "alcohol.0001.exr", "alcohol.0002.exr", "alcohol.0003.exr"
+            ],
+            first_frame=1,
+            last_frame=3,
+            extension='exr',
+            separator='.',
+        ),
+        FileSequence(
+            name='alcohol',
+            files=[
+                    "alcohol.0001.jpg", "alcohol.0002.jpg", "alcohol.0003.jpg"
+            ],
+            first_frame=1,
+            last_frame=3,
+            extension='jpg',
             separator='.',
         ),
     ]

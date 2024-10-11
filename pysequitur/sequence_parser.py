@@ -1,5 +1,5 @@
 import re
-from .sequence import Sequence
+from .file_sequence import FileSequence, Item
 
 
 class SequenceParser:
@@ -17,7 +17,7 @@ class SequenceParser:
             r'(?:\.(?P<ext>[^\.]+))?'
             r'$'
         )
-
+    
     def parse_filename(self, filename):
         """
         Parses a single filename and returns a dictionary of components.
@@ -59,10 +59,18 @@ class SequenceParser:
                     'files': [],
                     'frames': [],
                     'extension': extension,
+                    'items': [],
                 }
 
             # print(sequences[key])
 
+            this_item = Item(name = cleaned_name, 
+                             frame_number = frame, 
+                             extension = extension, 
+                             file_name = file, 
+                             separator=separator)
+
+            sequences[key]['items'].append(this_item)
             sequences[key]['files'].append(file)
             sequences[key]['frames'].append(frame)
             # Update extension if not already set
@@ -73,14 +81,14 @@ class SequenceParser:
         sequence_list = []
         for seq in sequences.values():
 
-
-            sequence = Sequence(
+            sequence = FileSequence(
                 name=seq['name'],
                 files=sorted(seq['files']),
                 first_frame=min(seq['frames']),
                 last_frame=max(seq['frames']),
                 extension=seq['extension'],
                 separator=seq['separator'],
+                items=sorted(seq['items'], key=lambda i: i.frame_number),
             )
 
             sequence_list.append(sequence)
