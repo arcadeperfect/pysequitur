@@ -1,0 +1,53 @@
+- description: "Case 1"
+  data:
+    file_absolute_path: "/path/to/file_001.exr"
+    name: "file"
+    frame_number: "001"
+    extension: "exr"
+    separator: "_"
+    padding: 3
+    directory: "/path/to"
+    file_stem: "file_001"
+    file_extension: "exr"
+    file_name: file_001.exr
+
+- description: "Case 2"
+  data:
+    file_absolute_path: "/another/path/image.0050.jpg"
+    name: "image"
+    frame_number: "0050"
+    extension: "jpg"
+    separator: "."
+    padding: 4
+    directory: "/another/path"
+    file_stem: "image.0050"
+    file_extension: "jpg"
+    file_name: image.0050.jpg
+
+- description: "Case 3"
+  data:
+    file_absolute_path: "/another/path/image0050.jpg"
+    name: "image"
+    frame_number: "0050"
+    extension: "jpg"
+    separator: ""
+    padding: 4
+    directory: "/another/path"
+    file_stem: "image0050"
+    file_extension: "jpg"
+    file_name: image0050.jpg
+
+- description: "Case 3"
+  data:
+    file_absolute_path: "/another/path/image.0050_warm.jpg"
+    name: "image"
+    frame_number: "0050"
+    extension: "jpg"
+    separator: "."
+    padding: 4
+    directory: "/another/path"
+    file_stem: "image.0050"
+    file_extension: "jpg"
+    file_name: image0050_warm.jpg
+
+

@@ -48,6 +48,10 @@ class Item:
     @property
     def directory(self):
         return self.path.parent
+    
+    @property
+    def padding(self):
+        return len(self.frame)
 
 
 class FileSequence:
