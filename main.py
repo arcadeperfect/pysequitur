@@ -41,7 +41,7 @@ if __name__ == "__main__":
 
 
     path = Path("/a/b/c")
-    file = "render_001_moist.exr"
+    file = "render_001_moist"
 
     item = FileSequence._parse_filename(file, path )
 

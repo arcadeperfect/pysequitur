@@ -50,8 +50,14 @@ class Item:
 
         s = self.separator if self.separator else ""
         p = self.post_numeral if self.post_numeral else ""
+        e = f".{self.extension}" if self.extension else ""
 
-        return f"{self.name}{self.separator}{self.frame}{self.post_numeral}.{self.extension}"
+        return f"{self.name}{s}{self.frame}{p}{e}"
+
+        # s = self.separator if self.separator else ""
+        # p = self.post_numeral if self.post_numeral else ""
+
+        # return f"{self.name}{self.separator}{self.frame}{self.post_numeral}.{self.extension}"
 
     @property
     def directory(self):
@@ -64,13 +70,23 @@ class Item:
 
 class FileSequence:
 
+    # _pattern = (
+    #     r'^'
+    #     r'(?P<name>.*?)'
+    #     r'(?P<separator>[^a-zA-Z\d]+)?'
+    #     r'(?P<frame>\d+)'
+    #     r'(?P<post_numeral>[^a-zA-Z\d]?.*?)'  # Optional separator is now part of post_numeral
+    #     r'(?:\.(?P<ext>[^\.]+))?'
+    #     r'$'
+    # )
+
     _pattern = (
         r'^'
         r'(?P<name>.*?)'
         r'(?P<separator>[^a-zA-Z\d]+)?'
         r'(?P<frame>\d+)'
-        r'(?P<post_numeral>[^a-zA-Z\d]?.*?)'  # Optional separator is now part of post_numeral
-        r'(?:\.(?P<ext>[^\.]+))?'
+        r'(?P<post_numeral>[^a-zA-Z\d]?.*?)'
+        r'(?:\.(?P<ext>(?:[^\.]+\.)*[^\.]+))?'  # Modified to capture multiple extensions
         r'$'
     )
 
@@ -102,8 +118,12 @@ class FileSequence:
             raise ValueError("invalid filepath")
 
         # return Item(dict['name'], dict['frame'], dict['ext'], p, dict['separator'])
-        return Item(dict['name'], dict['frame'], dict['ext'],
-                    p, dict['separator'], dict['post_numeral'])
+        # return Item(dict['name'], dict['frame'], dict['ext'],
+        #             p, dict['separator'], dict['post_numeral'])
+        ext = dict.get('ext', '')
+
+        return Item(dict['name'], dict['frame'], ext,
+                    filepath, dict['separator'], dict['post_numeral'])
 
     @classmethod
     def _parse_filename_list(cls, filename_list, path):

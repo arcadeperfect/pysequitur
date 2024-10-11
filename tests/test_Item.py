@@ -32,6 +32,11 @@ def test_Item(test_case):
 
     item = Item(name, frame_number, extension, directory, separator, post_numeral)
 
+    # print("\n-----")
+    # print(item)
+    # print("-----\n")
+
+
     assert item.path == absolute
     assert item.name == name
     assert item.frame == frame_number
