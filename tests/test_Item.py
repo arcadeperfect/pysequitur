@@ -1,6 +1,4 @@
-
 from pathlib import Path
-# import pysequitur.file_sequence
 from pysequitur.file_sequence import Item
 
 
@@ -36,3 +34,6 @@ def test_item(create_Item_test_files):
         assert item.post_numeral == data['post_numeral']
         assert item.filename == data['file_name']
         assert item.stem == data['file_stem']
+
+
+

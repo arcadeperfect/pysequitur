@@ -1,5 +1,5 @@
 from enum import Flag, auto
-import pathlib
+from pathlib import Path
 import re
 from dataclasses import dataclass
 import os
@@ -18,7 +18,7 @@ class Item:
     name: str
     frame: str
     extension: str
-    path: pathlib.Path
+    path: Path
     separator: str = None
     post_numeral: str = None
 
@@ -72,21 +72,22 @@ class Item:
     @property
     def padding(self):
         return len(self.frame)
-    
-    @property 
+
+    @property
     def stem(self):
         return self.path.stem
+
 
 @dataclass
 class FileSequence:
 
-    name: str
-    first_frame: int
-    last_frame: int
-    extension: str
+    # name: str
+    # first_frame: int
+    # last_frame: int
+    # extension: str
     items: list[Item]
-    separator: str = None
-    post_numeral: str = None
+    # separator: str = None
+    # post_numeral: str = None
 
     # _pattern = (
     #     r'^'
@@ -98,8 +99,6 @@ class FileSequence:
     #     r'$'
     # )
 
-   
-
     # def __init__(self, name, first_frame, last_frame, extension, items, separator=None):
     #     self.name = name
     #     # self.files = files
@@ -110,7 +109,7 @@ class FileSequence:
     #     self.items = items
 
     def __str__(self):
-        return f"name: {self.name} | first_frame: {self.first_frame} | last_frame: {self.last_frame} | extension: {self.extension}"
+        return f"name: {self.name} \n first_frame: {self.first_frame} \n last_frame: {self.last_frame} \n extension: {self.extension}"
 
     def __eq__(self, other):
 
@@ -136,8 +135,6 @@ class FileSequence:
 
         return equal
 
-
-
     @property
     def existing_frames(self):
         frames = [item.frame_number for item in self.items]
@@ -154,6 +151,42 @@ class FileSequence:
     @property
     def healthy(self):
         raise NotImplementedError()
+
+    @property
+    def first_frame(self):
+        return min(self.items, key=lambda item: item.frame).frame
+
+    @property
+    def last_frame(self):
+        return max(self.items, key=lambda item: item.frame).frame
+
+    @property
+    def name(self):
+        return self.items[0].name
+
+    @property
+    def extension(self):
+        return self.items[0].extension
+
+    @property
+    def separator(self):
+        return self.items[0].separator
+
+    @property
+    def post_numeral(self):
+        return self.items[0].post_numeral
+
+    @property
+    def missing_frames(self):
+        return [item.frame for item in self.items]
+
+    @property
+    def missing_frames(self):
+        return set(range(self.first_frame, self.last_frame + 1)) - set(self.existing_frames)
+
+    @property
+    def frame_count(self):
+        return self.last_frame - self.first_frame
 
 
 @dataclass
@@ -175,23 +208,85 @@ class file_profile:
 #     last_frame: int
 
 
-class Parser:
+# class Parser:
 
+#     pattern = (
+#         r'^'
+#         r'(?P<name>.*?(?=(?:[^a-zA-Z\d]+)?\d{3,7}(?!.*\d{3,7})))'  # Name up to last frame number
+#         r'(?P<separator>[^a-zA-Z\d]+)?'                            # Separator before frame
+#         r'(?P<frame>\d{3,7})'                                      # Frame number (3-7 digits)
+#         r'(?!.*\d{3,7})'                                           # Negative lookahead for more digits
+#         r'(?P<post_numeral>.*?)'                                   # Non-greedy match up to extension
+#         r'(?:\.(?P<ext>[^.]+(?:\.[^.]+)?))?'                       # Dot and extension (up to 2 parts)
+#         r'$'
+#     )
+
+#     @staticmethod
+#     def parse_filename(filename, directory="None", pattern=None):
+#         """
+#         Parses a single filename and returns a file_profile of components.
+#         """
+
+#         if len(Path(filename).parts) > 1:
+#             raise ValueError("first argument must be a name, not a path")
+
+#         if not pattern:
+#             pattern = Parser.pattern
+
+#         match = re.match(pattern, filename)
+#         if not match:
+#             return None
+
+#         dict = match.groupdict()
+
+#         # print(filename)
+#         # print(dict)
+
+#         if not "frame" in dict.keys():
+#             raise ValueError("invalid regex, must contain 'frame' group")
+#         if not "name" in dict.keys():
+#             raise ValueError("invalid regex, must contain 'name' group")
+#         if not "ext" in dict.keys():
+#             raise ValueError("invalid regex, must contain 'ext' group")
+#         if not "separator" in dict.keys():
+#             raise ValueError("invalid regex, must contain 'separator' group")
+
+#         if directory == "None":
+#             directory = ""
+#         path = Path(os.path.join(directory, filename))
+
+#         if not path:
+#             raise ValueError("invalid filepath")
+
+#         ext = dict.get('ext', '')
+
+#         return Item(dict['name'],
+#                     dict['frame'],
+#                     ext,
+#                     path,
+#                     dict['separator'],
+#                     dict['post_numeral']
+#                     )
+class Parser:
     pattern = (
         r'^'
-        r'(?P<name>.*?)'
-        r'(?P<separator>[^a-zA-Z\d]+)?'
-        r'(?P<frame>\d+)'
-        r'(?P<post_numeral>[^a-zA-Z\d]?.*?)'
-        r'(?:\.(?P<ext>(?:[^\.]+\.)*[^\.]+))?'
-        r'$'
+        r'(?P<name>.*?(?=[^a-zA-Z\d]*\d{3,7}(?!.*\d{3,7})))'  # Name up to last frame number
+        r'(?P<separator>[^a-zA-Z\d]*)'                         # Separator before frame (optional)
+        r'(?P<frame>\d{3,7})'                                  # Frame number (3-7 digits)
+        r'(?!.*\d{3,7})'                                       # Negative lookahead for more digits
+        r'(?P<post_numeral>.*?)'                               # Non-greedy match up to extension
+        r'(?:\.(?P<ext>.*))?$'                                 # Dot and extension (everything after last dot)
     )
 
+    known_extensions = {'exr.gz', 'tar.gz', 'tar.bz2', 'log.gz'}
+
     @staticmethod
-    def parse_filename(filename, directory, pattern=None):
+    def parse_filename(filename, directory="None", pattern=None):
         """
         Parses a single filename and returns a file_profile of components.
         """
+        if len(Path(filename).parts) > 1:
+            raise ValueError("first argument must be a name, not a path")
 
         if not pattern:
             pattern = Parser.pattern
@@ -202,33 +297,57 @@ class Parser:
 
         dict = match.groupdict()
 
-        if not "frame" in dict.keys():
-            raise ValueError("invalid regex, must contain 'frame' group")
-        if not "name" in dict.keys():
-            raise ValueError("invalid regex, must contain 'name' group")
-        if not "ext" in dict.keys():
-            raise ValueError("invalid regex, must contain 'ext' group")
-        if not "separator" in dict.keys():
-            raise ValueError("invalid regex, must contain 'separator' group")
+        # Set default values if keys are missing
+        dict.setdefault('frame', '')
+        dict.setdefault('name', '')
+        dict.setdefault('ext', '')
+        dict.setdefault('separator', '')
+        dict.setdefault('post_numeral', '')
 
-        path = pathlib.Path(filename / directory)
+        if directory == "None":
+            directory = ""
+        path = Path(os.path.join(directory, filename))
 
         if not path:
             raise ValueError("invalid filepath")
 
-        # return Item(dict['name'], dict['frame'], dict['ext'], p, dict['separator'])
-        # return Item(dict['name'], dict['frame'], dict['ext'],
-        #             p, dict['separator'], dict['post_numeral'])
+        # Start of modified code
         ext = dict.get('ext', '')
 
-        # return file_profile(dict['name'], dict['frame'], dict['frame'], ext, dict['separator'], dict['post_numeral'], directory)
-        return Item(dict['name'],
-                    dict['frame'],
-                    ext,
-                    path,
-                    dict['separator'],
-                    dict['post_numeral']
-                    )
+        if dict['ext']:
+            # Split the extension by dots
+            ext_parts = dict['ext'].split('.')
+            # Check for known multi-part extensions
+            for i in range(len(ext_parts)):
+                possible_ext = '.'.join(ext_parts[i:])
+                if possible_ext in Parser.known_extensions:
+                    # Adjust post_numeral
+                    if ext_parts[:i]:
+                        dict['post_numeral'] += '.' + '.'.join(ext_parts[:i])
+                    ext = possible_ext
+                    break
+            else:
+                # If no known multi-part extension is found, use the last part as the extension
+                if len(ext_parts) > 1:
+                    dict['post_numeral'] += '.' + '.'.join(ext_parts[:-1])
+                ext = ext_parts[-1]
+        else:
+            ext = ''
+
+        # Remove trailing dot from post_numeral if present
+        if dict['post_numeral'].endswith('.'):
+            dict['post_numeral'] = dict['post_numeral'][:-1]
+
+        # End of modified code
+
+        return Item(
+            dict['name'],
+            dict['frame'],
+            ext,
+            path,
+            dict['separator'],
+            dict['post_numeral']
+        )
 
     @staticmethod
     def find_sequences(filename_list, directory=None, pattern=None):

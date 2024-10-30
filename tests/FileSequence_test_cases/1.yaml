@@ -1,0 +1,16 @@
+- description: "Basic file sequence"
+  data:
+    path: "/path/to/"
+    files:
+      - "img_001.exr"
+      - "img_002.exr"
+      - "img_003.exr"
+    name: "img"
+    first_frame: 1
+    last_frame: 3
+    extension: "exr"
+    separator: "_"
+    post_numeral: ""
+    existing_frames: [1, 2, 3]
+    missing_frames: []
+    frames_count: 3
