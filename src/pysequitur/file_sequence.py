@@ -3,6 +3,7 @@ from pathlib import Path
 import re
 from dataclasses import dataclass
 import os
+from collections import Counter
 
 
 class Problems(Flag):
@@ -16,7 +17,7 @@ class Problems(Flag):
 class Item:
 
     name: str
-    frame: str
+    frame_string: str
     extension: str
     path: Path
     separator: str = None
@@ -63,7 +64,7 @@ class Item:
         p = self.post_numeral if self.post_numeral else ""
         e = f".{self.extension}" if self.extension else ""
 
-        return f"{self.name}{s}{self.frame}{p}{e}"
+        return f"{self.name}{s}{self.frame_string}{p}{e}"
 
     @property
     def directory(self):
@@ -71,73 +72,29 @@ class Item:
 
     @property
     def padding(self):
-        return len(self.frame)
+        return len(self.frame_string)
 
     @property
     def stem(self):
         return self.path.stem
 
+    @property
+    def frame_number(self):
+        return int(self.frame_string)
+
+    @staticmethod
+    def test():
+        return "succerss"
+
 
 @dataclass
 class FileSequence:
 
-    # name: str
-    # first_frame: int
-    # last_frame: int
-    # extension: str
     items: list[Item]
-    # separator: str = None
-    # post_numeral: str = None
-
-    # _pattern = (
-    #     r'^'
-    #     r'(?P<name>.*?)'
-    #     r'(?P<separator>[^a-zA-Z\d]+)?'
-    #     r'(?P<frame>\d+)'
-    #     r'(?P<post_numeral>[^a-zA-Z\d]?.*?)'
-    #     r'(?:\.(?P<ext>(?:[^\.]+\.)*[^\.]+))?'  # Modified to capture multiple extensions
-    #     r'$'
-    # )
-
-    # def __init__(self, name, first_frame, last_frame, extension, items, separator=None):
-    #     self.name = name
-    #     # self.files = files
-    #     self.first_frame = first_frame
-    #     self.last_frame = last_frame
-    #     self.extension = extension
-    #     self.separator = separator
-    #     self.items = items
-
-    def __str__(self):
-        return f"name: {self.name} \n first_frame: {self.first_frame} \n last_frame: {self.last_frame} \n extension: {self.extension}"
-
-    def __eq__(self, other):
-
-        if not isinstance(other, FileSequence):
-            return False
-
-        equal = True
-
-        if self.name != other.name:
-            equal = False
-
-        if self.first_frame != other.first_frame:
-            equal = False
-
-        if self.last_frame != other.last_frame:
-            equal = False
-
-        if self.extension != other.extension:
-            equal = False
-
-        if self.files != other.files:
-            equal = False
-
-        return equal
-
+   
     @property
     def existing_frames(self):
-        frames = [item.frame_number for item in self.items]
+        return [(item.frame_number) for item in self.items]
 
     @property
     def missing_frames(self):
@@ -154,31 +111,32 @@ class FileSequence:
 
     @property
     def first_frame(self):
-        return min(self.items, key=lambda item: item.frame).frame
+        return min(self.items, key=lambda item: item.frame_number).frame_number
 
     @property
     def last_frame(self):
-        return max(self.items, key=lambda item: item.frame).frame
+        return max(self.items, key=lambda item: item.frame_number).frame_number
 
     @property
     def name(self):
-        return self.items[0].name
+        
+        return self._check_consistent_property(prop_name="name")
 
     @property
     def extension(self):
-        return self.items[0].extension
+        return self._check_consistent_property(prop_name="extension")
 
     @property
     def separator(self):
-        return self.items[0].separator
+        return self._check_consistent_property(prop_name="separator")
 
     @property
     def post_numeral(self):
-        return self.items[0].post_numeral
+        return self._check_consistent_property(prop_name="post_numeral")
 
     @property
     def missing_frames(self):
-        return [item.frame for item in self.items]
+        return [item.frame_number for item in self.items]
 
     @property
     def missing_frames(self):
@@ -186,7 +144,30 @@ class FileSequence:
 
     @property
     def frame_count(self):
-        return self.last_frame - self.first_frame
+        return self.last_frame + 1 - self.first_frame
+
+    @property
+    def padding(self):
+        if not self.items:
+            return None 
+        padding_counts = Counter(item.padding for item in self.items)
+        return padding_counts.most_common(1)[0][0]
+
+    def _check_consistent_property(self, prop_name=None, getter=None):
+        """Check if all items have the same value for a property."""
+        if not self.items:
+            raise ValueError("Empty sequence")
+            
+        if getter:
+            values = [getter(item) for item in self.items]
+        else:
+            values = [getattr(item, prop_name) for item in self.items]
+        
+        first = values[0]
+        if not all(v == first for v in values):
+            raise AnomalousItemDataError(f"Inconsistent {prop_name or 'property'} values")
+        return first
+
 
 
 @dataclass
@@ -268,20 +249,36 @@ class file_profile:
 #                     dict['post_numeral']
 #                     )
 class Parser:
+    # pattern = (
+    #     r'^'
+    #     r'(?P<name>.*?(?=[^a-zA-Z\d]*\d{3,7}(?!.*\d{3,7})))'  # Name up to last frame number
+    #     r'(?P<separator>[^a-zA-Z\d]*)'                         # Separator before frame (optional)
+    #     r'(?P<frame>\d{3,7})'                                  # Frame number (3-7 digits)
+    #     r'(?!.*\d{3,7})'                                       # Negative lookahead for more digits
+    #     r'(?P<post_numeral>.*?)'                               # Non-greedy match up to extension
+    #     r'(?:\.(?P<ext>.*))?$'                                 # Dot and extension (everything after last dot)
+    # )
+
     pattern = (
         r'^'
-        r'(?P<name>.*?(?=[^a-zA-Z\d]*\d{3,7}(?!.*\d{3,7})))'  # Name up to last frame number
-        r'(?P<separator>[^a-zA-Z\d]*)'                         # Separator before frame (optional)
-        r'(?P<frame>\d{3,7})'                                  # Frame number (3-7 digits)
-        r'(?!.*\d{3,7})'                                       # Negative lookahead for more digits
-        r'(?P<post_numeral>.*?)'                               # Non-greedy match up to extension
-        r'(?:\.(?P<ext>.*))?$'                                 # Dot and extension (everything after last dot)
+        # Name up to last frame number
+        r'(?P<name>.*?(?=[^a-zA-Z\d]*\d+(?!.*\d+)))'
+        # Separator before frame (optional)
+        r'(?P<separator>[^a-zA-Z\d]*)'
+        # Frame number (1 or more digits)
+        r'(?P<frame>\d+)'
+        # Negative lookahead for more digits
+        r'(?!.*\d+)'
+        # Non-greedy match up to extension
+        r'(?P<post_numeral>.*?)'
+        # Dot and extension (everything after last dot)
+        r'(?:\.(?P<ext>.*))?$'
     )
 
     known_extensions = {'exr.gz', 'tar.gz', 'tar.bz2', 'log.gz'}
 
     @staticmethod
-    def parse_filename(filename, directory="None", pattern=None):
+    def parse_filename(filename, directory=None, pattern=None):
         """
         Parses a single filename and returns a file_profile of components.
         """
@@ -304,7 +301,7 @@ class Parser:
         dict.setdefault('separator', '')
         dict.setdefault('post_numeral', '')
 
-        if directory == "None":
+        if directory == None:
             directory = ""
         path = Path(os.path.join(directory, filename))
 
@@ -362,9 +359,17 @@ class Parser:
         post_numeral: str = None
 
         """
-        sequences = {}
+
+        # print("\n find sequences")
+        # print(filename_list)
+
+        # return None
+
+        sequence_dict = {}
 
         for file in filename_list:
+
+            # print(file)
 
             parsed_item = Parser.parse_filename(file, directory)
             if not parsed_item:
@@ -372,7 +377,7 @@ class Parser:
 
             original_name = parsed_item.name
             separator = parsed_item.separator or ''
-            frame = parsed_item.frame
+            frame = parsed_item.frame_string
             extension = parsed_item.extension or ''
 
             # Remove diving character from the end of the name
@@ -382,8 +387,8 @@ class Parser:
             cleaned_name = re.sub(r'[^a-zA-Z0-9]+$', '', original_name)
             key = (cleaned_name, separator, extension)
 
-            if key not in sequences:
-                sequences[key] = {
+            if key not in sequence_dict:
+                sequence_dict[key] = {
                     'name': cleaned_name,
                     'separator': separator,
                     'frames': [],
@@ -391,25 +396,41 @@ class Parser:
                     'items': [],
                 }
 
-            sequences[key]['items'].append(parsed_item)
-            sequences[key]['frames'].append(frame)
+            sequence_dict[key]['items'].append(parsed_item)
+            sequence_dict[key]['frames'].append(frame)
             # Update extension if not already set (can happen with bad sequence)
-            if not sequences[key]['extension']:
-                sequences[key]['extension'] = extension
+            if not sequence_dict[key]['extension']:
+                sequence_dict[key]['extension'] = extension
 
         # Create Sequence instances
         sequence_list = []
-        for seq in sequences.values():
+        for seq in sequence_dict.values():
+
+            if len(seq['items']) < 2:
+                continue
 
             sequence = FileSequence(
-                name=seq['name'],
-                first_frame=min(seq['frames']),
-                last_frame=max(seq['frames']),
-                extension=seq['extension'],
-                separator=seq['separator'],
-                items=sorted(seq['items'], key=lambda i: i.frame),
-            )
+                sorted(seq['items'], key=lambda i: i.frame_number))
+
+            # sequence = FileSequence(
+            #     name=seq['name'],
+            #     first_frame=min(seq['frames']),
+            #     last_frame=max(seq['frames']),
+            #     extension=seq['extension'],
+            #     separator=seq['separator'],
+            #     items=sorted(seq['items'], key=lambda i: i.frame),
+            # )
 
             sequence_list.append(sequence)
 
         return sequence_list
+
+        # return None
+
+
+
+class AnomalousItemDataError(Exception):
+    """
+    Raised when unacceptable inconsistent data is found in a FileSequence
+    """
+    pass

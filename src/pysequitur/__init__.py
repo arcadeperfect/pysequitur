@@ -1,8 +1,3 @@
-# from pysequitur import FileSequence, SequenceParser, Item
+# from .file_sequence import FileSequence, Parser
 
-# __all__ = ["FileSequence", "SequenceParser", "Item"]
-
-from .file_sequence import FileSequence
-
-
-__all__ = ["FileSequence", "SequenceParser"]
+# __all__ = ["FileSequence", "Parser"]

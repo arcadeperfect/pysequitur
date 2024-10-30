@@ -153,3 +153,55 @@
     file_stem: "prefix.1001.postfix"
     post_numeral: ".postfix"
     file_name: prefix.1001.postfix.png
+
+- description: "Single frame padding"
+  data:
+    path: "/path/to/prefix.6.png"
+    name: "prefix"
+    frame_number: "6"
+    extension: "png"
+    separator: "."
+    padding: 1
+    directory: "/path/to"
+    file_stem: "prefix.6"
+    post_numeral: ""
+    file_name: prefix.6.png
+
+- description: "Double frame padding"
+  data:
+    path: "/path/to/prefix.06.png"
+    name: "prefix"
+    frame_number: "06"
+    extension: "png"
+    separator: "."
+    padding: 2
+    directory: "/path/to"
+    file_stem: "prefix.06"
+    post_numeral: ""
+    file_name: prefix.06.png
+
+- description: "15 frame padding"
+  data:
+    path: "/path/to/prefix.123456789012345.png"
+    name: "prefix"
+    frame_number: "123456789012345"
+    extension: "png"
+    separator: "."
+    padding: 15
+    directory: "/path/to"
+    file_stem: "prefix.123456789012345"
+    post_numeral: ""
+    file_name: prefix.123456789012345.png
+
+- description: "?"
+  data:
+    path: "/comp/v001/comp.v001.0010.exr"
+    name: "comp.v001"
+    frame_number: "0010"
+    extension: "exr"
+    separator: "."
+    padding: 4
+    directory: "/comp/v001"
+    file_stem: "comp.v001.0010"
+    post_numeral: ""
+    file_name: comp.v001.0010.exr

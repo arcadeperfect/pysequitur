@@ -1,22 +1,37 @@
-# from pathlib import Path
-# from pysequitur.file_sequence import FileSequence, Parser
+from pysequitur.file_sequence import FileSequence, Parser
+from pathlib import Path
 
-# def test_FileSequence(create_FileSequence_test_files):
-#     test_cases_dir = Path(__file__).parent / 'FileSequence_test_cases'
-#     yaml_file = test_cases_dir / '1.yaml'
+def normalize_empty(value):
+    return None if value == '' else value
 
-#     test_env = create_FileSequence_test_files(yaml_file)
+def compare(actual, expected):
+    assert normalize_empty(actual) == normalize_empty(expected)
 
-#     # print("testing")
+def test_filesequence(load_test_cases):
 
-#     for test in test_env:
+    # print("\n -----")
 
-#         data = test['data']
-#         files = data['files']
+    test_cases_dir = Path(__file__).parent / 'FileSequence_test_cases'
+    yaml_file = test_cases_dir / '1.yaml'
+
+    cases = load_test_cases(yaml_file)
+
+    for case in cases:
+        data = case['data']
+
+        # print(data['name'])
+
+        sequence = Parser.find_sequences(data['files'])[0]
 
 
-#         items = [Parser.parse_filename(i, test['test_dir']) for i in files]
 
-#         fileSequence = FileSequence(items)
-
-        
+        compare(sequence.name, data['name'])
+        compare(sequence.first_frame, data['first_frame'])
+        compare(sequence.last_frame, data['last_frame'])
+        compare(sequence.extension, data['extension'])
+        compare(sequence.separator, data['separator'])
+        compare(sequence.post_numeral, data['post_numeral'])
+        compare(sequence.existing_frames, data['existing_frames'])
+        compare(list(sequence.missing_frames), data['missing_frames'])
+        compare(sequence.frame_count, data['frames_count'])
+        compare(sequence.padding, data['padding'])
