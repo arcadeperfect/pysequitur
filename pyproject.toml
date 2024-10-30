@@ -1,17 +1,22 @@
 [tool.poetry]
-name = "pysequetur"
+name = "pysequitur"
 version = "0.1.0"
 description = ""
 authors = ["arcadeperfect <alexander.harding@gmail.com>"]
 readme = "README.md"
+packages = [{include = "pysequitur", from = "src"}]
+
 
 [tool.poetry.dependencies]
 python = "^3.12"
 
 
+
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.3"
 pyyaml = "^6.0.2"
+mypy = "^1.0"
+black = "^24.10.0"
 
 [build-system]
 requires = ["poetry-core"]

@@ -1,90 +1,6 @@
-# - description: "Case 1"
-#   data:
-#     file_absolute_path: "/path/to/file_001.exr"
-#     name: "file"
-#     frame_number: "001"
-#     extension: "exr"
-#     separator: "_"
-#     padding: 3
-#     directory: "/path/to"
-#     file_stem: "file_001"
-#     post_numeral: ""
-#     file_extension: "exr"
-#     file_name: file_001.exr
-
-# - description: "Case 2"
-#   data:
-#     file_absolute_path: "/another/path/image.0050.jpg"
-#     name: "image"
-#     frame_number: "0050"
-#     extension: "jpg"
-#     separator: "."
-#     padding: 4
-#     directory: "/another/path"
-#     file_stem: "image.0050"
-#     post_numeral: ""
-#     file_extension: "jpg"
-#     file_name: image.0050.jpg
-
-# - description: "Case 3"
-#   data:
-#     file_absolute_path: "/another/path/image0050.jpg"
-#     name: "image"
-#     frame_number: "0050"
-#     extension: "jpg"
-#     separator: ""
-#     padding: 4
-#     directory: "/another/path"
-#     file_stem: "image0050"
-#     post_numeral: ""
-#     file_extension: "jpg"
-#     file_name: image0050.jpg
-
-# - description: "Case 3"
-#   data:
-#     file_absolute_path: "/another/path/image.0050_warm.jpg"
-#     name: "image"
-#     frame_number: "0050"
-#     extension: "jpg"
-#     separator: "."
-#     padding: 4
-#     directory: "/another/path"
-#     file_stem: "image.0050_warm"
-#     post_numeral: "_warm"
-#     file_extension: "jpg"
-#     file_name: image.0050_warm.jpg
-
-# - description: "Case 3"
-#   data:
-#     file_absolute_path: "/another/path/image_v001.12345.jpg"
-#     name: "image_v001"
-#     frame_number: "12345"
-#     extension: "jpg"
-#     separator: "."
-#     padding: 5
-#     directory: "/another/path"
-#     file_stem: "image_v001.12345"
-#     post_numeral: ""
-#     file_extension: "jpg"
-#     file_name: image_v001.12345.jpg
-
-# - description: "Case 3"
-#   data:
-#     file_absolute_path: "/another/path/image_023_v001.12345.moist.jpg"
-#     name: "image_023_v001"
-#     frame_number: "12345"
-#     extension: "jpg"
-#     separator: "."
-#     padding: 5
-#     directory: "/another/path"
-#     file_stem: "image_023_v001.12345.moist"
-#     post_numeral: ".moist"
-#     file_extension: "jpg"
-#     file_name: image_023_v001.12345.moist.jpg
-
 - description: "Basic file sequence with underscore separator"
   data:
-    file_absolute_path: "/path/to/file_001.exr"
+    path: "/path/to/file_001.exr"
     name: "file"
     frame_number: "001"
     extension: "exr"
@@ -93,12 +9,11 @@
     directory: "/path/to"
     file_stem: "file_001"
     post_numeral: ""
-    file_extension: "exr"
     file_name: file_001.exr
 
 - description: "File sequence with dot separator and 4-digit padding"
   data:
-    file_absolute_path: "/another/path/image.0050.jpg"
+    path: "/another/path/image.0050.jpg"
     name: "image"
     frame_number: "0050"
     extension: "jpg"
@@ -107,12 +22,11 @@
     directory: "/another/path"
     file_stem: "image.0050"
     post_numeral: ""
-    file_extension: "jpg"
     file_name: image.0050.jpg
 
 - description: "File sequence without separator"
   data:
-    file_absolute_path: "/another/path/image0050.jpg"
+    path: "/another/path/image0050.jpg"
     name: "image"
     frame_number: "0050"
     extension: "jpg"
@@ -121,12 +35,11 @@
     directory: "/another/path"
     file_stem: "image0050"
     post_numeral: ""
-    file_extension: "jpg"
     file_name: image0050.jpg
 
 - description: "File sequence with dot separator and post-numeral"
   data:
-    file_absolute_path: "/another/path/image.0050_warm.jpg"
+    path: "/another/path/image.0050_warm.jpg"
     name: "image"
     frame_number: "0050"
     extension: "jpg"
@@ -135,12 +48,11 @@
     directory: "/another/path"
     file_stem: "image.0050_warm"
     post_numeral: "_warm"
-    file_extension: "jpg"
     file_name: image.0050_warm.jpg
 
 - description: "File sequence with version number in name"
   data:
-    file_absolute_path: "/another/path/image_v001.12345.jpg"
+    path: "/another/path/image_v001.12345.jpg"
     name: "image_v001"
     frame_number: "12345"
     extension: "jpg"
@@ -149,12 +61,11 @@
     directory: "/another/path"
     file_stem: "image_v001.12345"
     post_numeral: ""
-    file_extension: "jpg"
     file_name: image_v001.12345.jpg
 
 - description: "Complex file sequence with version, frame number, and post-numeral"
   data:
-    file_absolute_path: "/another/path/image_023_v001.12345.moist.jpg"
+    path: "/another/path/image_023_v001.12345.moist.jpg"
     name: "image_023_v001"
     frame_number: "12345"
     extension: "jpg"
@@ -163,12 +74,11 @@
     directory: "/another/path"
     file_stem: "image_023_v001.12345.moist"
     post_numeral: ".moist"
-    file_extension: "jpg"
     file_name: image_023_v001.12345.moist.jpg
 
 - description: "File sequence with multiple extensions"
   data:
-    file_absolute_path: "/path/to/render.1001.exr.gz"
+    path: "/path/to/render.1001.exr.gz"
     name: "render"
     frame_number: "1001"
     extension: "exr.gz"
@@ -177,12 +87,11 @@
     directory: "/path/to"
     file_stem: "render.1001.exr"
     post_numeral: ""
-    file_extension: "exr.gz"
     file_name: render.1001.exr.gz
 
 - description: "File sequence with large frame number"
   data:
-    file_absolute_path: "/path/to/longrender_9999999.png"
+    path: "/path/to/longrender_9999999.png"
     name: "longrender"
     frame_number: "9999999"
     extension: "png"
@@ -191,12 +100,11 @@
     directory: "/path/to"
     file_stem: "longrender_9999999"
     post_numeral: ""
-    file_extension: "png"
     file_name: longrender_9999999.png
 
 - description: "File sequence with special characters in name"
   data:
-    file_absolute_path: "/path/to/spécial@char_001.jpg"
+    path: "/path/to/spécial@char_001.jpg"
     name: "spécial@char"
     frame_number: "001"
     extension: "jpg"
@@ -205,12 +113,11 @@
     directory: "/path/to"
     file_stem: "spécial@char_001"
     post_numeral: ""
-    file_extension: "jpg"
     file_name: spécial@char_001.jpg
 
 - description: "File sequence without extension"
   data:
-    file_absolute_path: "/path/to/noext_0010"
+    path: "/path/to/noext_0010"
     name: "noext"
     frame_number: "0010"
     extension: ""
@@ -219,12 +126,11 @@
     directory: "/path/to"
     file_stem: "noext_0010"
     post_numeral: ""
-    file_extension: ""
     file_name: noext_0010
 
 - description: "File sequence with multiple frame numbers"
   data:
-    file_absolute_path: "/path/to/shot_001_v002_0030.exr"
+    path: "/path/to/shot_001_v002_0030.exr"
     name: "shot_001_v002"
     frame_number: "0030"
     extension: "exr"
@@ -233,12 +139,11 @@
     directory: "/path/to"
     file_stem: "shot_001_v002_0030"
     post_numeral: ""
-    file_extension: "exr"
     file_name: shot_001_v002_0030.exr
 
 - description: "File sequence with frame number in the middle"
   data:
-    file_absolute_path: "/path/to/prefix.1001.postfix.png"
+    path: "/path/to/prefix.1001.postfix.png"
     name: "prefix"
     frame_number: "1001"
     extension: "png"
@@ -247,5 +152,4 @@
     directory: "/path/to"
     file_stem: "prefix.1001.postfix"
     post_numeral: ".postfix"
-    file_extension: "png"
     file_name: prefix.1001.postfix.png

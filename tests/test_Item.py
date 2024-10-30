@@ -1,48 +1,38 @@
-import yaml
-from pathlib import Path
-import pytest
 
+from pathlib import Path
+# import pysequitur.file_sequence
 from pysequitur.file_sequence import Item
 
-def load_test_cases():
+
+
+def test_item(create_Item_test_files):
+
     test_cases_dir = Path(__file__).parent / 'Item_test_cases'
-    for yaml_file in test_cases_dir.glob('*.yaml'):
-        with open(yaml_file, 'r') as f:
-            test_cases = yaml.safe_load(f)
-            for test_case in test_cases:
-                yield test_case
+    yaml_file = test_cases_dir / '1.yaml'
 
-@pytest.mark.parametrize("test_case", load_test_cases())
-def test_Item(test_case):
-    # Create an Item instance with the input path
+    test_env = create_Item_test_files(yaml_file)
 
-    description = test_case['description']
-    print(description)
+    for test in test_env:
+        # print(test['data']['path'])
+        # print(test['real_file'].exists())
 
-    absolute = Path((test_case['data']['file_absolute_path']))
-    directory = Path((test_case['data']['directory']))
-    name = test_case['data']['name']
-    frame_number = test_case['data']['frame_number']
-    extension = test_case['data']['extension']
-    separator = test_case['data']['separator']
-    padding = test_case['data']['padding']
-    stem = test_case['data']['file_stem']
-    file_name = test_case['data']['file_name']
-    post_numeral = test_case['data']['post_numeral']
+        data = test['data']
 
-    item = Item(name, frame_number, extension, directory, separator, post_numeral)
+        # print(test['test_dir'])
 
-    # print("\n-----")
-    # print(item)
-    # print("-----\n")
+        item = Item(data['name'],
+                    data['frame_number'],
+                    data['extension'],
+                    test['real_file'],
+                    data['separator'],
+                    data['post_numeral'])
 
-
-    assert item.path == absolute
-    assert item.name == name
-    assert item.frame == frame_number
-    assert item.extension == extension
-    assert item.separator == separator
-    assert item.padding == padding
-    assert item.path.stem == stem
-    assert item.filename == file_name
-    assert item.post_numeral == post_numeral
+        assert item.path.relative_to(test['test_dir']) == test['real_file'].relative_to(test['test_dir'])
+        assert item.name == data['name']    
+        assert item.frame == data['frame_number']
+        assert item.extension == data['extension']
+        assert item.separator == data['separator']
+        assert item.padding == data['padding']
+        assert item.post_numeral == data['post_numeral']
+        assert item.filename == data['file_name']
+        assert item.stem == data['file_stem']
