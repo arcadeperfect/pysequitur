@@ -23,12 +23,6 @@ class Item:
     separator: str = None
     post_numeral: str = None
 
-    def __post_init__(self):
-        if any(char.isdigit() for char in self.post_numeral):
-            raise ValueError("post_numeral cannot contain digits")
-
-
-
     @property
     def filename(self):
 
@@ -40,7 +34,7 @@ class Item:
 
     @property
     def directory(self):
-        return str(self.path.parent)
+        return self.path.parent
 
     @property
     def padding(self):
@@ -54,9 +48,9 @@ class Item:
     def frame_number(self):
         return int(self.frame_string)
     
-    # @property
-    # def full_path(self):
-    #     return self.path
+    @property
+    def frame_string(self):
+        frame_string = f"{self.frame_string:0{self.padding}d}"  # "0003"
     
     def move(self, new_directory):
         if self.path.exists():
@@ -67,39 +61,12 @@ class Item:
             raise FileNotFoundError()
 
     def rename(self, new_name):
-
-        if not self.path.exists():
+        if self.path.exists():
+            new_path = self.directory / self.filename
+            self.path.rename(new_path)
+            self.path = new_path  # Update the path attribute
+        else:
             raise FileNotFoundError()
-        
-        if isinstance(new_name, str):
-            self.name = new_name
-            self.path = self.path.rename(self.path.with_name(self.filename))
-            return
-
-        if isinstance(new_name, Renamer):
-
-            if new_name.name is not None:   
-                self.name = new_name.name
-
-            if new_name.separator is not None:
-                self.separator = new_name.separator
-
-            if new_name.padding is not None:
-                padding = max(new_name.padding, self._min_padding)
-                self.frame_string = f"{self.frame_number:0{padding}d}"
-
-            if new_name.post_numeral is not None:
-                self.post_numeral = new_name.post_numeral
-
-            if new_name.extension is not None:
-                self.extension = new_name.extension
-
-            self.path = self.path.rename(self.path.with_name(self.filename))
-            return
-            
-        raise ValueError("new_name must be a string or a Renamer object")
-
-
         
     def delete(self):
         if self.path.exists():
@@ -107,32 +74,9 @@ class Item:
         else:
             raise FileNotFoundError()
 
-
-    @property
-    def exists(self):
-        return self.path.exists()
-    
-
-    @property
-    def directory(self):
-        return self.path.parent
-
     def change_padding(self, new_padding):
         raise NotImplementedError()
 
-
-    @property
-    def _min_padding(self):
-        return len(str(int(self.frame_string)))
-
-@dataclass
-class Renamer:
-
-    name: str = None
-    separator: str = None
-    padding: int = None
-    post_numeral: str = None
-    extension: str = None
 
 
 
@@ -168,6 +112,7 @@ class FileSequence:
 
     @property
     def name(self):
+        
         return self._check_consistent_property(prop_name="name")
 
     @property
@@ -200,22 +145,6 @@ class FileSequence:
             return None 
         padding_counts = Counter(item.padding for item in self.items)
         return padding_counts.most_common(1)[0][0]
-    
-    def rename(self, new_name):
-
-        self._validate()
-
-        for item in self.items:
-            item.rename(new_name)
-    
-    def move(self, new_directory):
-        for item in self.items:
-            item.move(new_directory)
-
-    def delete(self):
-        for item in self.items:
-            item.delete()
- 
 
     def _check_consistent_property(self, prop_name):
         """Check if all items have the same value for a property."""
@@ -229,13 +158,6 @@ class FileSequence:
         if not all(v == first for v in values):
             raise AnomalousItemDataError(f"Inconsistent {prop_name} values")
         return first
-    
-    def _validate(self):
-        self._check_consistent_property(prop_name="name")
-        self._check_consistent_property(prop_name="extension")
-        self._check_consistent_property(prop_name="separator")
-        self._check_consistent_property(prop_name="post_numeral")
-
 
 
 class Parser:
@@ -263,21 +185,6 @@ class Parser:
         r'(?P<post_numeral>.*?)'
         # Dot and extension (everything after last dot)
         r'(?:\.(?P<ext>.*))?$'
-
-        
-        # r'^'
-        # # Name including any special characters up to the single separator before frame number
-        # r'(?P<name>.*?)'
-        # # Single character separator before frame (optional)
-        # r'(?P<separator>[^a-zA-Z\d])?'
-        # # Frame number (1 or more digits)
-        # r'(?P<frame>\d+)'
-        # # Negative lookahead for more digits
-        # r'(?!.*\d+)'
-        # # Non-greedy match up to extension
-        # r'(?P<post_numeral>.*?)'
-        # # Dot and extension (everything after last dot)
-        # r'(?:\.(?P<ext>.*))?$'
     )
 
     known_extensions = {'exr.gz', 'tar.gz', 'tar.bz2', 'log.gz'}
@@ -287,14 +194,6 @@ class Parser:
         """
         Parses a single filename and returns a file_profile of components.
         """
-
-        
-        if isinstance(filename, Path):
-            directory = filename.parent
-            filename = filename.name
-        
-
-
         if len(Path(filename).parts) > 1:
             raise ValueError("first argument must be a name, not a path")
 
@@ -313,17 +212,6 @@ class Parser:
         dict.setdefault('ext', '')
         dict.setdefault('separator', '')
         dict.setdefault('post_numeral', '')
-
-        print(f"name: {dict['name']}")
-        print(f"separator: {dict['separator']}")
-
-        name = dict['name']
-        separator = dict['separator']
-
-        if len(separator) > 1:
-            name += separator[0:-1]
-            separator = separator[-1]
-
 
         if directory == None:
             directory = ""
@@ -359,25 +247,43 @@ class Parser:
         if dict['post_numeral'].endswith('.'):
             dict['post_numeral'] = dict['post_numeral'][:-1]
 
-        
-        return Item(
-            name,
-            dict['frame'],
-            ext,
-            path,
-            separator,
-            dict['post_numeral']
-        )
+        # End of modified code
+
+        return None
+
+        # return Item(
+        #     dict['name'],
+        #     dict['frame'],
+        #     ext,
+        #     path,
+        #     dict['separator'],
+        #     dict['post_numeral']
+        # )
 
     @staticmethod
     def find_sequences(filename_list, directory=None, pattern=None):
         """
         Scans the list of filenames and returns a list of Sequences.
+
+        name: str
+        frame: str
+        extension: str
+        path: pathlib.Path
+        separator: str = None
+        post_numeral: str = None
+
         """
-        
+
+        # print("\n find sequences")
+        # print(filename_list)
+
+        # return None
+
         sequence_dict = {}
 
         for file in filename_list:
+
+            # print(file)
 
             parsed_item = Parser.parse_filename(file, directory)
             if not parsed_item:
@@ -406,12 +312,11 @@ class Parser:
 
             sequence_dict[key]['items'].append(parsed_item)
             sequence_dict[key]['frames'].append(frame)
-
             # Update extension if not already set (can happen with bad sequence)
             if not sequence_dict[key]['extension']:
                 sequence_dict[key]['extension'] = extension
 
-
+        # Create Sequence instances
         sequence_list = []
         for seq in sequence_dict.values():
 
@@ -421,9 +326,22 @@ class Parser:
             sequence = FileSequence(
                 sorted(seq['items'], key=lambda i: i.frame_number))
 
+            # sequence = FileSequence(
+            #     name=seq['name'],
+            #     first_frame=min(seq['frames']),
+            #     last_frame=max(seq['frames']),
+            #     extension=seq['extension'],
+            #     separator=seq['separator'],
+            #     items=sorted(seq['items'], key=lambda i: i.frame),
+            # )
+
             sequence_list.append(sequence)
 
         return sequence_list
+
+        # return None
+
+
 
 class AnomalousItemDataError(Exception):
     """

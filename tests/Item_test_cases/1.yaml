@@ -205,3 +205,45 @@
     file_stem: "comp.v001.0010"
     post_numeral: ""
     file_name: comp.v001.0010.exr
+
+- description: "0 as frame number"
+  data:
+    path: "/comp/v001/comp.v001.0000.exr"
+    name: "comp.v001"
+    frame_number: "0000"
+    extension: "exr"
+    separator: "."
+    padding: 4
+    directory: "/comp/v001"
+    file_stem: "comp.v001.0000"
+    post_numeral: ""
+    file_name: comp.v001.0000.exr
+
+
+- description: "special characters before separator"
+  data:
+    path: "/comp/v001/comp@#$%_0010.exr"
+    name: "comp@#$%"
+    frame_number: "0010"
+    extension: "exr"
+    separator: "_"
+    padding: 4
+    directory: "/comp/v001"
+    file_stem: "comp@#$%_0010"
+    post_numeral: ""
+    file_name: comp@#$%_0010.exr
+
+- description: "fails"
+  data:
+    path: "/comp/v001/comp@#$_0010.exr"
+    name: "comp@#$"
+    frame_number: "0010"
+    extension: "exr"
+    separator: "_"
+    padding: 4
+    directory: "/comp/v001"
+    file_stem: "comp@#$_0010"
+    post_numeral: ""
+    file_name: comp@#$_0010.exr
+
+    

@@ -1,6 +1,6 @@
 from pathlib import Path
 from pysequitur.file_sequence import Item
-
+import pytest
 
 
 def test_item(create_Item_test_files):
@@ -36,4 +36,6 @@ def test_item(create_Item_test_files):
         assert item.stem == data['file_stem']
 
 
+    with pytest.raises(ValueError):
+        Item('name', '0010', 'exr', Path('pretend'), '.', '_v1')
 

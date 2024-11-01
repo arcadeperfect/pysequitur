@@ -39,6 +39,26 @@ def create_Item_test_files(tmp_path, load_test_cases):
 
     return _create_files
 
+@pytest.fixture
+def create_files_from_list(tmp_path):
+    """
+    Creates temporary files from a list and returns their Path objects.
+
+    """
+    test_dir = tmp_path / "test_files"
+    test_dir.mkdir()
+    
+    def _create_files(file_list):
+        paths = []
+        for file in file_list:
+            path = test_dir / file
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.touch()
+            paths.append(path)
+        return paths
+    
+    return _create_files
+
 
 @pytest.fixture
 def create_FileSequence_test_files(tmp_path, load_test_cases):
