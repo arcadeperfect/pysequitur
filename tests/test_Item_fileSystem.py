@@ -5,8 +5,6 @@ import os
 
 def test_item_file_system(create_files_from_list):
 
-    print("\n----  test_item_file_system ----\n")
-
     item = Parser.parse_filename('frame.0001.png')
 
     with pytest.raises(FileNotFoundError):
@@ -53,10 +51,6 @@ def test_item_file_system(create_files_from_list):
 
     path = paths[1]
     item = Parser.parse_filename(path)
-
-    print(item.name)
-    print(item.filename)
-    print(item.separator)
 
     assert item.exists == True    
     assert item.directory == path.parent
@@ -201,9 +195,6 @@ def test_item_file_system(create_files_from_list):
     for path in paths[1:]:
         item = Parser.parse_filename(path)
         item.delete()
-
-    print("\n----  test_item_file_system ----\n")
-
 
     # -------------- new data ----------------- #
 

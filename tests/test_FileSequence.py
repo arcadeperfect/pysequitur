@@ -9,8 +9,6 @@ def compare(actual, expected):
 
 def test_filesequence(load_test_cases):
 
-    # print("\n -----")
-
     test_cases_dir = Path(__file__).parent / 'FileSequence_test_cases'
     yaml_file = test_cases_dir / '1.yaml'
 
@@ -19,11 +17,7 @@ def test_filesequence(load_test_cases):
     for case in cases:
         data = case['data']
 
-        # print(data['name'])
-
         sequence = Parser.find_sequences(data['files'])[0]
-
-
 
         compare(sequence.name, data['name'])
         compare(sequence.first_frame, data['first_frame'])

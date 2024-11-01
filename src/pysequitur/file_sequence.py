@@ -4,7 +4,7 @@ import re
 from dataclasses import dataclass
 import os
 from collections import Counter
-
+import shutil
 
 class Problems(Flag):
     MISSING_FRAMES = auto()
@@ -74,6 +74,7 @@ class Item:
         if isinstance(new_name, str):
             self.name = new_name
             self.path = self.path.rename(self.path.with_name(self.filename))
+            print(f"renamed {self.path} to {self.path.with_name(self.filename)}")
             return
 
         if isinstance(new_name, Renamer):
@@ -95,6 +96,7 @@ class Item:
                 self.extension = new_name.extension
 
             self.path = self.path.rename(self.path.with_name(self.filename))
+            print(f"renamed {self.path} to {self.path.with_name(self.filename)}")
             return
             
         raise ValueError("new_name must be a string or a Renamer object")
@@ -104,9 +106,12 @@ class Item:
     def delete(self):
         if self.path.exists():
             self.path.unlink()
+            print(f"deleted {self.path}")
         else:
             raise FileNotFoundError()
 
+
+   
 
     @property
     def exists(self):
@@ -183,6 +188,10 @@ class FileSequence:
         return self._check_consistent_property(prop_name="post_numeral")
 
     @property
+    def directory(self):
+        return self._check_consistent_property(prop_name="directory")
+
+    @property
     def missing_frames(self):
         return [item.frame_number for item in self.items]
 
@@ -201,6 +210,16 @@ class FileSequence:
         padding_counts = Counter(item.padding for item in self.items)
         return padding_counts.most_common(1)[0][0]
     
+    @property
+    def file_name(self):
+        padding = '#' * self.padding
+        return f"{self.name}{self.separator}{padding}{self.post_numeral}.{self.extension}"
+    
+    @property
+    def absolute_file_name(self):
+        return os.path.join(self.directory, self.file_name)
+        
+
     def rename(self, new_name):
 
         self._validate()
@@ -215,6 +234,8 @@ class FileSequence:
     def delete(self):
         for item in self.items:
             item.delete()
+
+    
  
 
     def _check_consistent_property(self, prop_name):
@@ -313,9 +334,6 @@ class Parser:
         dict.setdefault('ext', '')
         dict.setdefault('separator', '')
         dict.setdefault('post_numeral', '')
-
-        print(f"name: {dict['name']}")
-        print(f"separator: {dict['separator']}")
 
         name = dict['name']
         separator = dict['separator']
@@ -424,6 +442,10 @@ class Parser:
             sequence_list.append(sequence)
 
         return sequence_list
+    
+    @staticmethod
+    def scan_directoru(directory, pattern=None):
+        return Parser.find_sequences(os.listdir(directory), directory, pattern)
 
 class AnomalousItemDataError(Exception):
     """

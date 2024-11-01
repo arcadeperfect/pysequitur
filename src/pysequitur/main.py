@@ -3,47 +3,24 @@ from pysequitur.file_sequence import Item, Parser, Renamer
 from pathlib import Path
 import os
 
-files = ['frame.1.png', 
-         'frame.2.png', 
-         'frame.3.png', 
-         'frame.4.png', 
-         'frame.5.png']
+directory = "/Volumes/borg/stock_project/sequences/cars/cars_03/out_copy"
+
+
+# print(os.listdir(directory))
+
+file_list = os.listdir(directory)
+
+print(len(file_list))
+
+ss = Parser.find_sequences(file_list, directory)
+
+for x, sequence in enumerate(ss):
+    print(f"{x} {sequence.name} {sequence.first_frame} {sequence.last_frame} {len(sequence.missing_frames)}")   
 
 
 
-path = Path('~/file.1001.exr').expanduser()
-path.touch()
+# # ss[1].rename("noob")
 
-
-
-item = Parser.parse_filename(path.name, path.parent)
-
-
-
-
-
-item.rename('test')
-
-
-print(item.filename)
-print(item.path)
-print(item.exists)
-
-item.rename(Renamer(name='test',
-                     separator='_',
-                     padding=2,
-                     post_numeral='.post',
-                     extension='png'))
-
-print(item.filename)
-print(item.path)
-
-print(item.path.exists())
-
-
-newdir = item.directory / 'test'
-print(newdir)
-
-item.move(newdir)
-
-print(item.exists)
+# # ss[11].delete()
+# for s in ss:
+#     s.delete()

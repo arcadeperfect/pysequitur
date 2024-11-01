@@ -1,7 +1,8 @@
 from pathlib import Path
 from pysequitur.file_sequence import Item, Parser, Renamer
 import os
-
+import cProfile
+import random
 
 def test_file_sequence_operations(create_files_from_list):
     print("\n----  test_file_sequence_operations ----\n")
@@ -124,4 +125,43 @@ def test_file_sequence_operations(create_files_from_list):
     sequence.delete()
     assert all(not item.exists for item in sequence.items)
     
-    print("\n----  test_file_sequence_operations complete ----\n")
+
+
+
+    #long file list
+
+
+    for i in range(3):
+
+        file_count = 10000
+        missing_files = 50
+
+        files = [f"img_{i:04d}.png" for i in range(file_count)]
+
+
+    
+        random.seed(i)
+        last_index = len(files) - 1
+        indices_to_remove = random.sample(range(1, len(files) - 1), missing_files)
+        files = [item for i, item in enumerate(files) if i not in indices_to_remove]
+
+
+        paths = create_files_from_list(files)
+        for path in paths:
+            assert path.exists()
+
+        sequences = Parser.find_sequences(paths)
+        s = sequences[0]
+        s.rename("renamed")
+        
+        paths = create_files_from_list(complex_files)
+        assert len(sequences) == 1
+        sequence = sequences[0]
+
+        assert len(sequence.missing_frames) == missing_files
+
+        sequence.rename("renamed")
+        sequence._validate()
+        sequence.delete()
+
+    
