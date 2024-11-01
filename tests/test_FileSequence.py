@@ -19,12 +19,12 @@ def test_filesequence(load_test_cases):
 
         sequence = Parser.find_sequences(data['files'])[0]
 
-        compare(sequence.name, data['name'])
+        compare(sequence.prefix, data['name'])
         compare(sequence.first_frame, data['first_frame'])
         compare(sequence.last_frame, data['last_frame'])
         compare(sequence.extension, data['extension'])
-        compare(sequence.separator, data['separator'])
-        compare(sequence.post_numeral, data['post_numeral'])
+        compare(sequence.delimiter, data['separator'])
+        compare(sequence.suffix, data['post_numeral'])
         compare(sequence.existing_frames, data['existing_frames'])
         compare(list(sequence.missing_frames), data['missing_frames'])
         compare(sequence.frame_count, data['frames_count'])

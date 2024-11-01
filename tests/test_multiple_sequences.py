@@ -47,7 +47,7 @@ def test_multiple_sequences(load_test_cases):
 
         # Match and test each parsed sequence
         for fileSequence in fileSequences:
-            sequence_name = fileSequence.name
+            sequence_name = fileSequence.prefix
              
             if sequence_name in sequence_data:
                 yaml_seq = sequence_data[sequence_name]
@@ -60,8 +60,8 @@ def test_multiple_sequences(load_test_cases):
                     ('first_frame', fileSequence.first_frame, yaml_seq['first_frame']),
                     ('last_frame', fileSequence.last_frame, yaml_seq['last_frame']),
                     ('extension', fileSequence.extension, yaml_seq['extension']),
-                    ('separator', fileSequence.separator, yaml_seq['separator']),
-                    ('post_numeral', fileSequence.post_numeral, yaml_seq['post_numeral']),
+                    ('separator', fileSequence.delimiter, yaml_seq['separator']),
+                    ('post_numeral', fileSequence.suffix, yaml_seq['post_numeral']),
                     ('existing_frames', fileSequence.existing_frames, yaml_seq['existing_frames']),
                     ('missing_frames', list(fileSequence.missing_frames), yaml_seq['missing_frames']),
                     ('frame_count', fileSequence.frame_count, yaml_seq['frames_count']),

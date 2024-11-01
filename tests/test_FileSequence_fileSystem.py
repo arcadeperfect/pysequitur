@@ -28,21 +28,21 @@ def test_file_sequence_operations(create_files_from_list):
     # Verify initial state
     assert len(sequence.items) == 4
     assert all(item.exists for item in sequence.items)
-    assert all(item.name == "sequence" for item in sequence.items)
-    assert sequence.name == "sequence"
+    assert all(item.prefix == "sequence" for item in sequence.items)
+    assert sequence.prefix == "sequence"
     
     # Test rename with string
     sequence.rename("renamed")
     assert all(item.exists for item in sequence.items)
-    assert all(item.name == "renamed" for item in sequence.items)
-    assert sequence.name == "renamed"
+    assert all(item.prefix == "renamed" for item in sequence.items)
+    assert sequence.prefix == "renamed"
     
     # Test rename with Renamer object
     renamer = Renamer(
-        name="complex",
-        separator=".",
+        prefix="complex",
+        delimiter=".",
         padding=5,
-        post_numeral="_v1",
+        suffix="_v1",
         extension="exr"
     )
     sequence.rename(renamer)
@@ -50,10 +50,10 @@ def test_file_sequence_operations(create_files_from_list):
     # Verify all items were renamed correctly
     for item in sequence.items:
         assert item.exists
-        assert item.name == "complex"
-        assert item.separator == "."
+        assert item.prefix == "complex"
+        assert item.delimiter == "."
         assert item.padding == 5
-        assert item.post_numeral == "_v1"
+        assert item.suffix == "_v1"
         assert item.extension == "exr"
     
     # Test move operation
@@ -106,20 +106,20 @@ def test_file_sequence_operations(create_files_from_list):
     sequence = sequences[0]
     assert sequence.items[0].exists
     # Verify initial state
-    assert sequence.name == "comp@#$"
-    assert sequence.post_numeral == "_post"
+    assert sequence.prefix == "comp@#$"
+    assert sequence.suffix == "_post"
     
     
     # Test renaming complex sequence
-    renamer = Renamer(name="new@#$", post_numeral="_final")
+    renamer = Renamer(prefix="new@#$", suffix="_final")
     sequence.rename(renamer)
     
     
     # Verify all items were renamed correctly
     for item in sequence.items:
         assert item.exists
-        assert item.name == "new@#$"
-        assert item.post_numeral == "_final"
+        assert item.prefix == "new@#$"
+        assert item.suffix == "_final"
     
     # Clean up
     sequence.delete()
@@ -189,9 +189,9 @@ def test_file_sequence_operations(create_files_from_list):
 
     # Verify the copied sequence
     assert len(copied_sequence.items) == len(sequence.items)
-    assert copied_sequence.name == new_name
+    assert copied_sequence.prefix == new_name
     assert all(item.exists for item in copied_sequence.items)
-    assert all(item.name == new_name for item in copied_sequence.items)
+    assert all(item.prefix == new_name for item in copied_sequence.items)
 
     # Copy the sequence with a new name and directory
     new_directory_name = "new_directory"
@@ -201,9 +201,9 @@ def test_file_sequence_operations(create_files_from_list):
 
     # Verify the copied sequence with new directory
     assert len(copied_sequence_with_dir.items) == len(sequence.items)
-    assert copied_sequence_with_dir.name == new_name
+    assert copied_sequence_with_dir.prefix == new_name
     assert all(item.exists for item in copied_sequence_with_dir.items)
-    assert all(item.name == new_name for item in copied_sequence_with_dir.items)
+    assert all(item.prefix == new_name for item in copied_sequence_with_dir.items)
     assert all(str(item.directory) == str(new_directory) for item in copied_sequence_with_dir.items)
 
     # Clean up

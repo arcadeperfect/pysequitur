@@ -26,12 +26,12 @@ def test_item(create_Item_test_files):
                     data['post_numeral'])
 
         assert item.path.relative_to(test['test_dir']) == test['real_file'].relative_to(test['test_dir'])
-        assert item.name == data['name']    
+        assert item.prefix == data['name']    
         assert item.frame_string == data['frame_number']
         assert item.extension == data['extension']
-        assert item.separator == data['separator']
+        assert item.delimiter == data['separator']
         assert item.padding == data['padding']
-        assert item.post_numeral == data['post_numeral']
+        assert item.suffix == data['post_numeral']
         assert item.filename == data['file_name']
         assert item.stem == data['file_stem']
 

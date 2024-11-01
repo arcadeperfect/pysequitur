@@ -40,7 +40,7 @@ def test_item_file_system(create_files_from_list):
 
     item.rename('renamed')
 
-    assert item.name == 'renamed'
+    assert item.prefix == 'renamed'
     assert item.filename == 'renamed.0001.png'
 
     item.delete()
@@ -58,7 +58,7 @@ def test_item_file_system(create_files_from_list):
 
     item.rename('renamed')
 
-    assert item.name == 'renamed'
+    assert item.prefix == 'renamed'
     assert item.filename == 'renamed_0002.png'
 
     item.delete()
@@ -76,7 +76,7 @@ def test_item_file_system(create_files_from_list):
 
     item.rename('renamed')
 
-    assert item.name == 'renamed'
+    assert item.prefix == 'renamed'
     assert item.filename == 'renamed0003_post.png'
 
     item.delete()
@@ -91,10 +91,11 @@ def test_item_file_system(create_files_from_list):
     assert item.exists == True    
     assert item.directory == path.parent
     assert item.filename == path.name
+    
 
     item.rename('renamed')
 
-    assert item.name == 'renamed'
+    assert item.prefix == 'renamed'
     assert item.filename == 'renamed004.png'
 
     item.delete()
@@ -120,13 +121,13 @@ def test_item_file_system(create_files_from_list):
     assert item.exists == True    
     assert item.directory == path.parent
     assert item.filename == path.name
-
+    
     renamer = Renamer()
     item.rename(renamer)
 
-    assert item.name == "frame"
+    assert item.prefix == "frame"
     assert item.filename == "frame.0001.png"
-    assert item.separator == "."
+    assert item.delimiter == "."
     assert item.extension == "png"
    
 
@@ -136,58 +137,58 @@ def test_item_file_system(create_files_from_list):
 
     item = Parser.parse_filename(path)
 
-    renamer = Renamer(name="renamed")
+    renamer = Renamer(prefix="renamed")
     item.rename(renamer)
 
-    assert item.name == "renamed"
+    assert item.prefix == "renamed"
     assert item.filename == "renamed.0001.png"
-    assert item.separator == "."
+    assert item.delimiter == "."
     assert item.extension == "png"
 
-    renamer = Renamer(separator=r"_")
+    renamer = Renamer(delimiter=r"_")
     item.rename(renamer)
 
-    assert item.name == "renamed"
+    assert item.prefix == "renamed"
     assert item.filename == "renamed_0001.png"
-    assert item.separator == "_"
+    assert item.delimiter == "_"
     assert item.extension == "png"
 
     renamer = Renamer(extension="jpg")
     item.rename(renamer)
 
-    assert item.name == "renamed"
+    assert item.prefix == "renamed"
     assert item.filename == "renamed_0001.jpg"
-    assert item.separator == "_"
+    assert item.delimiter == "_"
     assert item.extension == "jpg"
 
-    renamer = Renamer(post_numeral="_post")
+    renamer = Renamer(suffix="_post")
     item.rename(renamer)
 
-    assert item.name == "renamed"
+    assert item.prefix == "renamed"
     assert item.filename == "renamed_0001_post.jpg"
-    assert item.separator == "_"
+    assert item.delimiter == "_"
     assert item.extension == "jpg"
 
     renamer = Renamer(padding=3)
     item.rename(renamer)
 
-    assert item.name == "renamed"
+    assert item.prefix == "renamed"
     assert item.filename == "renamed_001_post.jpg"
-    assert item.separator == "_"
+    assert item.delimiter == "_"
     assert item.extension == "jpg"
 
-    renamer = Renamer(name = "renamed_again", 
-                      separator=".",
+    renamer = Renamer(prefix = "renamed_again", 
+                      delimiter=".",
                       padding=5, 
-                      post_numeral="_newPost",
+                      suffix="_newPost",
                       extension="exr")
     
     item.rename(renamer)
 
-    assert item.name == "renamed_again"
+    assert item.prefix == "renamed_again"
     assert item.filename == "renamed_again.00001_newPost.exr"
     assert item.padding == 5
-    assert item.separator == "."
+    assert item.delimiter == "."
     assert item.extension == "exr"
 
     item.delete()
@@ -287,7 +288,7 @@ def test_item_file_system(create_files_from_list):
         assert item.exists == True    
         assert item.directory == new_directory
         assert item.filename == path.name
-
+        
         new_path_object = Path(str(item.path))
         assert new_path_object.exists() == True
         item.delete()

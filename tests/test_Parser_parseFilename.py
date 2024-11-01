@@ -20,9 +20,9 @@ def test_parse_filename(load_test_cases):
         data = case['data']
         item = Parser.parse_filename(os.path.basename(data['path']))
 
-        compare(item.name, data['name'])
+        compare(item.prefix, data['name'])
         compare(item.frame_string, data['frame_number'])
         compare(item.extension, data['extension'])
-        compare(item.separator, data['separator'])
-        compare(item.post_numeral, data['post_numeral'])
+        compare(item.delimiter, data['separator'])
+        compare(item.suffix, data['post_numeral'])
         compare(item.padding, data['padding'])

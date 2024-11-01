@@ -16,15 +16,15 @@ class Problems(Flag):
 @dataclass
 class Item:
 
-    name: str
+    prefix: str
     frame_string: str
     extension: str
     path: Path
-    separator: str = None
-    post_numeral: str = None
+    delimiter: str = None
+    suffix: str = None
 
     def __post_init__(self):
-        if any(char.isdigit() for char in self.post_numeral):
+        if any(char.isdigit() for char in self.suffix):
             raise ValueError("post_numeral cannot contain digits")
 
 
@@ -32,11 +32,11 @@ class Item:
     @property
     def filename(self):
 
-        s = self.separator if self.separator else ""
-        p = self.post_numeral if self.post_numeral else ""
+        s = self.delimiter if self.delimiter else ""
+        p = self.suffix if self.suffix else ""
         e = f".{self.extension}" if self.extension else ""
 
-        return f"{self.name}{s}{self.frame_string}{p}{e}"
+        return f"{self.prefix}{s}{self.frame_string}{p}{e}"
 
     @property
     def directory(self):
@@ -72,25 +72,25 @@ class Item:
             raise FileNotFoundError()
         
         if isinstance(new_name, str):
-            self.name = new_name
+            self.prefix = new_name
             self.path = self.path.rename(self.path.with_name(self.filename))
             print(f"renamed {self.path} to {self.path.with_name(self.filename)}")
             return
 
         if isinstance(new_name, Renamer):
 
-            if new_name.name is not None:   
-                self.name = new_name.name
+            if new_name.prefix is not None:   
+                self.prefix = new_name.prefix
 
-            if new_name.separator is not None:
-                self.separator = new_name.separator
+            if new_name.delimiter is not None:
+                self.delimiter = new_name.delimiter
 
             if new_name.padding is not None:
                 padding = max(new_name.padding, self._min_padding)
                 self.frame_string = f"{self.frame_number:0{padding}d}"
 
-            if new_name.post_numeral is not None:
-                self.post_numeral = new_name.post_numeral
+            if new_name.suffix is not None:
+                self.suffix = new_name.suffix
 
             if new_name.extension is not None:
                 self.extension = new_name.extension
@@ -107,21 +107,21 @@ class Item:
 
         if isinstance(new_name, str):
             new_item = Item(
-                name=new_name,
+                prefix=new_name,
                 frame_string=self.frame_string,
                 extension=self.extension,
                 path=self.path,
-                separator=self.separator,
-                post_numeral=self.post_numeral
+                delimiter=self.delimiter,
+                suffix=self.suffix
             )
         elif isinstance(new_name, Renamer):
             new_item = Item(
-                name=new_name.name if new_name.name is not None else self.name,
+                prefix=new_name.prefix if new_name.prefix is not None else self.prefix,
                 frame_string=self.frame_string,
                 extension=new_name.extension if new_name.extension is not None else self.extension,
                 path=self.path,
-                separator=new_name.separator if new_name.separator is not None else self.separator,
-                post_numeral=new_name.post_numeral if new_name.post_numeral is not None else self.post_numeral
+                delimiter=new_name.delimiter if new_name.delimiter is not None else self.delimiter,
+                suffix=new_name.suffix if new_name.suffix is not None else self.suffix
             )
             if new_name.padding is not None:
                 padding = max(new_name.padding, self._min_padding)
@@ -135,7 +135,7 @@ class Item:
             new_path = self.path.with_name(new_item.filename)
 
         if new_path == self.path:
-            new_item.name += "copy"
+            new_item.prefix += "copy"
             new_path = new_path.with_name(new_item.filename)
 
         shutil.copy(str(self.path), str(new_path))
@@ -174,10 +174,10 @@ class Item:
 @dataclass
 class Renamer:
 
-    name: str = None
-    separator: str = None
+    prefix: str = None
+    delimiter: str = None
     padding: int = None
-    post_numeral: str = None
+    suffix: str = None
     extension: str = None
 
 
@@ -213,20 +213,20 @@ class FileSequence:
         return max(self.items, key=lambda item: item.frame_number).frame_number
 
     @property
-    def name(self):
-        return self._check_consistent_property(prop_name="name")
+    def prefix(self):
+        return self._check_consistent_property(prop_name="prefix")
 
     @property
     def extension(self):
         return self._check_consistent_property(prop_name="extension")
 
     @property
-    def separator(self):
-        return self._check_consistent_property(prop_name="separator")
+    def delimiter(self):
+        return self._check_consistent_property(prop_name="delimiter")
 
     @property
-    def post_numeral(self):
-        return self._check_consistent_property(prop_name="post_numeral")
+    def suffix(self):
+        return self._check_consistent_property(prop_name="suffix")
 
     @property
     def directory(self):
@@ -254,7 +254,7 @@ class FileSequence:
     @property
     def file_name(self):
         padding = '#' * self.padding
-        return f"{self.name}{self.separator}{padding}{self.post_numeral}.{self.extension}"
+        return f"{self.prefix}{self.delimiter}{padding}{self.suffix}.{self.extension}"
     
     @property
     def absolute_file_name(self):
@@ -305,10 +305,10 @@ class FileSequence:
         return first
     
     def _validate(self):
-        self._check_consistent_property(prop_name="name")
+        self._check_consistent_property(prop_name="prefix")
         self._check_consistent_property(prop_name="extension")
-        self._check_consistent_property(prop_name="separator")
-        self._check_consistent_property(prop_name="post_numeral")
+        self._check_consistent_property(prop_name="delimiter")
+        self._check_consistent_property(prop_name="suffix")
 
 
 
@@ -454,8 +454,8 @@ class Parser:
             if not parsed_item:
                 continue
 
-            original_name = parsed_item.name
-            separator = parsed_item.separator or ''
+            original_name = parsed_item.prefix
+            separator = parsed_item.delimiter or ''
             frame = parsed_item.frame_string
             extension = parsed_item.extension or ''
 
