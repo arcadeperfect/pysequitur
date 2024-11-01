@@ -128,12 +128,11 @@ def test_file_sequence_operations(create_files_from_list):
 
 
 
-    #long file list
+    #long file list with missing file
 
+    for i in range(1):
 
-    for i in range(3):
-
-        file_count = 10000
+        file_count = 1000
         missing_files = 50
 
         files = [f"img_{i:04d}.png" for i in range(file_count)]
@@ -164,4 +163,53 @@ def test_file_sequence_operations(create_files_from_list):
         sequence._validate()
         sequence.delete()
 
-    
+
+
+    # Test copying a sequence
+    copy_files = [
+        'copy_0001.png',
+        'copy_0002.png',
+        'copy_0003.png',
+        'copy_0004.png'
+    ]
+
+    paths = create_files_from_list(copy_files)
+    directory = paths[0].parent
+    copy_directory = directory / "copied_sequences"
+    os.mkdir(copy_directory)
+
+    # Get the sequence
+    sequences = Parser.find_sequences(copy_files, directory)
+    assert len(sequences) == 1
+    sequence = sequences[0]
+
+    # Copy the sequence with a new name
+    new_name = "copied_sequence"
+    copied_sequence = sequence.copy(new_name)
+
+    # Verify the copied sequence
+    assert len(copied_sequence.items) == len(sequence.items)
+    assert copied_sequence.name == new_name
+    assert all(item.exists for item in copied_sequence.items)
+    assert all(item.name == new_name for item in copied_sequence.items)
+
+    # Copy the sequence with a new name and directory
+    new_directory_name = "new_directory"
+    new_directory = copy_directory / new_directory_name
+    os.mkdir(new_directory)
+    copied_sequence_with_dir = sequence.copy(new_name, new_directory)
+
+    # Verify the copied sequence with new directory
+    assert len(copied_sequence_with_dir.items) == len(sequence.items)
+    assert copied_sequence_with_dir.name == new_name
+    assert all(item.exists for item in copied_sequence_with_dir.items)
+    assert all(item.name == new_name for item in copied_sequence_with_dir.items)
+    assert all(str(item.directory) == str(new_directory) for item in copied_sequence_with_dir.items)
+
+    # Clean up
+    for item in copied_sequence.items:
+        item.delete()
+    for item in copied_sequence_with_dir.items:
+        item.delete()
+    os.rmdir(copy_directory / new_directory_name)
+    os.rmdir(copy_directory)

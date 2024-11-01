@@ -101,7 +101,48 @@ class Item:
             
         raise ValueError("new_name must be a string or a Renamer object")
 
+    def copy(self, new_name, new_directory=None):
+        if not self.path.exists():
+            raise FileNotFoundError()
 
+        if isinstance(new_name, str):
+            new_item = Item(
+                name=new_name,
+                frame_string=self.frame_string,
+                extension=self.extension,
+                path=self.path,
+                separator=self.separator,
+                post_numeral=self.post_numeral
+            )
+        elif isinstance(new_name, Renamer):
+            new_item = Item(
+                name=new_name.name if new_name.name is not None else self.name,
+                frame_string=self.frame_string,
+                extension=new_name.extension if new_name.extension is not None else self.extension,
+                path=self.path,
+                separator=new_name.separator if new_name.separator is not None else self.separator,
+                post_numeral=new_name.post_numeral if new_name.post_numeral is not None else self.post_numeral
+            )
+            if new_name.padding is not None:
+                padding = max(new_name.padding, self._min_padding)
+                new_item.frame_string = f"{self.frame_number:0{padding}d}"
+        else:
+            raise ValueError("new_name must be a string or a Renamer object")
+
+        if new_directory is not None:
+            new_path = new_directory / new_item.filename
+        else:
+            new_path = self.path.with_name(new_item.filename)
+
+        if new_path == self.path:
+            new_item.name += "copy"
+            new_path = new_path.with_name(new_item.filename)
+
+        shutil.copy(str(self.path), str(new_path))
+        new_item.path = new_path
+        print(f"copied {self.path} to {new_path}")
+
+        return new_item
         
     def delete(self):
         if self.path.exists():
@@ -234,6 +275,18 @@ class FileSequence:
     def delete(self):
         for item in self.items:
             item.delete()
+
+    def copy(self, new_name, new_directory=None):
+        self._validate()
+
+        new_items = []
+        for item in self.items:
+            new_item = item.copy(new_name, new_directory)
+            new_items.append(new_item)
+
+        new_sequence = FileSequence(new_items)
+        return new_sequence
+
 
     
  
@@ -444,7 +497,7 @@ class Parser:
         return sequence_list
     
     @staticmethod
-    def scan_directoru(directory, pattern=None):
+    def scan_directory(directory, pattern=None):
         return Parser.find_sequences(os.listdir(directory), directory, pattern)
 
 class AnomalousItemDataError(Exception):
