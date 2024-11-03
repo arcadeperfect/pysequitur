@@ -5,6 +5,8 @@ from dataclasses import dataclass
 import os
 from collections import Counter
 import shutil
+from collections import defaultdict
+from typing import Dict, Tuple, List, Set
 
 class Problems(Flag):
     MISSING_FRAMES = auto()
@@ -187,6 +189,13 @@ class FileSequence:
 
     items: list[Item]
    
+    def __str__(self) -> str:
+        result = ""
+        for item in self.items:
+            result += str(item) + "\n"
+
+        return result
+
     @property
     def existing_frames(self):
         return [(item.frame_number) for item in self.items]
@@ -287,9 +296,82 @@ class FileSequence:
         new_sequence = FileSequence(new_items)
         return new_sequence
 
-
     
- 
+    def _check_duplicate_frames(self):
+        duplicates = {}
+        frames = []
+
+        for item in self.items:
+            if item.frame_number in frames:
+                duplicates[item.frame_string] = item
+            else:
+                frames.append(item.frame_number)
+
+    def find_duplicate_frames(self) -> Dict[int, Tuple[Item, ...]]:
+        """
+        Identifies frames that appear multiple times with different padding.
+        For each set of duplicates, the first item in the tuple will be the one
+        whose padding matches the sequence's standard padding.
+
+        Returns:
+            Dict[int, Tuple[Item, ...]]: Dictionary mapping frame numbers to tuples
+            of Items representing duplicate frames. The first Item in each tuple
+            has padding matching the sequence's standard padding.
+
+        Example:
+            If a sequence contains frame 1 as "001.ext", "01.ext", and "1.ext",
+            and the sequence's padding is 3, the result would be:
+            {1: (Item("001.ext"), Item("01.ext"), Item("1.ext"))}
+        """
+        # Group items by frame number
+        frame_groups = defaultdict(list)
+        for item in self.items:
+            frame_groups[item.frame_number].append(item)
+            
+        # Filter for only the frame numbers that have duplicates
+        duplicates = {
+            frame: items for frame, items in frame_groups.items() 
+            if len(items) > 1
+        }
+        
+        # Sort each group of duplicates
+        sequence_padding = self.padding
+        result = {}
+        
+        for frame_number, items in duplicates.items():
+            # Sort items so that those matching sequence padding come first,
+            # then by padding length, then by string representation for stability
+            sorted_items = sorted(
+                items,
+                key=lambda x: (
+                    x.padding != sequence_padding,  # False sorts before True
+                    x.padding,
+                    str(x)
+                )
+            )
+            result[frame_number] = tuple(sorted_items)
+            
+        return result
+
+    # def get_duplicate_frame_numbers(self) -> Set[int]:
+    #     """
+    #     Convenience method to get just the frame numbers that have duplicates.
+
+    #     Returns:
+    #         Set[int]: Set of frame numbers that appear multiple times with different padding.
+    #     """
+    #     return set(self.find_duplicate_frames().keys())
+
+    # def has_duplicate_frames(self) -> bool:
+    #     """
+    #     Convenience method to check if sequence contains any duplicate frames.
+
+    #     Returns:
+    #         bool: True if sequence contains any duplicate frames, False otherwise.
+    #     """
+    #     return bool(self.find_duplicate_frames())    
+
+            
 
     def _check_consistent_property(self, prop_name):
         """Check if all items have the same value for a property."""
@@ -440,16 +522,17 @@ class Parser:
             dict['post_numeral']
         )
 
+    
     @staticmethod
     def find_sequences(filename_list, directory=None, pattern=None):
         """
         Scans the list of filenames and returns a list of Sequences.
+        Groups files by name/separator/extension, then subdivides groups with duplicate frames
+        into separate sequences based on padding.
         """
-        
         sequence_dict = {}
 
         for file in filename_list:
-
             parsed_item = Parser.parse_filename(file, directory)
             if not parsed_item:
                 continue
@@ -459,10 +542,7 @@ class Parser:
             frame = parsed_item.frame_string
             extension = parsed_item.extension or ''
 
-            # Remove diving character from the end of the name
-            # for example,
-            # "name_" becomes "name"
-            # "file." becomes "file"
+            # Remove dividing character from the end of the name
             cleaned_name = re.sub(r'[^a-zA-Z0-9]+$', '', original_name)
             key = (cleaned_name, separator, extension)
 
@@ -478,24 +558,69 @@ class Parser:
             sequence_dict[key]['items'].append(parsed_item)
             sequence_dict[key]['frames'].append(frame)
 
-            # Update extension if not already set (can happen with bad sequence)
             if not sequence_dict[key]['extension']:
                 sequence_dict[key]['extension'] = extension
 
-
         sequence_list = []
         for seq in sequence_dict.values():
-
             if len(seq['items']) < 2:
                 continue
 
-            sequence = FileSequence(
-                sorted(seq['items'], key=lambda i: i.frame_number))
-
-            sequence_list.append(sequence)
+            # Create initial sequence with all items
+            temp_sequence = FileSequence(sorted(seq['items'], key=lambda i: i.frame_number))
+            
+            # Check for duplicate frames
+            duplicates = temp_sequence.find_duplicate_frames()
+            
+            if not duplicates:
+                # If no duplicates, add the sequence as is
+                sequence_list.append(temp_sequence)
+                continue
+                
+            # Get the nominal padding value (most common padding)
+            padding_counts = Counter(item.padding for item in temp_sequence.items)
+            nominal_padding = padding_counts.most_common(1)[0][0]
+            
+            # Separate items into main sequence (nominal padding) and anomalous sequences
+            main_sequence_items = []
+            anomalous_items = defaultdict(list)  # Group anomalous items by their padding
+            
+            # Process each frame number
+            processed_frames = set()
+            for item in temp_sequence.items:
+                if item.frame_number in processed_frames:
+                    continue
+                    
+                if item.frame_number in duplicates:
+                    # For duplicate frames, distribute items based on padding
+                    duplicate_items = duplicates[item.frame_number]
+                    for dup_item in duplicate_items:
+                        if dup_item.padding == nominal_padding:
+                            main_sequence_items.append(dup_item)
+                        else:
+                            anomalous_items[dup_item.padding].append(dup_item)
+                else:
+                    # For non-duplicate frames, add to main sequence
+                    main_sequence_items.append(item)
+                    
+                processed_frames.add(item.frame_number)
+                
+            # Create and add main sequence if it has at least 2 items
+            if len(main_sequence_items) >= 2:
+                main_sequence = FileSequence(sorted(main_sequence_items, key=lambda i: i.frame_number))
+                sequence_list.append(main_sequence)
+                
+            # Create and add anomalous sequences if they have at least 2 items
+            for padding, items in anomalous_items.items():
+                if len(items) >= 2:
+                    anomalous_sequence = FileSequence(sorted(items, key=lambda i: i.frame_number))
+                    sequence_list.append(anomalous_sequence)
 
         return sequence_list
-    
+
+
+
+
     @staticmethod
     def scan_directory(directory, pattern=None):
         return Parser.find_sequences(os.listdir(directory), directory, pattern)
@@ -505,3 +630,6 @@ class AnomalousItemDataError(Exception):
     Raised when unacceptable inconsistent data is found in a FileSequence
     """
     pass
+
+
+    
