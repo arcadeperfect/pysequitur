@@ -1,12 +1,13 @@
-from enum import Flag, auto
-from pathlib import Path
 import re
-from dataclasses import dataclass
 import os
-from collections import Counter
 import shutil
-from collections import defaultdict
+from enum import Flag, auto
 from typing import Dict, Tuple, List, Set
+from pathlib import Path
+from dataclasses import dataclass
+from collections import Counter, defaultdict
+from operator import attrgetter
+
 
 class Problems(Flag):
     MISSING_FRAMES = auto()
@@ -28,7 +29,12 @@ class Item:
     def __post_init__(self):
         if any(char.isdigit() for char in self.suffix):
             raise ValueError("post_numeral cannot contain digits")
+        
+        self._dirty = False
 
+    @staticmethod
+    def From_Path(path):
+        return Parser.parse_filename(path)
 
 
     @property
@@ -45,8 +51,21 @@ class Item:
         return str(self.path.parent)
 
     @property
+    def absolute_path(self):
+        return self.directory / self.filename
+        
+    @property
     def padding(self):
         return len(self.frame_string)
+
+    @padding.setter
+    def padding(self, value):
+        padding = max(value, len(str(self.frame_number)))
+        self.frame_string = f"{self.frame_number:0{padding}d}"
+        if(self.exists):
+            self.rename(Renamer(padding=padding))
+        else:
+            raise FileNotFoundError()
 
     @property
     def stem(self):
@@ -55,11 +74,26 @@ class Item:
     @property
     def frame_number(self):
         return int(self.frame_string)
+
     
-    # @property
-    # def full_path(self):
-    #     return self.path
-    
+    def set_frame_number(self, new_frame_number, padding = None):
+
+            if new_frame_number == self.frame_number and padding == self.padding:
+                return
+
+            if new_frame_number < 0:
+                raise ValueError("new_frame_number cannot be negative")
+
+            if padding is None:
+                padding = self.padding
+            
+            new_padding = max(padding, len(str(new_frame_number)))
+
+            self.frame_string = f"{new_frame_number:0{new_padding}d}"
+
+            self.rename()
+
+
     def move(self, new_directory):
         if self.path.exists():
             new_path = new_directory / self.filename
@@ -68,15 +102,17 @@ class Item:
         else:
             raise FileNotFoundError()
 
-    def rename(self, new_name):
+    def rename(self, new_name = None):
 
         if not self.path.exists():
             raise FileNotFoundError()
         
+        if new_name is None:
+            new_name = Renamer()
+
         if isinstance(new_name, str):
             self.prefix = new_name
             self.path = self.path.rename(self.path.with_name(self.filename))
-            print(f"renamed {self.path} to {self.path.with_name(self.filename)}")
             return
 
         if isinstance(new_name, Renamer):
@@ -98,7 +134,7 @@ class Item:
                 self.extension = new_name.extension
 
             self.path = self.path.rename(self.path.with_name(self.filename))
-            print(f"renamed {self.path} to {self.path.with_name(self.filename)}")
+            
             return
             
         raise ValueError("new_name must be a string or a Renamer object")
@@ -142,36 +178,44 @@ class Item:
 
         shutil.copy(str(self.path), str(new_path))
         new_item.path = new_path
-        print(f"copied {self.path} to {new_path}")
 
         return new_item
         
     def delete(self):
         if self.path.exists():
             self.path.unlink()
-            print(f"deleted {self.path}")
         else:
             raise FileNotFoundError()
-
-
-   
 
     @property
     def exists(self):
         return self.path.exists()
     
-
     @property
     def directory(self):
         return self.path.parent
-
-    def change_padding(self, new_padding):
-        raise NotImplementedError()
-
+    
+  
 
     @property
     def _min_padding(self):
         return len(str(int(self.frame_string)))
+    
+    def _check_path(self):
+
+        """
+        Checks if the path computed from the components matches the path object
+        """
+
+        if not self.path.exists():
+            raise FileNotFoundError()
+        
+        if not self.absolute_path == str(self.path):
+            dirty = True
+            return False
+        
+        return True
+        
 
 @dataclass
 class Renamer:
@@ -181,8 +225,6 @@ class Renamer:
     padding: int = None
     suffix: str = None
     extension: str = None
-
-
 
 @dataclass
 class FileSequence:
@@ -269,7 +311,6 @@ class FileSequence:
     def absolute_file_name(self):
         return os.path.join(self.directory, self.file_name)
         
-
     def rename(self, new_name):
 
         self._validate()
@@ -296,16 +337,47 @@ class FileSequence:
         new_sequence = FileSequence(new_items)
         return new_sequence
 
-    
-    def _check_duplicate_frames(self):
-        duplicates = {}
-        frames = []
+    def offset_frames(self, offset, padding = None):
+        
+        if offset == 0:
+            return
+
+        if self.first_frame + offset < 0:
+            raise ValueError("offset would yield negative frame numbers")
+
+        if padding is None:
+            padding = self.padding
+
+        padding = max(padding, len(str(self.last_frame + offset)))
+
+        
+
+        for item in sorted(self.items, key=attrgetter('frame_number'), reverse=offset > 0):
+
+            target = item.frame_number + offset
+            
+            if any(item.frame_number == target for item in self.items):
+                raise ValueError(f"Frame {target} already exists")
+
+            item.set_frame_number(item.frame_number + offset, padding)
+
+    def set_padding(self, padding = 0):
+        
+        padding = max(padding, len(str(self.last_frame)))         
 
         for item in self.items:
-            if item.frame_number in frames:
-                duplicates[item.frame_string] = item
-            else:
-                frames.append(item.frame_number)
+            item.padding = padding
+
+
+    # def _check_duplicate_frames(self):
+    #     duplicates = {}
+    #     frames = []
+
+    #     for item in self.items:
+    #         if item.frame_number in frames:
+    #             duplicates[item.frame_string] = item
+    #         else:
+    #             frames.append(item.frame_number)
 
     def find_duplicate_frames(self) -> Dict[int, Tuple[Item, ...]]:
         """
@@ -353,32 +425,11 @@ class FileSequence:
             
         return result
 
-    # def get_duplicate_frame_numbers(self) -> Set[int]:
-    #     """
-    #     Convenience method to get just the frame numbers that have duplicates.
-
-    #     Returns:
-    #         Set[int]: Set of frame numbers that appear multiple times with different padding.
-    #     """
-    #     return set(self.find_duplicate_frames().keys())
-
-    # def has_duplicate_frames(self) -> bool:
-    #     """
-    #     Convenience method to check if sequence contains any duplicate frames.
-
-    #     Returns:
-    #         bool: True if sequence contains any duplicate frames, False otherwise.
-    #     """
-    #     return bool(self.find_duplicate_frames())    
-
-            
-
     def _check_consistent_property(self, prop_name):
         """Check if all items have the same value for a property."""
         if not self.items:
             raise ValueError("Empty sequence")
             
-
         values = [getattr(item, prop_name) for item in self.items]
         
         first = values[0]
@@ -391,20 +442,15 @@ class FileSequence:
         self._check_consistent_property(prop_name="extension")
         self._check_consistent_property(prop_name="delimiter")
         self._check_consistent_property(prop_name="suffix")
+        self._check_consistent_property(prop_name="directory")
 
-
+    def _check_padding(self):
+        if not all(item.padding == self.padding for item in self.items):
+            return False
+        return True
 
 class Parser:
-    # pattern = (
-    #     r'^'
-    #     r'(?P<name>.*?(?=[^a-zA-Z\d]*\d{3,7}(?!.*\d{3,7})))'  # Name up to last frame number
-    #     r'(?P<separator>[^a-zA-Z\d]*)'                         # Separator before frame (optional)
-    #     r'(?P<frame>\d{3,7})'                                  # Frame number (3-7 digits)
-    #     r'(?!.*\d{3,7})'                                       # Negative lookahead for more digits
-    #     r'(?P<post_numeral>.*?)'                               # Non-greedy match up to extension
-    #     r'(?:\.(?P<ext>.*))?$'                                 # Dot and extension (everything after last dot)
-    # )
-
+   
     pattern = (
         r'^'
         # Name up to last frame number
@@ -419,21 +465,6 @@ class Parser:
         r'(?P<post_numeral>.*?)'
         # Dot and extension (everything after last dot)
         r'(?:\.(?P<ext>.*))?$'
-
-        
-        # r'^'
-        # # Name including any special characters up to the single separator before frame number
-        # r'(?P<name>.*?)'
-        # # Single character separator before frame (optional)
-        # r'(?P<separator>[^a-zA-Z\d])?'
-        # # Frame number (1 or more digits)
-        # r'(?P<frame>\d+)'
-        # # Negative lookahead for more digits
-        # r'(?!.*\d+)'
-        # # Non-greedy match up to extension
-        # r'(?P<post_numeral>.*?)'
-        # # Dot and extension (everything after last dot)
-        # r'(?:\.(?P<ext>.*))?$'
     )
 
     known_extensions = {'exr.gz', 'tar.gz', 'tar.bz2', 'log.gz'}
@@ -444,13 +475,10 @@ class Parser:
         Parses a single filename and returns a file_profile of components.
         """
 
-        
         if isinstance(filename, Path):
             directory = filename.parent
             filename = filename.name
         
-
-
         if len(Path(filename).parts) > 1:
             raise ValueError("first argument must be a name, not a path")
 
@@ -476,7 +504,6 @@ class Parser:
         if len(separator) > 1:
             name += separator[0:-1]
             separator = separator[-1]
-
 
         if directory == None:
             directory = ""
@@ -512,7 +539,6 @@ class Parser:
         if dict['post_numeral'].endswith('.'):
             dict['post_numeral'] = dict['post_numeral'][:-1]
 
-        
         return Item(
             name,
             dict['frame'],
@@ -619,17 +645,13 @@ class Parser:
         return sequence_list
 
 
-
-
     @staticmethod
     def scan_directory(directory, pattern=None):
         return Parser.find_sequences(os.listdir(directory), directory, pattern)
+
 
 class AnomalousItemDataError(Exception):
     """
     Raised when unacceptable inconsistent data is found in a FileSequence
     """
     pass
-
-
-    

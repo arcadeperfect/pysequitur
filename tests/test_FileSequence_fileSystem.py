@@ -5,8 +5,8 @@ import cProfile
 import random
 
 def test_file_sequence_operations(create_files_from_list):
-    print("\n----  test_file_sequence_operations ----\n")
     
+
     # Basic sequence of files
     files = [
         'sequence_0001.png',
@@ -68,7 +68,6 @@ def test_file_sequence_operations(create_files_from_list):
     # Clean up
     os.rmdir(new_directory)
     
-    print("\n---- test_file_sequence_errors ----\n")
     
     # Test error handling with mixed sequences
     mixed_files = [
@@ -89,7 +88,6 @@ def test_file_sequence_operations(create_files_from_list):
     for path in paths:
         path.unlink()
     
-    print("\n----  test_file_sequence_complex ----\n")
     
     # Test with complex sequence including special characters and post numerals
     complex_files = [

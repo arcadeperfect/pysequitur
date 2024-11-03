@@ -11,12 +11,9 @@ def test_item(create_Item_test_files):
     test_env = create_Item_test_files(yaml_file)
 
     for test in test_env:
-        # print(test['data']['path'])
-        # print(test['real_file'].exists())
-
+        
         data = test['data']
 
-        # print(test['test_dir'])
 
         item = Item(data['name'],
                     data['frame_number'],
