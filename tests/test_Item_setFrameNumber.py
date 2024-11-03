@@ -1,5 +1,5 @@
 from pathlib import Path
-from pysequitur.file_sequence import Item, Parser, Renamer
+from pysequitur.file_sequence import Item, Parser, Components
 import pytest
 import os
 

@@ -78,16 +78,16 @@
 
 - description: "File sequence with multiple extensions"
   data:
-    path: "/path/to/render.1001.exr.gz"
+    path: "/path/to/render.1001.tar.gz"
     name: "render"
     frame_number: "1001"
-    extension: "exr.gz"
+    extension: "tar.gz"
     separator: "."
     padding: 4
     directory: "/path/to"
-    file_stem: "render.1001.exr"
+    file_stem: "render.1001.tar"
     post_numeral: ""
-    file_name: render.1001.exr.gz
+    file_name: render.1001.tar.gz
 
 - description: "File sequence with large frame number"
   data:

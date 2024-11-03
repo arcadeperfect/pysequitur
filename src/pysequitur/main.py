@@ -1,5 +1,5 @@
 # from pysequitur.item import Item
-from pysequitur.file_sequence import Item, Parser, Renamer
+from pysequitur.file_sequence import Item, Parser, Components
 from pathlib import Path
 import os
 
@@ -23,27 +23,36 @@ import os
 #          "file2.0005.jpg",
 #          ]
 
-files = ["file.1.jpg",
-         "file_2.jpg",
-         "file-3.jpg",
-         "file-4.jpg",
-         "file-5.jpg",
+files = ["file-01.jpg",
+         "file-02.jpg",
+         "file-03.jpg",
+         "file-04.jpg",
          "file-06.jpg",
-         "file-07.jpg",
-         "file-08.jpg",
-         "file-09.jpg",
-         "file-10.jpg",
-         "file-11.jpg",
-         "file-12.jpg",
-         "file-13.jpg",
-         "file-14.jpg",
-         "file-15.jpg",
-         "file-16.jpg",
+         "img-01.exr",
+         "img-02.exr",
+         "img-03.exr",
+         "img-04.exr",
+         "render-1001.png",
+         "render-1002.png",
+         "render-1003.png",
+         "render-1004.png",
+         "render-1005.png",
+         "render-1006.png",
+         "render-1007.png",
+         "render.1001.png",
+         "render.1002.png",
+         "render.1003.png",
+         "render.1004.png",
+         "render.1005.png",
+         "render.1006.png",
+         "render.1007.png",
 ]
 
-seq = Parser.find_sequences(files)[0]
+
+seqs = Parser.match_components(Components(prefix = "render", delimiter="."), files)
 
 
+for seq in seqs:
+    print(seq)
 
-seq.offset_frames(10)
-print(seq)
+

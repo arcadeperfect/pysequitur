@@ -17,7 +17,7 @@ def test_filesequence(load_test_cases):
     for case in cases:
         data = case['data']
 
-        sequence = Parser.find_sequences(data['files'])[0]
+        sequence = Parser.detect_file_sequences(data['files'])[0]
 
         compare(sequence.prefix, data['name'])
         compare(sequence.first_frame, data['first_frame'])

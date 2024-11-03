@@ -1,5 +1,5 @@
 from pathlib import Path
-from pysequitur.file_sequence import Item, Parser, Renamer
+from pysequitur.file_sequence import Item, Parser, Components
 import pytest
 import os
 
@@ -122,7 +122,7 @@ def test_item_file_system(create_files_from_list):
     assert item.directory == path.parent
     assert item.filename == path.name
     
-    renamer = Renamer()
+    renamer = Components()
     item.rename(renamer)
 
     assert item.prefix == "frame"
@@ -137,7 +137,7 @@ def test_item_file_system(create_files_from_list):
 
     item = Parser.parse_filename(path)
 
-    renamer = Renamer(prefix="renamed")
+    renamer = Components(prefix="renamed")
     item.rename(renamer)
 
     assert item.prefix == "renamed"
@@ -145,7 +145,7 @@ def test_item_file_system(create_files_from_list):
     assert item.delimiter == "."
     assert item.extension == "png"
 
-    renamer = Renamer(delimiter=r"_")
+    renamer = Components(delimiter=r"_")
     item.rename(renamer)
 
     assert item.prefix == "renamed"
@@ -153,7 +153,7 @@ def test_item_file_system(create_files_from_list):
     assert item.delimiter == "_"
     assert item.extension == "png"
 
-    renamer = Renamer(extension="jpg")
+    renamer = Components(extension="jpg")
     item.rename(renamer)
 
     assert item.prefix == "renamed"
@@ -161,7 +161,7 @@ def test_item_file_system(create_files_from_list):
     assert item.delimiter == "_"
     assert item.extension == "jpg"
 
-    renamer = Renamer(suffix="_post")
+    renamer = Components(suffix="_post")
     item.rename(renamer)
 
     assert item.prefix == "renamed"
@@ -169,7 +169,7 @@ def test_item_file_system(create_files_from_list):
     assert item.delimiter == "_"
     assert item.extension == "jpg"
 
-    renamer = Renamer(padding=3)
+    renamer = Components(padding=3)
     item.rename(renamer)
 
     assert item.prefix == "renamed"
@@ -177,7 +177,7 @@ def test_item_file_system(create_files_from_list):
     assert item.delimiter == "_"
     assert item.extension == "jpg"
 
-    renamer = Renamer(prefix = "renamed_again", 
+    renamer = Components(prefix = "renamed_again", 
                       delimiter=".",
                       padding=5, 
                       suffix="_newPost",

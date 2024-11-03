@@ -1,5 +1,5 @@
 from pathlib import Path
-from pysequitur.file_sequence import Item, Parser, Renamer
+from pysequitur.file_sequence import Item, Parser, Components
 import os
 import cProfile
 import random
@@ -21,7 +21,7 @@ def test_file_sequence_operations(create_files_from_list):
     os.mkdir(new_directory)
     
     # Get the sequence
-    sequences = Parser.find_sequences(files, directory)
+    sequences = Parser.detect_file_sequences(files, directory)
     assert len(sequences) == 1
     sequence = sequences[0]
     
@@ -38,7 +38,7 @@ def test_file_sequence_operations(create_files_from_list):
     assert sequence.prefix == "renamed"
     
     # Test rename with Renamer object
-    renamer = Renamer(
+    renamer = Components(
         prefix="complex",
         delimiter=".",
         padding=5,
@@ -79,7 +79,7 @@ def test_file_sequence_operations(create_files_from_list):
     ]
     
     paths = create_files_from_list(mixed_files)
-    sequences = Parser.find_sequences(mixed_files, directory)
+    sequences = Parser.detect_file_sequences(mixed_files, directory)
     
     # Should create two sequences due to different names
     assert len(sequences) >= 2
@@ -99,7 +99,7 @@ def test_file_sequence_operations(create_files_from_list):
     paths = create_files_from_list(complex_files)
     for path in paths:
         assert path.exists()
-    sequences = Parser.find_sequences(paths)
+    sequences = Parser.detect_file_sequences(paths)
     assert len(sequences) == 1
     sequence = sequences[0]
     assert sequence.items[0].exists
@@ -109,7 +109,7 @@ def test_file_sequence_operations(create_files_from_list):
     
     
     # Test renaming complex sequence
-    renamer = Renamer(prefix="new@#$", suffix="_final")
+    renamer = Components(prefix="new@#$", suffix="_final")
     sequence.rename(renamer)
     
     
@@ -147,7 +147,7 @@ def test_file_sequence_operations(create_files_from_list):
         for path in paths:
             assert path.exists()
 
-        sequences = Parser.find_sequences(paths)
+        sequences = Parser.detect_file_sequences(paths)
         s = sequences[0]
         s.rename("renamed")
         
@@ -177,7 +177,7 @@ def test_file_sequence_operations(create_files_from_list):
     os.mkdir(copy_directory)
 
     # Get the sequence
-    sequences = Parser.find_sequences(copy_files, directory)
+    sequences = Parser.detect_file_sequences(copy_files, directory)
     assert len(sequences) == 1
     sequence = sequences[0]
 

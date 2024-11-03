@@ -43,7 +43,7 @@ def test_multiple_sequences(load_test_cases):
 
         all_files.extend(random_files)
 
-        fileSequences = Parser.find_sequences(all_files)
+        fileSequences = Parser.detect_file_sequences(all_files)
 
         # Match and test each parsed sequence
         for fileSequence in fileSequences:
