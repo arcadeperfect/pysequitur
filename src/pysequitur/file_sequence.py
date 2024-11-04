@@ -44,6 +44,8 @@ class Item:
     """
     Represents a single file in a frame sequence with methods for manipulation and validation.
 
+    In general, an Item will not be created directly. Rather, the parser will generate them when parsing a sequence.
+
     An Item represents one file in an image sequence, parsing and managing components like
     the prefix (base name), frame number, file extension, and any delimiters or suffixes.
 
@@ -785,6 +787,8 @@ class Parser:
     """
     Static utility class for parsing filenames and discovering sequences.
 
+    Most functionality is available through convenience methods in the Parser class.
+
     Parser provides methods to analyze filenames, extract components, and group related
     files into sequences. It handles complex filename patterns and supports various 
     file naming conventions commonly used in visual effects and animation pipelines.
@@ -840,6 +844,7 @@ class Parser:
         Returns:
             Item: Parsed filename components
         """
+        
         if isinstance(filename, Path):
             directory = filename.parent
             filename = filename.name
