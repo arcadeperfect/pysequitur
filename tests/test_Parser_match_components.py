@@ -5,54 +5,6 @@ import os
 
 def test_parse_filename():
 
-    # files = [
-    #     'frame.0001.png',
-    #     'frame.0002.png',
-    #     'frame.0003.png',
-    #     'frame.0004.png',
-    #     'frame.0005.png',
-
-    #     'frame.0001.jpg',
-    #     'frame.0002.jpg',
-    #     'frame.0003.jpg',
-    #     'frame.0004.jpg',
-    #     'frame.0005.jpg',
-
-    #     'frame_0001.jpg',
-    #     'frame_0002.jpg',
-    #     'frame_0003.jpg',
-    #     'frame_0004.jpg',
-    #     'frame_0005.jpg',
-
-    #     'image.0001.exr',
-    #     'image.0002.exr',
-    #     'image.0003.exr',
-    #     'image.0004.exr',
-    #     'image.0005.exr',
-
-    #     'render.1001.png',
-    #     'render.1002.png',
-    #     'render.1003.png',
-    #     'render.1004.png',
-    #     'render.1005.png',
-    #     ]
-
-    # sequences = Parser.match_components(Components(), files)
-    # assert len(sequences) == 5
-
-    # sequences = Parser.match_components(Components(prefix="frame"), files)
-    # assert len(sequences) == 3
-
-    # sequences = Parser.match_components(Components(extension="png"), files)
-    # assert len(sequences) == 2
-
-    # sequences = Parser.match_components(Components(extension="png", prefix="frame"), files)
-    # assert len(sequences) == 1
-
-
-    # sequences = Parser.match_components(Components(prefix="frame", delimiter="."), files)
-    # assert len(sequences) == 2
-    # Test base sequences with different frame ranges
     files = [
     # Base sequences
     'frame.0001.png', 'frame.0002.png', 'frame.0003.png', 'frame.0004.png', 'frame.0005.png',
