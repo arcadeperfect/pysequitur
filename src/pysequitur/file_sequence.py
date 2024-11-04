@@ -406,13 +406,13 @@ class FileSequence:
         """
         return [(item.frame_number) for item in self.items]
 
-    @property
-    def missing_frames(self) -> list[int]:
-        """
-        Returns a list of frame numbers missing from the sequence
-        """
-        frames = self.existing_frames
-        return [frame for frame in range(self.first_frame, self.last_frame) if frame not in frames]
+    # @property
+    # def missing_frames(self) -> list[int]:
+    #     """
+    #     Returns a list of frame numbers missing from the sequence
+    #     """
+    #     frames = self.existing_frames
+    #     return [frame for frame in range(self.first_frame, self.last_frame) if frame not in frames]
 
     @property
     def frame_count(self) -> int:
@@ -1053,88 +1053,6 @@ class Parser:
                     sequence_list.append(anomalous_sequence)
 
         return sequence_list
-
-        # sequence_dict = {}
-
-        # for file in filename_list:
-        #     parsed_item = Parser.parse_filename(file, directory)
-        #     if not parsed_item:
-        #         continue
-
-        #     original_name = parsed_item.prefix
-        #     separator = parsed_item.delimiter or ''
-        #     frame = parsed_item.frame_string
-        #     extension = parsed_item.extension or ''
-
-        #     # Remove dividing character from the end of the name
-        #     cleaned_name = re.sub(r'[^a-zA-Z0-9]+$', '', original_name)
-        #     key = (cleaned_name, separator, extension)
-
-        #     if key not in sequence_dict:
-        #         sequence_dict[key] = {
-        #             'name': cleaned_name,
-        #             'separator': separator,
-        #             'frames': [],
-        #             'extension': extension,
-        #             'items': [],
-        #         }
-
-        #     sequence_dict[key]['items'].append(parsed_item)
-        #     sequence_dict[key]['frames'].append(frame)
-
-        #     if not sequence_dict[key]['extension']:
-        #         sequence_dict[key]['extension'] = extension
-
-        # sequence_list = []
-
-        # for seq in sequence_dict.values():
-        #     if len(seq['items']) < 2:
-        #         continue
-
-        #     temp_sequence = FileSequence(
-        #         sorted(seq['items'], key=lambda i: i.frame_number))
-
-        #     duplicates = temp_sequence.find_duplicate_frames()
-
-        #     if not duplicates:
-        #         sequence_list.append(temp_sequence)
-        #         continue
-
-        #     padding_counts = Counter(
-        #         item.padding for item in temp_sequence.items)
-        #     nominal_padding = padding_counts.most_common(1)[0][0]
-
-        #     main_sequence_items = []
-        #     anomalous_items = defaultdict(list)
-        #     processed_frames = set()
-
-        #     for item in temp_sequence.items:
-        #         if item.frame_number in processed_frames:
-        #             continue
-
-        #         if item.frame_number in duplicates:
-        #             duplicate_items = duplicates[item.frame_number]
-        #             for dup_item in duplicate_items:
-        #                 if dup_item.padding == nominal_padding:
-        #                     main_sequence_items.append(dup_item)
-        #                 else:
-        #                     anomalous_items[dup_item.padding].append(dup_item)
-        #         else:
-        #             main_sequence_items.append(item)
-
-        #         processed_frames.add(item.frame_number)
-
-        #     if len(main_sequence_items) >= 2:
-        #         main_sequence = FileSequence(
-        #             sorted(main_sequence_items, key=lambda i: i.frame_number))
-        #         sequence_list.append(main_sequence)
-        #     for padding, items in anomalous_items.items():
-        #         if len(items) >= 2:
-        #             anomalous_sequence = FileSequence(
-        #                 sorted(items, key=lambda i: i.frame_number))
-        #             sequence_list.append(anomalous_sequence)
-
-        # return sequence_list
 
     @staticmethod
     def scan_directory(directory: str,

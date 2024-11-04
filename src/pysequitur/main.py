@@ -1,5 +1,5 @@
 # from pysequitur.item import Item
-from pysequitur.file_sequence import Item, Parser, Components
+from pysequitur.file_sequence import Item, Parser, Components, FileSequence
 from pathlib import Path
 import os
 
@@ -48,6 +48,7 @@ files = ["file-01.jpg",
          "render.1007.png",
 ]
 
+f = FileSeq
 
 seqs = Parser.match_components(Components(prefix = "render", delimiter="."), files)
 
