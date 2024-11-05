@@ -89,6 +89,11 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
 pysequitur = "pysequitur.main:main"
+# lint = "pylint src/pysequitur"
+# format = "black src/pysequitur"
+# typecheck = "mypy src/pysequitur"
+# sort-imports = "isort src/pysequitur"
+# check = "flake8 src/pysequitur"
 
 # Tool configurations
 [tool.black]

@@ -47,11 +47,11 @@ class Item:
     @property
     def frame_number(self):
         return int(self.frame_string)
-    
+
     @property
     def frame_string(self):
         frame_string = f"{self.frame_string:0{self.padding}d}"  # "0003"
-    
+
     def move(self, new_directory):
         if self.path.exists():
             new_path = new_directory / self.filename
@@ -67,7 +67,7 @@ class Item:
             self.path = new_path  # Update the path attribute
         else:
             raise FileNotFoundError()
-        
+
     def delete(self):
         if self.path.exists():
             self.path.unlink()
@@ -78,13 +78,11 @@ class Item:
         raise NotImplementedError()
 
 
-
-
 @dataclass
 class FileSequence:
 
     items: list[Item]
-   
+
     @property
     def existing_frames(self):
         return [(item.frame_number) for item in self.items]
@@ -92,7 +90,11 @@ class FileSequence:
     @property
     def missing_frames(self):
         frames = self.existing_frames
-        return [frame for frame in range(self.first_frame, self.last_frame) if frame not in frames]
+        return [
+            frame
+            for frame in range(self.first_frame, self.last_frame)
+            if frame not in frames
+        ]
 
     @property
     def frame_count(self):
@@ -112,7 +114,7 @@ class FileSequence:
 
     @property
     def name(self):
-        
+
         return self._check_consistent_property(prop_name="name")
 
     @property
@@ -133,7 +135,9 @@ class FileSequence:
 
     @property
     def missing_frames(self):
-        return set(range(self.first_frame, self.last_frame + 1)) - set(self.existing_frames)
+        return set(range(self.first_frame, self.last_frame + 1)) - set(
+            self.existing_frames
+        )
 
     @property
     def frame_count(self):
@@ -142,7 +146,7 @@ class FileSequence:
     @property
     def padding(self):
         if not self.items:
-            return None 
+            return None
         padding_counts = Counter(item.padding for item in self.items)
         return padding_counts.most_common(1)[0][0]
 
@@ -150,10 +154,9 @@ class FileSequence:
         """Check if all items have the same value for a property."""
         if not self.items:
             raise ValueError("Empty sequence")
-            
 
         values = [getattr(item, prop_name) for item in self.items]
-        
+
         first = values[0]
         if not all(v == first for v in values):
             raise AnomalousItemDataError(f"Inconsistent {prop_name} values")
@@ -172,22 +175,22 @@ class Parser:
     # )
 
     pattern = (
-        r'^'
+        r"^"
         # Name up to last frame number
-        r'(?P<name>.*?(?=[^a-zA-Z\d]*\d+(?!.*\d+)))'
+        r"(?P<name>.*?(?=[^a-zA-Z\d]*\d+(?!.*\d+)))"
         # Separator before frame (optional)
-        r'(?P<separator>[^a-zA-Z\d]*)'
+        r"(?P<separator>[^a-zA-Z\d]*)"
         # Frame number (1 or more digits)
-        r'(?P<frame>\d+)'
+        r"(?P<frame>\d+)"
         # Negative lookahead for more digits
-        r'(?!.*\d+)'
+        r"(?!.*\d+)"
         # Non-greedy match up to extension
-        r'(?P<post_numeral>.*?)'
+        r"(?P<post_numeral>.*?)"
         # Dot and extension (everything after last dot)
-        r'(?:\.(?P<ext>.*))?$'
+        r"(?:\.(?P<ext>.*))?$"
     )
 
-    known_extensions = {'exr.gz', 'tar.gz', 'tar.bz2', 'log.gz'}
+    known_extensions = {"exr.gz", "tar.gz", "tar.bz2", "log.gz"}
 
     @staticmethod
     def parse_filename(filename, directory=None, pattern=None):
@@ -207,11 +210,11 @@ class Parser:
         dict = match.groupdict()
 
         # Set default values if keys are missing
-        dict.setdefault('frame', '')
-        dict.setdefault('name', '')
-        dict.setdefault('ext', '')
-        dict.setdefault('separator', '')
-        dict.setdefault('post_numeral', '')
+        dict.setdefault("frame", "")
+        dict.setdefault("name", "")
+        dict.setdefault("ext", "")
+        dict.setdefault("separator", "")
+        dict.setdefault("post_numeral", "")
 
         if directory == None:
             directory = ""
@@ -221,31 +224,31 @@ class Parser:
             raise ValueError("invalid filepath")
 
         # Start of modified code
-        ext = dict.get('ext', '')
+        ext = dict.get("ext", "")
 
-        if dict['ext']:
+        if dict["ext"]:
             # Split the extension by dots
-            ext_parts = dict['ext'].split('.')
+            ext_parts = dict["ext"].split(".")
             # Check for known multi-part extensions
             for i in range(len(ext_parts)):
-                possible_ext = '.'.join(ext_parts[i:])
+                possible_ext = ".".join(ext_parts[i:])
                 if possible_ext in Parser.known_extensions:
                     # Adjust post_numeral
                     if ext_parts[:i]:
-                        dict['post_numeral'] += '.' + '.'.join(ext_parts[:i])
+                        dict["post_numeral"] += "." + ".".join(ext_parts[:i])
                     ext = possible_ext
                     break
             else:
                 # If no known multi-part extension is found, use the last part as the extension
                 if len(ext_parts) > 1:
-                    dict['post_numeral'] += '.' + '.'.join(ext_parts[:-1])
+                    dict["post_numeral"] += "." + ".".join(ext_parts[:-1])
                 ext = ext_parts[-1]
         else:
-            ext = ''
+            ext = ""
 
         # Remove trailing dot from post_numeral if present
-        if dict['post_numeral'].endswith('.'):
-            dict['post_numeral'] = dict['post_numeral'][:-1]
+        if dict["post_numeral"].endswith("."):
+            dict["post_numeral"] = dict["post_numeral"][:-1]
 
         # End of modified code
 
@@ -290,41 +293,40 @@ class Parser:
                 continue
 
             original_name = parsed_item.name
-            separator = parsed_item.separator or ''
+            separator = parsed_item.separator or ""
             frame = parsed_item.frame_string
-            extension = parsed_item.extension or ''
+            extension = parsed_item.extension or ""
 
             # Remove diving character from the end of the name
             # for example,
             # "name_" becomes "name"
             # "file." becomes "file"
-            cleaned_name = re.sub(r'[^a-zA-Z0-9]+$', '', original_name)
+            cleaned_name = re.sub(r"[^a-zA-Z0-9]+$", "", original_name)
             key = (cleaned_name, separator, extension)
 
             if key not in sequence_dict:
                 sequence_dict[key] = {
-                    'name': cleaned_name,
-                    'separator': separator,
-                    'frames': [],
-                    'extension': extension,
-                    'items': [],
+                    "name": cleaned_name,
+                    "separator": separator,
+                    "frames": [],
+                    "extension": extension,
+                    "items": [],
                 }
 
-            sequence_dict[key]['items'].append(parsed_item)
-            sequence_dict[key]['frames'].append(frame)
+            sequence_dict[key]["items"].append(parsed_item)
+            sequence_dict[key]["frames"].append(frame)
             # Update extension if not already set (can happen with bad sequence)
-            if not sequence_dict[key]['extension']:
-                sequence_dict[key]['extension'] = extension
+            if not sequence_dict[key]["extension"]:
+                sequence_dict[key]["extension"] = extension
 
         # Create Sequence instances
         sequence_list = []
         for seq in sequence_dict.values():
 
-            if len(seq['items']) < 2:
+            if len(seq["items"]) < 2:
                 continue
 
-            sequence = FileSequence(
-                sorted(seq['items'], key=lambda i: i.frame_number))
+            sequence = FileSequence(sorted(seq["items"], key=lambda i: i.frame_number))
 
             # sequence = FileSequence(
             #     name=seq['name'],
@@ -342,9 +344,9 @@ class Parser:
         # return None
 
 
-
 class AnomalousItemDataError(Exception):
     """
     Raised when unacceptable inconsistent data is found in a FileSequence
     """
+
     pass

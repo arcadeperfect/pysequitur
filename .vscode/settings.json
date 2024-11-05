@@ -1,34 +1,34 @@
-{
-    "python.pythonPath": "/Users/alex/Library/Caches/pypoetry/virtualenvs/pysequetur-nbvVww5J-py3.12",
+// {
+//     "python.pythonPath": "/Users/alex/Library/Caches/pypoetry/virtualenvs/pysequetur-nbvVww5J-py3.12",
 
-    // "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
+//     // // "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
     
-    // General Python settings
-    "python.linting.enabled": true,
-    "python.analysis.typeCheckingMode": "basic",
+//     // // General Python settings
+//     // "python.linting.enabled": true,
+//     // "python.analysis.typeCheckingMode": "basic",
     
-    // Format on save
-    "editor.formatOnSave": true,
-    "[python]": {
-        "editor.formatOnSave": true,
-        "editor.defaultFormatter": "ms-python.python",
-        "editor.codeActionsOnSave": {
-            "source.organizeImports": true
-        }
-    },
+//     // // Format on save
+//     // "editor.formatOnSave": true,
+//     // "[python]": {
+//     //     "editor.formatOnSave": true,
+//     //     "editor.defaultFormatter": "ms-python.python",
+//     //     "editor.codeActionsOnSave": {
+//     //         "source.organizeImports": "explicit"
+//     //     }
+//     // },
 
-    // Use Black as the formatter
-    "python.formatting.provider": "black",
+//     // // Use Black as the formatter
+//     // "python.formatting.provider": "black",
     
-    // Enable Flake8
-    "python.linting.flake8Enabled": true,
+//     // // Enable Flake8
+//     // "python.linting.flake8Enabled": true,
     
-    // Enable Pylint
-    "python.linting.pylintEnabled": true,
+//     // // Enable Pylint
+//     // "python.linting.pylintEnabled": true,
     
-    // Enable MyPy
-    "python.linting.mypyEnabled": true,
+//     // // Enable MyPy
+//     // "python.linting.mypyEnabled": true,
     
-    // Use Poetry environment
-    "python.poetry.activate": true
-}
+//     // // Use Poetry environment
+//     // "python.poetry.activate": true
+// }
