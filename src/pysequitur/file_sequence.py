@@ -5,12 +5,20 @@
 import re
 import os
 import shutil
+import logging
 from enum import Flag, auto
 from typing import Dict, Optional, Tuple, List, Any, TypedDict
 from pathlib import Path
 from dataclasses import dataclass
 from collections import Counter, defaultdict
 from operator import attrgetter
+
+logging.basicConfig(
+    level=logging.INFO,  # Set default level to INFO
+    format="%(levelname)s: %(message)s",  # Simple format
+)
+
+logger = logging.getLogger("pysequitur")
 
 
 @dataclass
@@ -90,7 +98,6 @@ class Item:
     def From_Path(
         path: Path | str,
         directory: Optional[str] = None,
-        pattern: Optional[str] = None,
     ) -> "Item | None":
         """Creates an Item object from a Path object, or a string representing
         the file name, with an optional string representing the directory.
@@ -101,7 +108,8 @@ class Item:
             pattern (str, optional): Pattern to use for parsing if path is a string (optional)
 
         """
-        return Parser.parse_filename(path)
+
+        return Parser.parse_filename(path, directory)
 
     @property
     def filename(self) -> str:
@@ -131,7 +139,6 @@ class Item:
 
         Args:
             value (int): New padding
-
         """
         padding = max(value, len(str(self.frame_number)))
         self.frame_string = f"{self.frame_number:0{padding}d}"
@@ -182,10 +189,12 @@ class Item:
     def move(self, new_directory: str) -> None:
         """Moves the item to a new directory.
 
-        Args:
-            new_directory (str): New directory
+        # Args:
+        #     new_directory (str): New directory
 
-        """
+        #"""
+
+        logger.info("Moving %s to %s", self.filename, new_directory)
 
         if self.path.exists():
             new_path = Path(new_directory) / self.filename
@@ -202,10 +211,12 @@ class Item:
         Can be used with an empty Components object to force the Path object to be renamed to the
         computed file name value from the components.
 
-        Args:
-            new_name (str | Components, optional): New name
+        # Args:
+        #     new_name (str | Components, optional): New name
 
-        """
+        #"""
+
+        logger.info("Renaming %s to %s", self.filename, new_name)
 
         if not self.path.exists():
             raise FileNotFoundError()
@@ -251,10 +262,12 @@ class Item:
             new_name (str): New name
             new_directory (str, optional): New directory
 
-        Returns:
-            Item: New item
+        # Returns:
+        #     Item: New item
 
-        """
+        #"""
+
+        logger.info("Copying %s to %s", self.filename, new_name)
 
         if not self.path.exists():
             raise FileNotFoundError()
@@ -311,6 +324,8 @@ class Item:
 
     def delete(self) -> None:
         """Deletes the item, including the associated file."""
+
+        logger.info("Deleting %s", self.filename)
 
         if self.path.exists():
             self.path.unlink()
@@ -458,9 +473,14 @@ class FileSequence:
 
         """
 
-        return set(range(self.first_frame, self.last_frame + 1)) - set(
+        missing_frames = set(range(self.first_frame, self.last_frame + 1)) - set(
             self.existing_frames
         )
+
+        # if missing_frames:
+        #     logging.warning("Missing frames: %s", missing_frames)
+
+        return missing_frames
 
     @property
     def frame_count(self) -> int:
@@ -475,11 +495,12 @@ class FileSequence:
 
         """
 
-        # TODO emit warning if padding is inconsistent
+        # self._check_padding()
 
         if not self.items:
             raise ValueError("No items in sequence")
         padding_counts = Counter(item.padding for item in self.items)
+
         return padding_counts.most_common(1)[0][0]
 
     @property
@@ -496,7 +517,13 @@ class FileSequence:
     @property
     def problems(self) -> "Problems":
         """Returns a flag containing all detected problems."""
-        return Problems.check_sequence(self)
+
+        problems = Problems.check_sequence(self)
+
+        # if problems is not Problems.NONE:
+        #     logging.warning("Problems found: %s", problems)
+
+        return problems
 
     @staticmethod
     def from_file_list(
@@ -512,8 +539,8 @@ class FileSequence:
         Args:
             filename_list (List[str]): A list of filenames to be analyzed for sequences.
             directory (str, optional): The directory in which filenames are located.
-                                  
-        
+
+
         Returns:
             List[FileSequence]: A list of FileSequence objects representing the detected file sequences.
 
@@ -534,7 +561,11 @@ class FileSequence:
         return Parser.from_directory(directory)
 
     @staticmethod
-    def from_components_in_filename_list(components: Components, filename_list: List[str], directory: Optional[str] = None) -> List["FileSequence"]:
+    def from_components_in_filename_list(
+        components: Components,
+        filename_list: List[str],
+        directory: Optional[str] = None,
+    ) -> List["FileSequence"]:
         """
         Matches components against a list of filenames and returns a list of detected
         sequences as FileSequence objects. If no components are specified, all
@@ -551,7 +582,7 @@ class FileSequence:
 
         >>> FileSequence.from_components_in_filename_list(Components(prefix = "image", extension = "exr"), filename_list)
             Returns all sequences with prefix "image" and extension "exr"
-        
+
         Args:
             components (Components): Components to match
             directory (str): Directory that contains the files
@@ -560,17 +591,21 @@ class FileSequence:
             list[FileSequence]: List of Sequence objects
 
         """
-        return Parser.from_components_in_filename_list(components, filename_list, directory)
+        return Parser.from_components_in_filename_list(
+            components, filename_list, directory
+        )
 
     @staticmethod
-    def from_components_in_directory(components: Components, directory: str) -> List["FileSequence"]:
+    def from_components_in_directory(
+        components: Components, directory: str
+    ) -> List["FileSequence"]:
         """
         Matches components against the contents of a directory and returns a list of detected
         sequences as FileSequence objects. If no components are specified, all
         possible sequences are returned. Otherwise only sequences that match the
         specified components are returned.
 
-     
+
         Examples:
 
         >>> FileSequence.from_components_in_filename_list(Components(prefix = "image), filename_list)
@@ -578,7 +613,7 @@ class FileSequence:
 
         >>> FileSequence.from_components_in_filename_list(Components(prefix = "image", extension = "exr"), filename_list)
             Returns all sequences with prefix "image" and extension "exr"
-        
+
         Args:
             components (Components): Components to match
             directory (str): Directory that contains the files
@@ -590,15 +625,16 @@ class FileSequence:
         return Parser.from_components_in_directory(components, directory)
 
     @staticmethod
-    def from_sequence_filename(filename: str, filename_list: List[str], directory: Optional[str] = None) -> "FileSequence":
-
+    def from_sequence_filename(
+        filename: str, filename_list: List[str], directory: Optional[str] = None
+    ) -> "FileSequence":
         """
         Matches a sequence file name against a list of filenames and returns
         a detected sequence as a FileSequence object.
 
         Sequence filenames take the form: <prefix><delimiter><####><suffix>.<extension>
         where the number of # symbols determines the padding.
-        
+
         Supported Examples:
 
         image.####.exr
@@ -606,7 +642,7 @@ class FileSequence:
         plate_v1-#####.png
 
         Digits in the suffix are not supported.
-        
+
         Args:
             filename (str): Sequence file name
             filename_list (list): List of filenames
@@ -618,10 +654,11 @@ class FileSequence:
 
         """
         return Parser.from_sequence_filename(filename, filename_list, directory)
-    
-    @staticmethod
-    def from_sequence_filename_in_directory(filename: str, directory: str) -> "FileSequence":
 
+    @staticmethod
+    def from_sequence_filename_in_directory(
+        filename: str, directory: str
+    ) -> "FileSequence":
         """
         Matches a sequence file name against a list of files in a given directory
         and returns a detected sequence as a FileSequence object.
@@ -636,7 +673,7 @@ class FileSequence:
         plate_v1-#####.png
 
         Digits in the suffix are not supported.
-        
+
         Args:
             filename (str): Sequence file name
             filename_list (list): List of filenames
@@ -658,7 +695,7 @@ class FileSequence:
 
         """
 
-        #TODO check if any of the new filesnames collide with existing files before proceeding
+        # TODO check if any of the new filesnames collide with existing files before proceeding
 
         self._validate()
 
@@ -672,8 +709,8 @@ class FileSequence:
             new_directory (str): The directory to move the sequence to.
 
         """
-        
-        #TODO check if any of the new filesnames collide with existing files before proceeding
+
+        # TODO check if any of the new filesnames collide with existing files before proceeding
 
         for item in self.items:
             item.move(new_directory)
@@ -699,8 +736,7 @@ class FileSequence:
 
         """
 
-        #TODO check if any of the new filesnames collide with existing files before proceeding
-
+        # TODO check if any of the new filesnames collide with existing files before proceeding
 
         self._validate()
 
@@ -726,8 +762,7 @@ class FileSequence:
 
         """
 
-        #TODO check if any of the new filesnames collide with existing files before proceeding
-
+        # TODO check if any of the new filesnames collide with existing files before proceeding
 
         if offset == 0:
             return
@@ -809,7 +844,7 @@ class FileSequence:
             result[frame_number] = tuple(sorted_items)
 
         return result
-    
+
     def folderize(self, folder_name: str) -> None:
         """Moves all items in the sequence to a new directory.
 
@@ -862,11 +897,12 @@ class FileSequence:
     def _check_padding(self) -> bool:
         """Checks that all items in the sequence have the same padding.
 
-        Returns:
-            bool: True if padding is consistent, False otherwise.
+        # Returns:
+        #     bool: True if padding is consistent, False otherwise.
 
-        """
+        #"""
         if not all(item.padding == self.padding for item in self.items):
+            logger.warning("Inconsistent padding in sequence")
             return False
         return True
 
@@ -947,17 +983,17 @@ class Parser:
         if not match:
             return None
 
-        dict = match.groupdict()
+        parsed_dict = match.groupdict()
 
         # Set default values if keys are missing
-        dict.setdefault("frame", "")
-        dict.setdefault("name", "")
-        dict.setdefault("ext", "")
-        dict.setdefault("separator", "")
-        dict.setdefault("post_numeral", "")
+        parsed_dict.setdefault("frame", "")
+        parsed_dict.setdefault("name", "")
+        parsed_dict.setdefault("ext", "")
+        parsed_dict.setdefault("separator", "")
+        parsed_dict.setdefault("post_numeral", "")
 
-        name = dict["name"]
-        separator = dict["separator"]
+        name = parsed_dict["name"]
+        separator = parsed_dict["separator"]
 
         if len(separator) > 1:
             name += separator[0:-1]
@@ -971,33 +1007,33 @@ class Parser:
             raise ValueError("invalid filepath")
 
         # Start of modified code
-        ext = dict.get("ext", "")
+        ext = parsed_dict.get("ext", "")
 
-        if dict["ext"]:
+        if parsed_dict["ext"]:
             # Split the extension by dots
-            ext_parts = dict["ext"].split(".")
+            ext_parts = parsed_dict["ext"].split(".")
             # Check for known multi-part extensions
             for i in range(len(ext_parts)):
                 possible_ext = ".".join(ext_parts[i:])
                 if possible_ext in Parser.known_extensions:
                     # Adjust post_numeral
                     if ext_parts[:i]:
-                        dict["post_numeral"] += "." + ".".join(ext_parts[:i])
+                        parsed_dict["post_numeral"] += "." + ".".join(ext_parts[:i])
                     ext = possible_ext
                     break
             else:
                 # If no known multi-part extension is found, use the last part as the extension
                 if len(ext_parts) > 1:
-                    dict["post_numeral"] += "." + ".".join(ext_parts[:-1])
+                    parsed_dict["post_numeral"] += "." + ".".join(ext_parts[:-1])
                 ext = ext_parts[-1]
         else:
             ext = ""
 
         # Remove trailing dot from post_numeral if present
-        if dict["post_numeral"].endswith("."):
-            dict["post_numeral"] = dict["post_numeral"][:-1]
+        if parsed_dict["post_numeral"].endswith("."):
+            parsed_dict["post_numeral"] = parsed_dict["post_numeral"][:-1]
 
-        return Item(name, dict["frame"], ext, path, separator, dict["post_numeral"])
+        return Item(name, parsed_dict["frame"], ext, path, separator, parsed_dict["post_numeral"])
 
     class SequenceDictItem(TypedDict):
         name: str
@@ -1145,19 +1181,19 @@ class Parser:
                 )
                 sequence_list.append(main_sequence)
 
-            for padding, items in anomalous_items.items():
+            for items in anomalous_items.items():
                 if len(items) >= 2:
                     anomalous_sequence = FileSequence(
                         sorted(items, key=lambda i: i.frame_number)
                     )
                     sequence_list.append(anomalous_sequence)
 
+        logging.info("Parsed %d sequences", len(sequence_list))
+
         return sequence_list
 
     @staticmethod
-    def from_directory(
-        directory: str | Path
-    ) -> List[FileSequence]:
+    def from_directory(directory: str | Path) -> List[FileSequence]:
         """Scans a directory and call Parser.detect_file_sequences to return a
         list of detected sequences as FileSequence objects.
 
@@ -1226,7 +1262,6 @@ class Parser:
         components: Components,
         filename_list: List[str],
         directory: Optional[str] = None,
-        pattern: Optional[str] = None,
     ) -> List[FileSequence]:
         """Matches components against a list of filenames and returns a list of
         detected sequences as FileSequence objects. If no components are
@@ -1278,6 +1313,8 @@ class Parser:
 
             if match:
                 matches.append(sequence)
+
+        logger.info("Found %d sequences matching %s", len(matches), str(components))
 
         return matches
 
@@ -1334,6 +1371,8 @@ class Parser:
             if match:
                 matches.append(sequence)
 
+        logger.info("Found %d sequences matching %s", len(matches), str(components))
+
         return matches
 
     @staticmethod
@@ -1375,13 +1414,17 @@ class Parser:
                 matched.append(sequence)
 
         if len(matched) > 1:
-            raise ValueError(f"Multiple sequences match {filename!r}: {matched!r}, should be only one")
+            raise ValueError(
+                f"Multiple sequences match {filename!r}: {matched!r}, should be only one"
+            )
 
         if len(matched) == 0:
             return None
 
+        logger.info("Found sequences matching %s", filename)
+
         return matched[0]
-    
+
     @staticmethod
     def from_sequence_filename_in_directory(
         filename: str,
@@ -1412,8 +1455,7 @@ class Parser:
 
         files = os.listdir(directory)
 
-        return Parser.from_sequence_filename(filename, files, directory
-    )
+        return Parser.from_sequence_filename(filename, files, directory)
 
 
 class Problems(Flag):
