@@ -148,8 +148,8 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## License
 
-TODO: Add license information
+MIT
 
 ## Version History
 
-TODO: Add version history once released
+unreleased
