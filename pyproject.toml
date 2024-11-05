@@ -36,13 +36,13 @@ docformatter = "^1.7.5"
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
-# [tool.poetry.scripts]
-# pysequitur = "pysequitur.main:main"
-# lint = "pylint src/pysequitur"
-# format = "black src/pysequitur"
-# typecheck = "mypy src/pysequitur"
-# sort-imports = "isort src/pysequitur"
-# check = "flake8 src/pysequitur"
+[tool.poetry.scripts]
+pysequitur = "pysequitur.main:main"
+lint = "pylint src/pysequitur"
+format = "black src/pysequitur"
+typecheck = "mypy src/pysequitur"
+sort-imports = "isort src/pysequitur"
+check = "flake8 src/pysequitur"
 
 # Tool configurations
 [tool.black]
@@ -61,13 +61,15 @@ warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
 check_untyped_defs = true
+exclude = '^tests/'
 
 [tool.pylint.messages_control]
 disable = [
-    "C0111",  # missing-docstring
-    "C0103",  # invalid-name
-    "C0330",  # bad-continuation
-    "C0326",  # bad-whitespace
+    "C0301",  # line-too-long
+#     "C0111",  # missing-docstring
+#     "C0103",  # invalid-name
+#     "C0330",  # bad-continuation
+#     "C0326",  # bad-whitespace
 ]
 
 [tool.pylint.format]

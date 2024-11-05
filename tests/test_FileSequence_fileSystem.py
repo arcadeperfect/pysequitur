@@ -21,7 +21,7 @@ def test_file_sequence_operations(create_files_from_list):
     os.mkdir(new_directory)
     
     # Get the sequence
-    sequences = Parser.detect_file_sequences(files, directory)
+    sequences = Parser.from_file_list(files, directory)
     assert len(sequences) == 1
     sequence = sequences[0]
     
@@ -79,7 +79,7 @@ def test_file_sequence_operations(create_files_from_list):
     ]
     
     paths = create_files_from_list(mixed_files)
-    sequences = Parser.detect_file_sequences(mixed_files, directory)
+    sequences = Parser.from_file_list(mixed_files, directory)
     
     # Should create two sequences due to different names
     assert len(sequences) >= 2
@@ -99,7 +99,7 @@ def test_file_sequence_operations(create_files_from_list):
     paths = create_files_from_list(complex_files)
     for path in paths:
         assert path.exists()
-    sequences = Parser.detect_file_sequences(paths)
+    sequences = Parser.from_file_list(paths)
     assert len(sequences) == 1
     sequence = sequences[0]
     assert sequence.items[0].exists
@@ -147,7 +147,7 @@ def test_file_sequence_operations(create_files_from_list):
         for path in paths:
             assert path.exists()
 
-        sequences = Parser.detect_file_sequences(paths)
+        sequences = Parser.from_file_list(paths)
         s = sequences[0]
         s.rename("renamed")
         
@@ -177,7 +177,7 @@ def test_file_sequence_operations(create_files_from_list):
     os.mkdir(copy_directory)
 
     # Get the sequence
-    sequences = Parser.detect_file_sequences(copy_files, directory)
+    sequences = Parser.from_file_list(copy_files, directory)
     assert len(sequences) == 1
     sequence = sequences[0]
 

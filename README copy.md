@@ -88,22 +88,35 @@ Equals: "file_name.####_final.exr"
 Main class.
 Manages collections of related Items as a single unit, where Items represent single files.
 
-- Parse either real files which maintain a link to the filesystem or lists of filenames strings which are considered virtual
-- Identify all valid sequences
-- Match against specific filename components
-- Match against a specified sequence filename
-- Modify or repair inconsistent file number padding 
-- Identify and report missing frames
-- Flexible sequence renaming operations
-- Move sequences as a single unit
-- Copy sequences as a single unit
-- Delete sequences as a single unit
-- Offset frame numbers
-- Folderize sequences
+---
+#### Parse list of FileSequences from directory:
+```python
+sequences = FileSequence.from_directory("/path/to/files")
+```
+Returns all valid sequences in the directory
+
+---
+
+#### Match FileSequences against components:
+```python
+my_components = Components(prefix="image", extension="exr")
+sequences = FileSequence.from_components_in_directory(my_components, "/path/to/files")
+```
+Returns all sequences with prefix "image" and extension "exr"
+
+---
+#### Match FileSequence against a single sequence filename 
+
+```python
+sequence = FileSequence.from_sequence_filename_in_directory("image.####_final.exr", "/path/to/files")
+```
+Returns exactly one sequence that matches "image.####_final.exr"
+
+---
 
 
 
-## File Naming Convention
+# File Naming Convention
 
 The library parses filenames into the following components:
 ```
@@ -117,6 +130,34 @@ Example: `render_001_final.exr`
 - suffix: "_final"
 - extension: "exr"
 
----
+## Problem Detection
 
-### See examples folder for more
+The library can identify various issues in sequences:
+
+```python
+problems = sequence.problems
+if Problems.MISSING_FRAMES in problems:
+    print("Sequence has gaps")
+if Problems.INCONSISTENT_PADDING in problems:
+    print("Frame numbers have inconsistent padding")
+```
+
+## Error Handling
+
+The library includes custom error types for specific scenarios:
+
+- `AnomalousItemDataError`: Raised when inconsistent data is found in a sequence
+- `FileNotFoundError`: Raised when attempting operations on non-existent files
+- `ValueError`: Raised for invalid inputs or operations
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## License
+
+MIT
+
+## Version History
+
+unreleased

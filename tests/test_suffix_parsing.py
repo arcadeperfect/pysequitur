@@ -17,6 +17,6 @@ def test_suffix_parsing():
         'frame.0005_b.png',
     ]
 
-    sequences = Parser.detect_file_sequences(files)
+    sequences = Parser.from_file_list(files)
 
     assert len(sequences) == 2

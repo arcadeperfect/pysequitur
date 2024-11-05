@@ -18,7 +18,7 @@ def test_offset_frame_numbers(create_files_from_list):
     path = paths[0]
     print(path.parent)
 
-    s = Parser.scan_directory(str(path.parent))[0]
+    s = Parser.from_directory(str(path.parent))[0]
 
     # print(s)
 
