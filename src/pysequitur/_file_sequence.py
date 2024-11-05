@@ -194,9 +194,7 @@ class Parser:
 
     @staticmethod
     def parse_filename(filename, directory=None, pattern=None):
-        """
-        Parses a single filename and returns a file_profile of components.
-        """
+        """Parses a single filename and returns a file_profile of components."""
         if len(Path(filename).parts) > 1:
             raise ValueError("first argument must be a name, not a path")
 
@@ -265,8 +263,7 @@ class Parser:
 
     @staticmethod
     def find_sequences(filename_list, directory=None, pattern=None):
-        """
-        Scans the list of filenames and returns a list of Sequences.
+        """Scans the list of filenames and returns a list of Sequences.
 
         name: str
         frame: str
@@ -345,8 +342,6 @@ class Parser:
 
 
 class AnomalousItemDataError(Exception):
-    """
-    Raised when unacceptable inconsistent data is found in a FileSequence
-    """
+    """Raised when unacceptable inconsistent data is found in a FileSequence."""
 
     pass
