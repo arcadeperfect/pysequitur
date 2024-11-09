@@ -114,8 +114,8 @@ class Item:
     @property
     def filename(self) -> str:
         """Returns the filename of the item as a string."""
-        if not self.exists:
-            raise FileNotFoundError()
+        # if not self.exists:
+        #     raise FileNotFoundError()
 
         s = self.delimiter if self.delimiter else ""
         p = self.suffix if self.suffix else ""
@@ -140,6 +140,10 @@ class Item:
         Args:
             value (int): New padding
         """
+
+        # TODO this should support unlinked item
+        # TODO write test for unlinked item
+
         padding = max(value, len(str(self.frame_number)))
         self.frame_string = f"{self.frame_number:0{padding}d}"
         if self.exists:
@@ -219,39 +223,67 @@ class Item:
         logger.info("Renaming %s to %s", self.filename, new_name)
 
         if not self.path.exists():
-            raise FileNotFoundError()
+            raise FileNotFoundError()  # TODO this should support unlinked item
 
         if new_name is None:
             new_name = Components()
 
         if isinstance(new_name, str):
-            self.prefix = new_name
-            self.path = self.path.rename(self.path.with_name(self.filename))
-            return
+            # self.prefix = new_name
+            # self.path = self.path.rename(self.path.with_name(self.filename))
+            new_name = Components(prefix=new_name)
+            # return
 
-        if isinstance(new_name, Components):
+        if new_name.prefix is not None:
+            self.prefix = new_name.prefix
 
-            if new_name.prefix is not None:
-                self.prefix = new_name.prefix
+        if new_name.delimiter is not None:
+            self.delimiter = new_name.delimiter
 
-            if new_name.delimiter is not None:
-                self.delimiter = new_name.delimiter
+        if new_name.padding is not None:
+            padding = max(new_name.padding, self._min_padding)
+            self.frame_string = f"{self.frame_number:0{padding}d}"
 
-            if new_name.padding is not None:
-                padding = max(new_name.padding, self._min_padding)
-                self.frame_string = f"{self.frame_number:0{padding}d}"
+        if new_name.suffix is not None:
+            self.suffix = new_name.suffix
 
-            if new_name.suffix is not None:
-                self.suffix = new_name.suffix
+        if new_name.extension is not None:
+            self.extension = new_name.extension
 
-            if new_name.extension is not None:
-                self.extension = new_name.extension
+        self.path = self.path.rename(self.path.with_name(self.filename))
 
-            self.path = self.path.rename(self.path.with_name(self.filename))
+        return
 
-            return
+        # raise ValueError("new_name must be a string or a Components object")
 
-        raise ValueError("new_name must be a string or a Renamer object")
+    def check_rename(
+        self, new_name: Optional[str] | Optional[Components] = None
+    ) -> None:
+
+        if new_name is None:
+            new_name = Components()
+
+        if isinstance(new_name, str):
+            new_name = Components(prefix=new_name)
+
+        if new_name.prefix is None:
+            new_name.prefix = self.prefix
+
+        if new_name.delimiter is None:
+            new_name.delimiter = self.delimiter
+
+        if new_name.padding is None:
+            new_name.padding = self.padding
+
+        if new_name.suffix is None:
+            new_name.suffix = self.suffix
+
+        if new_name.extension is None:
+            new_name.extension = self.extension
+
+        potential_item = Parser.item_from_components(new_name, self.frame_number,self.directory)
+
+        return (self.absolute_path, potential_item.absolute_path, potential_item.exists)
 
     def copy(
         self, new_name: Optional[str], new_directory: Optional[str] = None
@@ -1033,7 +1065,14 @@ class Parser:
         if parsed_dict["post_numeral"].endswith("."):
             parsed_dict["post_numeral"] = parsed_dict["post_numeral"][:-1]
 
-        return Item(name, parsed_dict["frame"], ext, path, separator, parsed_dict["post_numeral"])
+        return Item(
+            name,
+            parsed_dict["frame"],
+            ext,
+            path,
+            separator,
+            parsed_dict["post_numeral"],
+        )
 
     class SequenceDictItem(TypedDict):
         name: str
@@ -1456,6 +1495,43 @@ class Parser:
         files = os.listdir(directory)
 
         return Parser.from_sequence_filename(filename, files, directory)
+
+    @staticmethod
+    def item_from_components(
+        components: Components, frame: int, directory: Optional[str] = None
+    ) -> Item:
+        """Converts a Components object into an Item object.
+
+        Args:
+            components (Components): Components object
+
+        Returns:
+            Item: Item object
+
+        """
+
+        #TODO write a test for this
+
+        frame_string = str(frame).zfill(components.padding)
+        print(frame_string)
+
+        item = Item(
+            prefix=components.prefix,
+            frame_string=frame_string,
+            path=None,
+            extension=components.extension,
+            delimiter=components.delimiter,
+            suffix=components.suffix,
+        )
+
+        if directory is not None:
+            # item.directory = directory
+            item.path = Path(directory) / item.filename
+
+        else:
+            item.path = Path(item.filename)
+
+        return item
 
 
 class Problems(Flag):
