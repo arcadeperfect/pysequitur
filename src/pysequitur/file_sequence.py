@@ -207,6 +207,11 @@ class Item:
         else:
             raise FileNotFoundError()
 
+    def check_move(self, new_directory: str) -> (Path, Path, bool):
+        new_path = Path(new_directory) / self.filename
+        return (self.absolute_path, new_path, new_path.exists()) #TODO test this
+
+    
     def rename(self, new_name: Optional[str] | Optional[Components] = None) -> None:
         """Renames the item.
 
@@ -234,27 +239,18 @@ class Item:
             new_name = Components(prefix=new_name)
             # return
 
-        if new_name.prefix is not None:
-            self.prefix = new_name.prefix
+        new_name = self._complete_components(new_name)
 
-        if new_name.delimiter is not None:
-            self.delimiter = new_name.delimiter
-
+        # Update internal state
+        self.prefix = new_name.prefix
+        self.delimiter = new_name.delimiter
         if new_name.padding is not None:
             padding = max(new_name.padding, self._min_padding)
             self.frame_string = f"{self.frame_number:0{padding}d}"
-
-        if new_name.suffix is not None:
-            self.suffix = new_name.suffix
-
-        if new_name.extension is not None:
-            self.extension = new_name.extension
+        self.suffix = new_name.suffix
+        self.extension = new_name.extension
 
         self.path = self.path.rename(self.path.with_name(self.filename))
-
-        return
-
-        # raise ValueError("new_name must be a string or a Components object")
 
     def check_rename(
         self, new_name: Optional[str] | Optional[Components] = None
@@ -266,24 +262,31 @@ class Item:
         if isinstance(new_name, str):
             new_name = Components(prefix=new_name)
 
-        if new_name.prefix is None:
-            new_name.prefix = self.prefix
-
-        if new_name.delimiter is None:
-            new_name.delimiter = self.delimiter
-
-        if new_name.padding is None:
-            new_name.padding = self.padding
-
-        if new_name.suffix is None:
-            new_name.suffix = self.suffix
-
-        if new_name.extension is None:
-            new_name.extension = self.extension
-
-        potential_item = Parser.item_from_components(new_name, self.frame_number,self.directory)
+        new_name = self._complete_components(new_name)
+        potential_item = Parser.item_from_components(
+            new_name, self.frame_number, self.directory
+        )
 
         return (self.absolute_path, potential_item.absolute_path, potential_item.exists)
+
+    def _complete_components(self, components: Components) -> Components:
+        return Components(
+            prefix=components.prefix if components.prefix is not None else self.prefix,
+            delimiter=(
+                components.delimiter
+                if components.delimiter is not None
+                else self.delimiter
+            ),
+            padding=(
+                components.padding if components.padding is not None else self.padding
+            ),
+            suffix=components.suffix if components.suffix is not None else self.suffix,
+            extension=(
+                components.extension
+                if components.extension is not None
+                else self.extension
+            ),
+        )
 
     def copy(
         self, new_name: Optional[str], new_directory: Optional[str] = None
@@ -305,54 +308,85 @@ class Item:
             raise FileNotFoundError()
 
         if isinstance(new_name, str):
-            new_item = Item(
-                prefix=new_name,
-                frame_string=self.frame_string,
-                extension=self.extension,
-                path=self.path,
-                delimiter=self.delimiter,
-                suffix=self.suffix,
-            )
-        elif isinstance(new_name, Components):
-            new_item = Item(
-                prefix=(
-                    new_name.prefix if new_name.prefix is not None else self.prefix
-                ),
-                frame_string=self.frame_string,
-                extension=(
-                    new_name.extension
-                    if new_name.extension is not None
-                    else self.extension
-                ),
-                path=self.path,
-                delimiter=(
-                    new_name.delimiter
-                    if new_name.delimiter is not None
-                    else self.delimiter
-                ),
-                suffix=(
-                    new_name.suffix if new_name.suffix is not None else self.suffix
-                ),
-            )
-            if new_name.padding is not None:
-                padding = max(new_name.padding, self._min_padding)
-                new_item.frame_string = f"{self.frame_number:0{padding}d}"
-        else:
-            raise ValueError("new_name must be a string or a Renamer object")
+            new_name = self._complete_components(Components(prefix=new_name))   
 
-        if new_directory is not None:
-            new_path = Path(new_directory) / new_item.filename
-        else:
-            new_path = self.path.with_name(new_item.filename)
+        new_item = Parser.item_from_components(new_name, self.frame_number, new_directory)
 
-        if new_path == self.path:
-            new_item.prefix += "copy"
-            new_path = new_path.with_name(new_item.filename)
+        if new_item.absolute_path == self.absolute_path:
+            new_item.rename(new_name.prefix + "_copy")
 
-        shutil.copy(str(self.path), str(new_path))
-        new_item.path = new_path
+        if new_item.exists:
+            raise FileExistsError() #TODO test this
+
+        shutil.copy2(self.absolute_path, new_item.absolute_path)
 
         return new_item
+
+        ## old way 
+
+        # if isinstance(new_name, str):
+        #     new_item = Item(
+        #         prefix=new_name,
+        #         frame_string=self.frame_string,
+        #         extension=self.extension,
+        #         path=self.path,
+        #         delimiter=self.delimiter,
+        #         suffix=self.suffix,
+        #     )
+        # elif isinstance(new_name, Components):
+        #     new_item = Item(
+        #         prefix=(
+        #             new_name.prefix if new_name.prefix is not None else self.prefix
+        #         ),
+        #         frame_string=self.frame_string,
+        #         extension=(
+        #             new_name.extension
+        #             if new_name.extension is not None
+        #             else self.extension
+        #         ),
+        #         path=self.path,
+        #         delimiter=(
+        #             new_name.delimiter
+        #             if new_name.delimiter is not None
+        #             else self.delimiter
+        #         ),
+        #         suffix=(
+        #             new_name.suffix if new_name.suffix is not None else self.suffix
+        #         ),
+        #     )
+        #     if new_name.padding is not None:
+        #         padding = max(new_name.padding, self._min_padding)
+        #         new_item.frame_string = f"{self.frame_number:0{padding}d}"
+        # else:
+        #     raise ValueError("new_name must be a string or a Renamer object")
+
+        # if new_directory is not None:
+        #     new_path = Path(new_directory) / new_item.filename
+        # else:
+        #     new_path = self.path.with_name(new_item.filename)
+
+        # if new_path == self.path:
+        #     new_item.prefix += "copy"
+        #     new_path = new_path.with_name(new_item.filename)
+
+        # shutil.copy(str(self.path), str(new_path))
+        # new_item.path = new_path
+
+        # return new_item
+
+    def check_copy(self, new_name: Optional[str], new_directory: Optional[str] = None) -> (Path, Path, bool):
+        
+        # TODO test this
+
+        if isinstance(new_name, str):
+            new_name = self._complete_components(Components(prefix=new_name))   
+
+        new_item = Parser.item_from_components(new_name, self.frame_number, new_directory)
+
+        if new_item.absolute_path == self.absolute_path:
+            new_item.rename(new_name.prefix + "_copy")
+
+        return (self.absolute_path, new_item.absolute_path, new_item.exists)
 
     def delete(self) -> None:
         """Deletes the item, including the associated file."""
@@ -1510,10 +1544,9 @@ class Parser:
 
         """
 
-        #TODO write a test for this
+        # TODO write a test for this
 
         frame_string = str(frame).zfill(components.padding)
-        print(frame_string)
 
         item = Item(
             prefix=components.prefix,
