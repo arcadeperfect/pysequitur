@@ -320,6 +320,9 @@ class Item:
         if isinstance(new_name, str):
             new_name = self._complete_components(Components(prefix=new_name))
 
+        if new_directory is None:
+            new_directory = self.directory
+
         new_item = Item.from_components(new_name, self.frame_number, new_directory)
 
         if new_item.absolute_path == self.absolute_path:
@@ -828,6 +831,8 @@ class FileSequence:
         # TODO check if any of the new filesnames collide with existing files before proceeding
 
         self._validate()
+
+        
 
         new_items = []
         for item in self.items:
