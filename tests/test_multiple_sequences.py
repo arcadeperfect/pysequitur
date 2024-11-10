@@ -33,7 +33,7 @@ def test_multiple_sequences(load_test_cases):
         all_files = []
 
         sequences = case['sequences']
-        
+
         # Collect all files and build a lookup dictionary
         sequence_data = {}  # Will store our sequence configs by name
         for sequence in sequences:
@@ -43,18 +43,18 @@ def test_multiple_sequences(load_test_cases):
 
         all_files.extend(random_files)
 
-        fileSequences = Parser.from_file_list(all_files)
+        file_sequences = Parser.filesequences_from_file_list(all_files)
 
         # Match and test each parsed sequence
-        for fileSequence in fileSequences:
+        for fileSequence in file_sequences:
             sequence_name = fileSequence.prefix
-             
+
             if sequence_name in sequence_data:
                 yaml_seq = sequence_data[sequence_name]
-                
+
                 # Store all comparisons to report them together
                 differences = []
-                
+
                 # Compare all attributes and collect differences
                 attributes_to_check = [
                     ('first_frame', fileSequence.first_frame, yaml_seq['first_frame']),

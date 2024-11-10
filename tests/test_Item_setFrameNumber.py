@@ -11,14 +11,15 @@ def test_item_setFrameNumber(create_files_from_list):
 
     paths = create_files_from_list(files)
 
-    item = Item.From_Path(paths[0])
+    item = Item.from_path(paths[0])
 
     assert item.exists == True
     assert item.frame_number == 1
     assert item.frame_string == '0001'
 
+ 
     item.set_frame_number(2)
-
+ 
     assert item.exists == True
     assert item.frame_number == 2
     assert item.frame_string == '0002'
@@ -46,7 +47,7 @@ def test_item_setFrameNumber(create_files_from_list):
 
     files = ['frame.0001.jpg']
     paths = create_files_from_list(files)
-    item = Item.From_Path(paths[0])
+    item = Item.from_path(paths[0])
 
     # Test consecutive changes
     item.set_frame_number(2)

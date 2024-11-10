@@ -63,6 +63,9 @@ disallow_untyped_defs = true
 check_untyped_defs = true
 exclude = '^tests/'
 
+[tool.pylint.MASTER]
+ignore = ["tests", "test_*.py"]
+
 [tool.pylint.messages_control]
 disable = [
     "C0301",  # line-too-long

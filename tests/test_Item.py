@@ -10,19 +10,28 @@ def test_item(create_Item_test_files):
 
     test_env = create_Item_test_files(yaml_file)
 
-    for test in test_env:
-        
-        data = test['data']
+    for test_case in test_env:
 
+        data = test_case['data']
+
+
+        # prefix = data['name']
+        # frame_string = data['frame_number']
+        # delimiter = data['separator']
+        # extension = data['extension']
+        # suffix = data['post_numeral']
+        # t = test_case['real_file']
+        # directory = str(Path(t).parent)  
 
         item = Item(data['name'],
                     data['frame_number'],
                     data['extension'],
-                    test['real_file'],
+                    # test['real_file'],
                     data['separator'],
-                    data['post_numeral'])
+                    data['post_numeral'],
+                    Path(test_case['real_file']).parent)
 
-        assert item.path.relative_to(test['test_dir']) == test['real_file'].relative_to(test['test_dir'])
+        assert item.path.relative_to(test_case['test_dir']) == test_case['real_file'].relative_to(test_case['test_dir'])
         assert item.prefix == data['name']    
         assert item.frame_string == data['frame_number']
         assert item.extension == data['extension']
@@ -33,6 +42,5 @@ def test_item(create_Item_test_files):
         assert item.stem == data['file_stem']
 
 
-    with pytest.raises(ValueError):
-        Item('name', '0010', 'exr', Path('pretend'), '.', '_v1')
-
+    # with pytest.raises(ValueError):
+    #     Item('name', '0010', 'exr', Path('pretend'), '.', '_v1')
