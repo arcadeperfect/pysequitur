@@ -65,12 +65,12 @@ class Item:
         if self.suffix is not None and any(char.isdigit() for char in self.suffix):
             raise ValueError("suffix cannot contain digits")
 
-        self._dirty = False
-        if self.directory is None:
-            self.directory = ""
+        # self._dirty = False
+        # if self.directory is None:
+        #     self.directory = ""
 
-        if isinstance(self.directory, str):
-            raise ValueError("directory must be a Path object")
+        # if isinstance(self.directory, str):
+        #     raise ValueError("directory must be a Path object")
 
     @staticmethod
     def from_path(
@@ -114,6 +114,10 @@ class Item:
     @property
     def absolute_path(self) -> Path:
         """Returns the absolute path of the item as a Path object."""
+
+        if self.directory is None:
+            return Path(self.filename)
+
         return Path(self.directory) / self.filename
 
     @property
@@ -128,9 +132,6 @@ class Item:
         Args:
             value (int): New padding
         """
-        # TODO test this
-        # TODO write test for unlinked item
-
 
         padding = max(value, len(str(self.frame_number)))
         # self.frame_string = f"{self.frame_number:0{padding}d}"
@@ -246,7 +247,6 @@ class Item:
         # Update internal state
         self.prefix = new_name.prefix
         self.delimiter = new_name.delimiter
-     
         self.suffix = new_name.suffix
         self.extension = new_name.extension
         new_padding = max(new_name.padding, len(str(new_name.frame_number)))

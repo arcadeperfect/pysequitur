@@ -8,6 +8,9 @@ def test_item(create_Item_test_files):
     test_cases_dir = Path(__file__).parent / 'Item_test_cases'
     yaml_file = test_cases_dir / '1.yaml'
 
+
+    #test item linked to real files
+
     test_env = create_Item_test_files(yaml_file)
 
     for test_case in test_env:
@@ -44,3 +47,9 @@ def test_item(create_Item_test_files):
 
     # with pytest.raises(ValueError):
     #     Item('name', '0010', 'exr', Path('pretend'), '.', '_v1')
+
+
+    # test unlinked item    
+    item = Item(prefix='name',
+                frame_string='0010',
+                extension='exr',) 

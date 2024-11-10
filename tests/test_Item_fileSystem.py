@@ -7,14 +7,11 @@ def test_item_file_system(create_files_from_list):
 
     item = Parser.item_from_filename('frame.0001.png')
 
-    # with pytest.raises(FileNotFoundError):
-    #     item.delete()
+    with pytest.raises(FileNotFoundError):
+        item.delete()
     
-    # with pytest.raises(FileNotFoundError):
-    #     item.move('test')
-
-    # with pytest.raises(FileNotFoundError):
-    #     item.rename('test')
+    with pytest.raises(FileNotFoundError):
+        item.move('test')
 
     assert item.exists == False
 
