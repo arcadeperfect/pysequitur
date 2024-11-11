@@ -137,7 +137,6 @@ class Item:
         # self.frame_string = f"{self.frame_number:0{padding}d}"
         self.rename(Components(padding=padding))
 
-
     @property
     def stem(self) -> str:
         """Returns the stem of the item as a string."""
@@ -150,7 +149,7 @@ class Item:
 
     def set_frame_number(
         self, new_frame_number: int, padding: Optional[int] = None
-    ) -> None:
+    ) -> "Item":
         """Sets the frame number of the item.
 
         Args:
@@ -162,8 +161,6 @@ class Item:
 
         """
 
-        # TODO test this
-
         if new_frame_number == self.frame_number and padding == self.padding:
             return
 
@@ -174,13 +171,13 @@ class Item:
             padding = self.padding
 
         new_padding = max(padding, len(str(new_frame_number)))
-        print("\n_-_-_ new padding ")
-        print(new_padding)
         # self.frame_string = f"{new_frame_number:0{new_padding}d}"
 
         self.rename(Components(frame_number=new_frame_number, padding=new_padding))
 
-    def move(self, new_directory: Path) -> None:
+        return self # TODO test chaining
+
+    def move(self, new_directory: Path) -> "Item":
         """Moves the item to a new directory.
 
         # Args:
@@ -190,6 +187,9 @@ class Item:
 
         logger.info("Moving %s to %s", self.filename, new_directory)
 
+        if self.check_move(new_directory)[2]:
+            raise FileExistsError()
+
         if self.path.exists():
             new_path = Path(new_directory) / self.filename
             self.path.rename(new_path)
@@ -197,14 +197,16 @@ class Item:
 
         else:
             raise FileNotFoundError()
+        
+        return self # TODO test chaining
 
-    def check_move(self, new_directory: Path):
+    def check_move(self, new_directory: Path) -> Tuple[Path, Path, bool]:
         new_path = Path(new_directory) / self.filename
         return (self.absolute_path, new_path, new_path.exists())  # TODO test this
 
     def rename(
         self, new_name: Components
-    ) -> None:  # TODO remove the optional string argument, force components
+    ) -> "Item":  # TODO remove the optional string argument, force components
         """Renames the item.
 
         Any component that is None will not be changed.
@@ -219,28 +221,15 @@ class Item:
 
         logger.info("Renaming %s to %s", self.filename, new_name)
 
-        # if not self.path.exists():
-        #     raise FileNotFoundError()  # TODO this should support unlinked item
 
-        # path is generated dynamically so we store the old one so we
-        # can use it for rename operation
         old_path = Path(str(self.path))
 
-        # print("\n!=!=!=")
-        # print(self.filename)
-        # print(self.absolute_path)
-        # print(old_path)
-        # print(old_path.exists())
 
         if new_name is None:
             new_name = Components()
 
-
-        if isinstance(new_name, str): #TODO remove this
-            # self.prefix = new_name
-            # self.path = self.path.rename(self.path.with_name(self.filename))
-            new_name = Components(prefix=new_name)
-            # return
+        if isinstance(new_name, str):  # TODO remove this
+            raise TypeError("strings are not supported in rename operatiosn")
 
         new_name = self._complete_components(new_name)
 
@@ -257,9 +246,11 @@ class Item:
         else:
             Warning(f"Renaming {self.filename} which does not exist")
 
+        return self # TODO test chaining
+
     def check_rename(
         self, new_name: Components
-    ) -> None:  # TODO remove the optional string argument, force components
+    ) -> Tuple [Path, Path, bool]:
 
         # if new_name is None:
         #     new_name = Components()
@@ -328,81 +319,44 @@ class Item:
         if new_item.absolute_path == self.absolute_path:
             new_item.rename(new_name.prefix + "_copy")
 
+
         if new_item.exists:
-            raise FileExistsError()  # TODO test this
+            raise FileExistsError()
 
         shutil.copy2(self.absolute_path, new_item.absolute_path)
 
         return new_item
 
-        ## old way
+    def check_copy(
+        self, new_name: Optional[str] = None, new_directory: Optional[Path] = None
+    ) -> Tuple[Path, Path, bool]:
 
-        # if isinstance(new_name, str):
-        #     new_item = Item(
-        #         prefix=new_name,
-        #         frame_string=self.frame_string,
-        #         extension=self.extension,
-        #         path=self.path,
-        #         delimiter=self.delimiter,
-        #         suffix=self.suffix,
-        #     )
-        # elif isinstance(new_name, Components):
-        #     new_item = Item(
-        #         prefix=(
-        #             new_name.prefix if new_name.prefix is not None else self.prefix
-        #         ),
-        #         frame_string=self.frame_string,
-        #         extension=(
-        #             new_name.extension
-        #             if new_name.extension is not None
-        #             else self.extension
-        #         ),
-        #         path=self.path,
-        #         delimiter=(
-        #             new_name.delimiter
-        #             if new_name.delimiter is not None
-        #             else self.delimiter
-        #         ),
-        #         suffix=(
-        #             new_name.suffix if new_name.suffix is not None else self.suffix
-        #         ),
-        #     )
-        #     if new_name.padding is not None:
-        #         padding = max(new_name.padding, self._min_padding)
-        #         new_item.frame_string = f"{self.frame_number:0{padding}d}"
-        # else:
-        #     raise ValueError("new_name must be a string or a Renamer object")
+        # TODO replace string argument with Components
 
-        # if new_directory is not None:
-        #     new_path = Path(new_directory) / new_item.filename
-        # else:
-        #     new_path = self.path.with_name(new_item.filename)
+        if new_name is None:
+            new_name = self.prefix
 
-        # if new_path == self.path:
-        #     new_item.prefix += "copy"
-        #     new_path = new_path.with_name(new_item.filename)
+        if new_directory is None:
+            new_directory = self.directory
 
-        # shutil.copy(str(self.path), str(new_path))
-        # new_item.path = new_path
+        new_components = self._complete_components(Components(prefix=new_name))
 
-        # return new_item
-
-    def check_copy(self, new_name: Optional[str], new_directory: Optional[Path] = None):
-
-        # TODO test this
-
-        if isinstance(new_name, str):
-            new_name = self._complete_components(Components(prefix=new_name))
-
-        new_item = Item.from_components(new_name, self.frame_number, new_directory)
+        new_item = Item.from_components(
+            new_components, self.frame_number, new_directory
+        )
 
         if new_item.absolute_path == self.absolute_path:
-            new_item.rename(new_name.prefix + "_copy")
+            new_components = self._complete_components(
+                Components(prefix=new_name + "_copy")
+            )
+            new_item = Item.from_components(
+                new_components, self.frame_number, new_directory
+            )
 
         return (self.absolute_path, new_item.absolute_path, new_item.exists)
 
-    def delete(self) -> None:
-        """Deletes the item, including the associated file."""
+    def delete(self) -> "Item":
+        """Deletes the associated file."""
 
         logger.info("Deleting %s", self.filename)
 
@@ -410,6 +364,8 @@ class Item:
             self.path.unlink()
         else:
             raise FileNotFoundError()
+        
+        return self
 
     @property
     def exists(self) -> bool:
@@ -527,10 +483,16 @@ class FileSequence:
         return str(self._check_consistent_property(prop_name="suffix"))
 
     @property
-    def directory(self) -> str:
+    def directory(self) -> Path:
         """Returns the directory Performs a check to ensure that directory is
         consistent across all items."""
-        return str(self._check_consistent_property(prop_name="directory"))
+
+        d =  self._check_consistent_property(prop_name="directory")
+
+        if not isinstance(d, Path):
+            raise TypeError(f"{self.__class__.__name__} directory must be a Path")
+
+        return d
 
     @property
     def existing_frames(self) -> list[int]:
@@ -770,7 +732,7 @@ class FileSequence:
             filename, directory
         )
 
-    def rename(self, new_name: Components) -> None: #TODO refactor to use Components
+    def rename(self, new_name: Components) -> "FileSequence":
         """Renames all items in the sequence.
 
         Args:
@@ -778,40 +740,75 @@ class FileSequence:
 
         """
         if isinstance(new_name, str):
-            raise ValueError(
-                "new_name must be a Components object, not a string"
-            )
+            raise ValueError("new_name must be a Components object, not a string")
 
-
-        # TODO check if any of the new filesnames collide with existing files before proceeding
+        
 
         self._validate()
 
-        # print(self.items[0])
+        conflicts = []
+
+        for found in self.check_rename(new_name):
+            # print(found[2])
+            if found[2]:
+                conflicts.append(found[1])
+
+        if len(conflicts) > 0:
+            raise ValueError(f"Conflicts detected: {str(conflicts)}") # TODO test this
+
 
         for item in self.items:
             item.rename(new_name)
 
-        # print(self.items[0])
+        return self # TODO test chaining
 
-    def move(self, new_directory: Path) -> None:
+    def check_rename(self, new_name: Components) -> None:
+
+        # TODO test this
+
+        return [item.check_rename(new_name) for item in self.items]
+
+
+    def move(self, new_directory: Path) -> "FileSequence":
         """Moves all items in the sequence to a new directory.
 
         Args:
             new_directory (str): The directory to move the sequence to.
-
         """
 
-        # TODO check if any of the new filesnames collide with existing files before proceeding
+        if new_directory == self.directory: # TODO test this
+            return
+
+        conflicts = []
+
+        for found in self.check_move(new_directory):
+            # print(found[2])
+            if found[2]:
+                conflicts.append(found[1])
+
+        if len(conflicts) > 0:
+            raise ValueError(f"Conflicts detected: {str(conflicts)}") # TODO test this
 
         for item in self.items:
             item.move(new_directory)
 
-    def delete(self) -> None:
+        return self # TODO test chaining
+
+
+    def check_move(self, new_directory: Path) -> None:
+
+        # TODO test this
+
+        return [item.check_move(new_directory) for item in self.items]
+
+
+    def delete_files(self) -> "FileSequence":
         """Deletes all files in the sequence."""
 
         for item in self.items:
             item.delete()
+
+        return self # TODO test chaining
 
     def copy(
         self, new_name: str, new_directory: Optional[Path] = None
@@ -832,17 +829,16 @@ class FileSequence:
 
         self._validate()
 
-        
-
         new_items = []
         for item in self.items:
             new_item = item.copy(new_name, new_directory)
             new_items.append(new_item)
 
         new_sequence = FileSequence(new_items)
+
         return new_sequence
 
-    def offset_frames(self, offset: int, padding: Optional[int] = None) -> None:
+    def offset_frames(self, offset: int, padding: Optional[int] = None) -> "FileSequence":
         """Offsets all frames in the sequence by a given offset.
 
         If padding is not provided, the sequence's standard padding is used.
@@ -880,7 +876,9 @@ class FileSequence:
 
             item.set_frame_number(item.frame_number + offset, padding)
 
-    def set_padding(self, padding: int = 0) -> None:
+        return self # TODO test chaining
+
+    def set_padding(self, padding: int = 0) -> "FileSequence":
         """Sets the padding for all frames in the sequence.
 
         Defaults to minimum required padding to represent the last frame if a value below that is provided
@@ -893,6 +891,8 @@ class FileSequence:
 
         for item in self.items:
             item.padding = padding
+
+        return self # TODO test chaining
 
     def find_duplicate_frames(self) -> Dict[int, Tuple[Item, ...]]:
         """Identifies frames that appear multiple times with different padding.
@@ -973,7 +973,7 @@ class FileSequence:
             raise AnomalousItemDataError(f"Inconsistent {prop_name} values")
         return first
 
-    def _validate(self) -> None:
+    def _validate(self) -> bool:
         """Checks that all items in the sequence have consistent values for the
         prefix, extension, delimiter, suffix, and directory properties.
 
@@ -987,6 +987,8 @@ class FileSequence:
         self._check_consistent_property(prop_name="delimiter")
         self._check_consistent_property(prop_name="suffix")
         self._check_consistent_property(prop_name="directory")
+
+        return True
 
     def _check_padding(self) -> bool:
         """Checks that all items in the sequence have the same padding.
@@ -1298,7 +1300,9 @@ class Parser:
         # if isinstance(directory, Path):
         #     directory = str(directory)
 
-        return Parser.filesequences_from_file_list(os.listdir(str(directory)), directory)
+        return Parser.filesequences_from_file_list(
+            os.listdir(str(directory)), directory
+        )
 
     @staticmethod
     def filesequences_from_components_in_filename_list(
@@ -1518,7 +1522,7 @@ class Parser:
 
         frame_string = str(frame).zfill(components.padding)
 
-        directory = Path(directory)
+        # directory = Path(directory)
 
         item = Item(
             prefix=components.prefix,

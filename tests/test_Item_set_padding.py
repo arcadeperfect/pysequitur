@@ -1,10 +1,10 @@
-from pysequitur.file_sequence import Item, Parser, Components
+from pysequitur.file_sequence import Item, Parser
 
 
 
 def test_item_set_padding(create_files_from_list):
    
-    # test linked item
+    # test unlinked item
    
     item = Item(
         prefix="render",
@@ -38,7 +38,7 @@ def test_item_set_padding(create_files_from_list):
     assert item.padding == 10
     assert item.frame_string == "0000000101"
 
-    # test unlinked item
+    # test linked item
 
     file = create_files_from_list(["image.0056.exr"])[0]
 

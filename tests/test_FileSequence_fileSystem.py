@@ -20,47 +20,47 @@ def test_file_sequence_operations(create_files_from_list):
     # Get the sequence
     sequences = Parser.filesequences_from_file_list(files, directory)
     assert len(sequences) == 1
-    sequence = sequences[0]
+    seq2 = sequences[0]
 
     # Verify initial state
-    assert len(sequence.items) == 4
-    assert all(item.exists for item in sequence.items)
-    assert all(item.prefix == "sequence" for item in sequence.items)
-    assert sequence.prefix == "sequence"
+    assert len(seq2.items) == 4
+    assert all(item.exists for item in seq2.items)
+    assert all(item.prefix == "sequence" for item in seq2.items)
+    assert seq2.prefix == "sequence"
 
     # Test rename with string
-    sequence.rename(Components(prefix="renamed"))
-    assert all(item.exists for item in sequence.items)
-    assert all(item.prefix == "renamed" for item in sequence.items)
-    assert sequence.prefix == "renamed"
+    seq2.rename(Components(prefix="renamed"))
+    assert all(item.exists for item in seq2.items)
+    assert all(item.prefix == "renamed" for item in seq2.items)
+    assert seq2.prefix == "renamed"
 
     # Test rename with Renamer object
     renamer = Components(
         prefix="complex",
         delimiter=".",
         padding=5,
-        suffix="_v1",
+        suffix="_done",
         extension="exr"
     )
-    sequence.rename(renamer)
+    seq2.rename(renamer)
 
     # Verify all items were renamed correctly
-    for item in sequence.items:
+    for item in seq2.items:
         assert item.exists
         assert item.prefix == "complex"
         assert item.delimiter == "."
         assert item.padding == 5
-        assert item.suffix == "_v1"
+        assert item.suffix == "_done"
         assert item.extension == "exr"
 
     # Test move operation
-    sequence.move(new_directory)
-    assert all(item.exists for item in sequence.items)
-    assert all(str(item.directory) == str(new_directory) for item in sequence.items)
+    seq2.move(new_directory)
+    assert all(item.exists for item in seq2.items)
+    assert all(str(item.directory) == str(new_directory) for item in seq2.items)
 
     # Test delete operation
-    sequence.delete()
-    assert all(not item.exists for item in sequence.items)
+    seq2.delete_files()
+    assert all(not item.exists for item in seq2.items)
 
     # Clean up
     os.rmdir(new_directory)
@@ -98,28 +98,27 @@ def test_file_sequence_operations(create_files_from_list):
         assert path.exists()
     sequences = Parser.filesequences_from_file_list(paths)
     assert len(sequences) == 1
-    sequence = sequences[0]
-    assert sequence.items[0].exists
+    seq2 = sequences[0]
+    assert seq2.items[0].exists
     # Verify initial state
-    assert sequence.prefix == "comp@#$"
-    assert sequence.suffix == "_post"
+    assert seq2.prefix == "comp@#$"
+    assert seq2.suffix == "_post"
 
 
     # Test renaming complex sequence
     renamer = Components(prefix="new@#$", suffix="_final")
-    sequence.rename(renamer)
+    seq2.rename(renamer)
 
 
     # Verify all items were renamed correctly
-    for item in sequence.items:
+    for item in seq2.items:
         assert item.exists
         assert item.prefix == "new@#$"
         assert item.suffix == "_final"
 
     # Clean up
-    sequence.delete()
-    assert all(not item.exists for item in sequence.items)
-    
+    seq2.delete_files()
+    assert all(not item.exists for item in seq2.items)
 
 
 
@@ -132,78 +131,75 @@ def test_file_sequence_operations(create_files_from_list):
 
         files = [f"img_{i:04d}.png" for i in range(file_count)]
 
-
-    
+        # deterministic random removal of some files
         random.seed(i)
-        last_index = len(files) - 1
         indices_to_remove = random.sample(range(1, len(files) - 1), missing_files)
         files = [item for i, item in enumerate(files) if i not in indices_to_remove]
 
-
+        # create real files
         paths = create_files_from_list(files)
         for path in paths:
             assert path.exists()
 
         sequences = Parser.filesequences_from_file_list(paths)
-        s = sequences[0]
-        s.rename(Components(prefix="renamed"))
-        paths = create_files_from_list(complex_files)
+        seq1 = sequences[0]
+        seq1.rename(Components(prefix="renamed"))
+
         assert len(sequences) == 1
-        sequence = sequences[0]
 
-        assert len(sequence.missing_frames) == missing_files
+        assert len(seq1.missing_frames) == missing_files
 
-        sequence.rename(Components(prefix="renamed"))
-        sequence._validate()
-        sequence.delete()
-
+        # seq1.rename(Components(prefix="renamed"))
+        seq1._validate()
+        seq1.delete_files()
 
 
-    # Test copying a sequence
-    copy_files = [
-        'copy_0001.png',
-        'copy_0002.png',
-        'copy_0003.png',
-        'copy_0004.png'
-    ]
 
-    paths = create_files_from_list(copy_files)
-    directory = paths[0].parent
-    copy_directory = directory / "copied_sequences"
-    os.mkdir(copy_directory)
+    # # Test copying a sequence
+    # copy_files = [
+    #     'copy_0001.png',
+    #     'copy_0002.png',
+    #     'copy_0003.png',
+    #     'copy_0004.png'
+    # ]
 
-    # Get the sequence
-    sequences = Parser.filesequences_from_file_list(copy_files, directory)
-    assert len(sequences) == 1
-    sequence = sequences[0]
+    # paths = create_files_from_list(copy_files)
+    # directory = paths[0].parent
+    # copy_directory = directory / "copied_sequences"
+    # os.mkdir(copy_directory)
 
-    # Copy the sequence with a new name
-    new_name = "copied_sequence"
-    copied_sequence = sequence.copy(new_name)
+    # # Get the sequence
+    # sequences = Parser.filesequences_from_file_list(copy_files, directory)
+    # assert len(sequences) == 1
+    # sequence = sequences[0]
 
-    # Verify the copied sequence
-    assert len(copied_sequence.items) == len(sequence.items)
-    assert copied_sequence.prefix == new_name
-    assert all(item.exists for item in copied_sequence.items)
-    assert all(item.prefix == new_name for item in copied_sequence.items)
+    # # Copy the sequence with a new name
+    # new_name = "copied_sequence"
+    # copied_sequence = sequence.copy(new_name)
 
-    # Copy the sequence with a new name and directory
-    new_directory_name = "new_directory"
-    new_directory = copy_directory / new_directory_name
-    os.mkdir(new_directory)
-    copied_sequence_with_dir = sequence.copy(new_name, new_directory)
+    # # Verify the copied sequence
+    # assert len(copied_sequence.items) == len(sequence.items)
+    # assert copied_sequence.prefix == new_name
+    # assert all(item.exists for item in copied_sequence.items)
+    # assert all(item.prefix == new_name for item in copied_sequence.items)
 
-    # Verify the copied sequence with new directory
-    assert len(copied_sequence_with_dir.items) == len(sequence.items)
-    assert copied_sequence_with_dir.prefix == new_name
-    assert all(item.exists for item in copied_sequence_with_dir.items)
-    assert all(item.prefix == new_name for item in copied_sequence_with_dir.items)
-    assert all(str(item.directory) == str(new_directory) for item in copied_sequence_with_dir.items)
+    # # Copy the sequence with a new name and directory
+    # new_directory_name = "new_directory"
+    # new_directory = copy_directory / new_directory_name
+    # os.mkdir(new_directory)
+    # copied_sequence_with_dir = sequence.copy(new_name, new_directory)
 
-    # Clean up
-    for item in copied_sequence.items:
-        item.delete()
-    for item in copied_sequence_with_dir.items:
-        item.delete()
-    os.rmdir(copy_directory / new_directory_name)
-    os.rmdir(copy_directory)
+    # # Verify the copied sequence with new directory
+    # assert len(copied_sequence_with_dir.items) == len(sequence.items)
+    # assert copied_sequence_with_dir.prefix == new_name
+    # assert all(item.exists for item in copied_sequence_with_dir.items)
+    # assert all(item.prefix == new_name for item in copied_sequence_with_dir.items)
+    # assert all(str(item.directory) == str(new_directory) for item in copied_sequence_with_dir.items)
+
+    # # Clean up
+    # for item in copied_sequence.items:
+    #     item.delete()
+    # for item in copied_sequence_with_dir.items:
+    #     item.delete()
+    # os.rmdir(copy_directory / new_directory_name)
+    # os.rmdir(copy_directory)

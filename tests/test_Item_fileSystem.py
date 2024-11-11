@@ -37,7 +37,7 @@ def test_item_file_system(create_files_from_list):
 
 
 
-    item.rename('renamed')
+    item.rename(Components(prefix='renamed'))
 
 
     assert item.prefix == 'renamed'
@@ -56,7 +56,7 @@ def test_item_file_system(create_files_from_list):
     assert item.directory == path.parent
     assert item.filename == path.name
 
-    item.rename('renamed')
+    item.rename(Components(prefix='renamed'))
 
     assert item.prefix == 'renamed'
     assert item.filename == 'renamed_0002.png'
@@ -74,7 +74,7 @@ def test_item_file_system(create_files_from_list):
     assert item.directory == path.parent
     assert item.filename == path.name
 
-    item.rename('renamed')
+    item.rename(Components(prefix='renamed'))
 
     assert item.prefix == 'renamed'
     assert item.filename == 'renamed0003_post.png'
@@ -93,7 +93,7 @@ def test_item_file_system(create_files_from_list):
     assert item.filename == path.name
     
 
-    item.rename('renamed')
+    item.rename(Components(prefix='renamed'))
 
     assert item.prefix == 'renamed'
     assert item.filename == 'renamed004.png'
@@ -177,9 +177,9 @@ def test_item_file_system(create_files_from_list):
     assert item.delimiter == "_"
     assert item.extension == "jpg"
 
-    renamer = Components(prefix = "renamed_again", 
+    renamer = Components(prefix = "renamed_again",
                       delimiter=".",
-                      padding=5, 
+                      padding=5,
                       suffix="_newPost",
                       extension="exr")
     
@@ -207,63 +207,63 @@ def test_item_file_system(create_files_from_list):
         'frame-0003.png',
         'frame@0004.png',
         'frame#0005.png',
-        
+
         # Special characters in name
         'frame#$%^e_0006.png',
         'comp@#$%_0007.png',
         'shot&&*_0008.png',
         'render!@#_0009.png',
         'output$$$_0010.png',
-        
+
         # Post numerals
         'frame0011_post.png',
         'frame0012_v1.png',
         'frame0013_final.png',
         'frame0014_approved.png',
         'frame0015_wip.png',
-        
+
         # Different padding lengths
         '0016.png',
         '00017.png',
         '000018.png',
         '0000019.png',
         '00000020.png',
-        
+
         # Mixed case and numbers in name
         'Frame0021.png',
         'FRAME0022.png',
         'frame123_0023.png',
         'Frame456_0024.png',
         'COMP789_0025.png',
-        
+
         # Multiple special characters
         'frame@#$_0026.png',
         'render%^&_0027.png',
         'shot*()_0028.png',
         'output+++_0029.png',
         'comp===_0030.png',
-        
+
         # Different extensions
         'frame_0031.jpg',
         'frame_0032.exr',
         'frame_0033.tiff',
         'frame_0034.dpx',
         'frame_0035.mov',
-        
+
         # Combined post numerals and special characters
         'frame#$%_0036_final.png',
         'comp@@@_0037_v2.png',
         'shot***_0038_approved.png',
         'render$$$_0039_wip.png',
         'output%%%_0040_latest.png',
-        
+
         # No separator variations
         'frame0041.png',
         'FRAME0042.png',
         'render0043.png',
         'comp0044.png',
         'shot0045.png',
-        
+
         # Complex combinations
         'frame#$%_0046_v3_final.png',
         'COMP@@@_0047_latest_approved.png',
@@ -285,7 +285,7 @@ def test_item_file_system(create_files_from_list):
 
         item.move(new_directory)
 
-        assert item.exists is True   
+        assert item.exists is True
         assert item.directory == new_directory
         assert str(item.filename) == str(path.name)
 
