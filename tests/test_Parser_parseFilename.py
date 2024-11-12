@@ -8,12 +8,12 @@ def normalize_empty(value):
 def compare(actual, expected):
     assert normalize_empty(actual) == normalize_empty(expected)
 
-def test_parse_filename(load_test_cases):
+def test_parse_filename(load_test_cases_from_yaml):
     
     test_cases_dir = Path(__file__).parent / 'Item_test_cases'
     yaml_file = test_cases_dir / '1.yaml'
 
-    cases = load_test_cases(yaml_file)
+    cases = load_test_cases_from_yaml(yaml_file)
     
     for case in cases:
 

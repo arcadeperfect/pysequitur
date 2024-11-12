@@ -1,4 +1,4 @@
-from pysequitur.file_sequence import Item, Parser
+from pysequitur.file_sequence import Item, Parser, Components
 from pathlib import Path
 import pytest
 def test_Item_checkCpoy(create_files_from_list):
@@ -15,4 +15,7 @@ def test_Item_checkCpoy(create_files_from_list):
     assert item.check_copy('source_copy')[2] is True
 
     with pytest.raises(FileExistsError):
-        item.copy('source_copy')
+        item.copy()
+    
+    with pytest.raises(FileExistsError):
+        item.copy(Components(prefix='source_copy'))

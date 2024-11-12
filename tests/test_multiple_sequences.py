@@ -9,12 +9,12 @@ def compare(actual, expected):
     assert normalize_empty(actual) == normalize_empty(expected)
 
 
-def test_multiple_sequences(load_test_cases):
+def test_multiple_sequences(load_test_cases_from_yaml):
 
     test_cases_dir = Path(__file__).parent / 'FileSequence_test_cases'
     yaml_file = test_cases_dir / '2.yaml'
 
-    cases = load_test_cases(yaml_file)
+    cases = load_test_cases_from_yaml(yaml_file)
 
     random_files = [
         "project_notes_final.txt",

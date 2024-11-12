@@ -3,7 +3,7 @@ from pysequitur.file_sequence import Item
 import pytest
 
 
-def test_item(create_Item_test_files):
+def test_item(create_Item_test_files_from_yaml):
 
     test_cases_dir = Path(__file__).parent / 'Item_test_cases'
     yaml_file = test_cases_dir / '1.yaml'
@@ -11,7 +11,7 @@ def test_item(create_Item_test_files):
 
     #test item linked to real files
 
-    test_env = create_Item_test_files(yaml_file)
+    test_env = create_Item_test_files_from_yaml(yaml_file)
 
     for test_case in test_env:
 

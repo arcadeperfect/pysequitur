@@ -4,7 +4,7 @@ import yaml
 
 
 @pytest.fixture
-def load_test_cases():
+def load_test_cases_from_yaml():
     """Loads test cases from YAML files."""
     def _load_from_yaml(filename):
         test_cases_dir = Path(__file__).parent / 'test_cases'
@@ -15,12 +15,12 @@ def load_test_cases():
 
 
 @pytest.fixture
-def create_Item_test_files(tmp_path, load_test_cases):
+def create_Item_test_files_from_yaml(tmp_path, load_test_cases_from_yaml):
     """Creates test files based on YAML test cases For testing Item in
     isolation."""
-    def _create_files(yaml_filename):
+    def _create_files_from_yaml(yaml_filename):
 
-        cases = load_test_cases(yaml_filename)
+        cases = load_test_cases_from_yaml(yaml_filename)
         test_dir = tmp_path / "test_sequence"
         test_dir.mkdir()
 
@@ -35,7 +35,7 @@ def create_Item_test_files(tmp_path, load_test_cases):
 
         return cases
 
-    return _create_files
+    return _create_files_from_yaml
 
 @pytest.fixture
 def create_files_from_list(tmp_path):
@@ -56,12 +56,12 @@ def create_files_from_list(tmp_path):
 
 
 @pytest.fixture
-def create_FileSequence_test_files(tmp_path, load_test_cases):
+def create_FileSequence_test_files_from_yaml(tmp_path, load_test_cases_from_yaml):
     """Creates test files based on YAML test cases For testing FileSequence in
     isolation."""
-    def _create_files(yaml_filename):
+    def _create_files_from_yaml(yaml_filename):
 
-        cases = load_test_cases(yaml_filename)
+        cases = load_test_cases_from_yaml(yaml_filename)
         test_dir = tmp_path / "test_sequence"
         test_dir.mkdir()
 
@@ -81,4 +81,4 @@ def create_FileSequence_test_files(tmp_path, load_test_cases):
 
             return cases
 
-    return _create_files
+    return _create_files_from_yaml

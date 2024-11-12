@@ -20,19 +20,19 @@ def test_file_sequence_operations(create_files_from_list):
     # Get the sequence
     sequences = Parser.filesequences_from_file_list(files, directory)
     assert len(sequences) == 1
-    seq2 = sequences[0]
+    seq = sequences[0]
 
     # Verify initial state
-    assert len(seq2.items) == 4
-    assert all(item.exists for item in seq2.items)
-    assert all(item.prefix == "sequence" for item in seq2.items)
-    assert seq2.prefix == "sequence"
+    assert len(seq.items) == 4
+    assert all(item.exists for item in seq.items)
+    assert all(item.prefix == "sequence" for item in seq.items)
+    assert seq.prefix == "sequence"
 
     # Test rename with string
-    seq2.rename(Components(prefix="renamed"))
-    assert all(item.exists for item in seq2.items)
-    assert all(item.prefix == "renamed" for item in seq2.items)
-    assert seq2.prefix == "renamed"
+    seq.rename(Components(prefix="renamed"))
+    assert all(item.exists for item in seq.items) is True
+    assert all(item.prefix == "renamed" for item in seq.items)
+    assert seq.prefix == "renamed"
 
     # Test rename with Renamer object
     renamer = Components(
@@ -42,10 +42,10 @@ def test_file_sequence_operations(create_files_from_list):
         suffix="_done",
         extension="exr"
     )
-    seq2.rename(renamer)
+    seq.rename(renamer)
 
     # Verify all items were renamed correctly
-    for item in seq2.items:
+    for item in seq.items:
         assert item.exists
         assert item.prefix == "complex"
         assert item.delimiter == "."
@@ -54,13 +54,21 @@ def test_file_sequence_operations(create_files_from_list):
         assert item.extension == "exr"
 
     # Test move operation
-    seq2.move(new_directory)
-    assert all(item.exists for item in seq2.items)
-    assert all(str(item.directory) == str(new_directory) for item in seq2.items)
+
+
+    seq.move(new_directory)
+    assert all(item.exists for item in seq.items)
+
+    # print("\n")
+    # print(seq.items[0].directory)
+
+    # print(new_directory)
+
+    assert all(str(item.directory) == str(new_directory) for item in seq.items)
 
     # Test delete operation
-    seq2.delete_files()
-    assert all(not item.exists for item in seq2.items)
+    seq.delete_files()
+    assert all(not item.exists for item in seq.items)
 
     # Clean up
     os.rmdir(new_directory)
@@ -155,51 +163,54 @@ def test_file_sequence_operations(create_files_from_list):
 
 
 
-    # # Test copying a sequence
-    # copy_files = [
-    #     'copy_0001.png',
-    #     'copy_0002.png',
-    #     'copy_0003.png',
-    #     'copy_0004.png'
-    # ]
+    # Test copying a sequence
+    copy_files = [
+        'copy_0001.png',
+        'copy_0002.png',
+        'copy_0003.png',
+        'copy_0004.png'
+    ]
 
-    # paths = create_files_from_list(copy_files)
-    # directory = paths[0].parent
-    # copy_directory = directory / "copied_sequences"
-    # os.mkdir(copy_directory)
+    paths = create_files_from_list(copy_files)
+    directory = paths[0].parent
+    copy_directory = directory / "copied_sequences"
+    os.mkdir(copy_directory)
 
-    # # Get the sequence
-    # sequences = Parser.filesequences_from_file_list(copy_files, directory)
-    # assert len(sequences) == 1
-    # sequence = sequences[0]
+    # Get the sequence
+    sequences = Parser.filesequences_from_file_list(copy_files, directory)
+    assert len(sequences) == 1
+    sequence = sequences[0]
 
-    # # Copy the sequence with a new name
-    # new_name = "copied_sequence"
-    # copied_sequence = sequence.copy(new_name)
+    # Copy the sequence with a new name
+    new_name = "copied_sequence"
+    copied_sequence = sequence.copy(new_name)
 
-    # # Verify the copied sequence
-    # assert len(copied_sequence.items) == len(sequence.items)
-    # assert copied_sequence.prefix == new_name
-    # assert all(item.exists for item in copied_sequence.items)
-    # assert all(item.prefix == new_name for item in copied_sequence.items)
+    # Verify the copied sequence
+    assert len(copied_sequence.items) == len(sequence.items)
+    print("\n")
+    print(f"sequence.prefix: {sequence.prefix}")
+    print(f"copied_sequence.prefix: {copied_sequence.prefix}")
+    assert copied_sequence.prefix == new_name
+    assert all(item.exists for item in copied_sequence.items)
+    assert all(item.prefix == new_name for item in copied_sequence.items)
 
-    # # Copy the sequence with a new name and directory
-    # new_directory_name = "new_directory"
-    # new_directory = copy_directory / new_directory_name
-    # os.mkdir(new_directory)
-    # copied_sequence_with_dir = sequence.copy(new_name, new_directory)
+    # Copy the sequence with a new name and directory
+    new_directory_name = "new_directory"
+    new_directory = copy_directory / new_directory_name
+    os.mkdir(new_directory)
+    copied_sequence_with_dir = sequence.copy(new_name, new_directory)
 
-    # # Verify the copied sequence with new directory
-    # assert len(copied_sequence_with_dir.items) == len(sequence.items)
-    # assert copied_sequence_with_dir.prefix == new_name
-    # assert all(item.exists for item in copied_sequence_with_dir.items)
-    # assert all(item.prefix == new_name for item in copied_sequence_with_dir.items)
-    # assert all(str(item.directory) == str(new_directory) for item in copied_sequence_with_dir.items)
+    # Verify the copied sequence with new directory
+    assert len(copied_sequence_with_dir.items) == len(sequence.items)
+    assert copied_sequence_with_dir.prefix == new_name
+    assert all(item.exists for item in copied_sequence_with_dir.items)
+    assert all(item.prefix == new_name for item in copied_sequence_with_dir.items)
+    assert all(str(item.directory) == str(new_directory) for item in copied_sequence_with_dir.items)
 
-    # # Clean up
-    # for item in copied_sequence.items:
-    #     item.delete()
-    # for item in copied_sequence_with_dir.items:
-    #     item.delete()
-    # os.rmdir(copy_directory / new_directory_name)
-    # os.rmdir(copy_directory)
+    # Clean up
+    for item in copied_sequence.items:
+        item.delete()
+    for item in copied_sequence_with_dir.items:
+        item.delete()
+    os.rmdir(copy_directory / new_directory_name)
+    os.rmdir(copy_directory)
