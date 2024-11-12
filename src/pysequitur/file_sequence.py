@@ -32,7 +32,7 @@ class Components:
 
     Attributes:
         prefix (str, optional): New base name
-        delimiter (str, optional): New separator between name and frame number
+        delimiter (str, optional): New delimiter between name and frame number
         padding (int, optional): New frame number padding length
         suffix (str, optional): New suffix after frame number
         extension (str, optional): New file extension
@@ -201,7 +201,6 @@ class Item:
         return self
 
     def check_move(self, new_directory: Path) -> Tuple[Path, Path, bool]:
-
         """Checks if the item can be moved to the given directory.
 
         Args:
@@ -262,11 +261,10 @@ class Item:
             new_name (Components): The new name to check for conflicts.
 
         Returns:
-            Tuple[Path, Path, bool]: A tuple containing the current absolute path, 
-            the potential new absolute path, and a boolean indicating if the 
+            Tuple[Path, Path, bool]: A tuple containing the current absolute path,
+            the potential new absolute path, and a boolean indicating if the
             new name already exists.
         """
-
 
         new_name = self._complete_components(new_name)
         potential_item = Item.from_components(
@@ -358,8 +356,8 @@ class Item:
             new_directory (Optional[Path]): The new directory to check for conflicts.
 
         Returns:
-            Tuple[Path, Path, bool]: A tuple containing the current absolute path, 
-            the potential new absolute path, and a boolean indicating if the 
+            Tuple[Path, Path, bool]: A tuple containing the current absolute path,
+            the potential new absolute path, and a boolean indicating if the
             new name already exists.
         """
 
@@ -692,14 +690,14 @@ class FileSequence:
         return Parser.filesequences_from_components_in_directory(components, directory)
 
     @staticmethod
-    def from_filename_list(
-        filename: str, filename_list: List[str], directory: Optional[Path] = None
+    def from_sequence_string_in_filename_list(
+        sequence_string: str, filename_list: List[str], directory: Optional[Path] = None
     ) -> "FileSequence":
         """
-        Matches a sequence file name against a list of filenames and returns
+        Matches a sequence string against a list of filenames and returns
         a detected sequence as a FileSequence object.
 
-        Sequence filenames take the form: <prefix><delimiter><####><suffix>.<extension>
+        Sequence strings take the form: <prefix><delimiter><####><suffix>.<extension>
         where the number of # symbols determines the padding.
 
         Supported Examples:
@@ -711,7 +709,7 @@ class FileSequence:
         Digits in the suffix are not supported.
 
         Args:
-            filename (str): Sequence file name
+            sequencestring (str): Sequence String Pattern ie "image.####.exr"
             filename_list (list): List of filenames
             directory (str): Directory that contains the files (optional)
             pattern (str): Regex pattern for parsing frame-based filenames (optional)
@@ -721,18 +719,18 @@ class FileSequence:
 
         """
         return Parser.filesequence_from_sequence_string(
-            filename, filename_list, directory
+            sequence_string, filename_list, directory
         )
 
     @staticmethod
-    def from_sequence_filename_in_directory(
+    def from_sequence_string_in_directory(
         filename: str, directory: Path
     ) -> "FileSequence":
         """
-        Matches a sequence file name against a list of files in a given directory
+        Matches a sequence string string against a list of files in a given directory
         and returns a detected sequence as a FileSequence object.
 
-        Sequence filenames take the form: <prefix><delimiter><####><suffix>.<extension>
+        Sequence strings take the form: <prefix><delimiter><####><suffix>.<extension>
         where the number of # symbols determines the padding.
 
         Supported Examples:
@@ -754,7 +752,7 @@ class FileSequence:
 
         """
 
-        return Parser.filesequence_from_sequence_filename_in_directory(
+        return Parser.filesequence_from_sequence_string_in_directory(
             filename, directory
         )
 
@@ -996,7 +994,7 @@ class FileSequence:
         new_directory.mkdir(parents=True, exist_ok=True)
 
         for item in self.items:
-            item.move_to(new_directory) #TODO test this
+            item.move_to(new_directory)  # TODO test this
 
     def _validate_property_consistency(self, prop_name: str) -> Any:
         """Checks if all items in the sequence have the same value for a given
@@ -1084,13 +1082,13 @@ class Parser:
         # Name up to last frame number
         r"(?P<name>.*?(?=[^a-zA-Z\d]*\d+(?!.*\d+)))"
         # Separator before frame (optional)
-        r"(?P<separator>[^a-zA-Z\d]*)"
+        r"(?P<delimiter>[^a-zA-Z\d]*)"
         # Frame number (1 or more digits)
         r"(?P<frame>\d+)"
         # Negative lookahead for more digits
         r"(?!.*\d+)"
         # Non-greedy match up to extension
-        r"(?P<post_numeral>.*?)"
+        r"(?P<suffix>.*?)"
         # Dot and extension (everything after last dot)
         r"(?:\.(?P<ext>.*))?$"
     )
@@ -1135,11 +1133,11 @@ class Parser:
         parsed_dict.setdefault("frame", "")
         parsed_dict.setdefault("name", "")
         parsed_dict.setdefault("ext", "")
-        parsed_dict.setdefault("separator", "")
-        parsed_dict.setdefault("post_numeral", "")
+        parsed_dict.setdefault("delimiter", "")
+        parsed_dict.setdefault("suffix", "")
 
         name = parsed_dict["name"]
-        delimiter = parsed_dict["separator"]
+        delimiter = parsed_dict["delimiter"]
 
         if len(delimiter) > 1:
             name += delimiter[0:-1]
@@ -1162,29 +1160,29 @@ class Parser:
             for i in range(len(ext_parts)):
                 possible_ext = ".".join(ext_parts[i:])
                 if possible_ext in Parser.known_extensions:
-                    # Adjust post_numeral
+                    # Adjust suffix
                     if ext_parts[:i]:
-                        parsed_dict["post_numeral"] += "." + ".".join(ext_parts[:i])
+                        parsed_dict["suffix"] += "." + ".".join(ext_parts[:i])
                     ext = possible_ext
                     break
             else:
                 # If no known multi-part extension is found, use the last part as the extension
                 if len(ext_parts) > 1:
-                    parsed_dict["post_numeral"] += "." + ".".join(ext_parts[:-1])
+                    parsed_dict["suffix"] += "." + ".".join(ext_parts[:-1])
                 ext = ext_parts[-1]
         else:
             ext = ""
 
-        # Remove trailing dot from post_numeral if present
-        if parsed_dict["post_numeral"].endswith("."):
-            parsed_dict["post_numeral"] = parsed_dict["post_numeral"][:-1]
+        # Remove trailing dot from suffix if present
+        if parsed_dict["suffix"].endswith("."):
+            parsed_dict["suffix"] = parsed_dict["suffix"][:-1]
 
         return Item(
             prefix=name,
             frame_string=parsed_dict["frame"],
             extension=ext,
             delimiter=delimiter,
-            suffix=parsed_dict["post_numeral"],
+            suffix=parsed_dict["suffix"],
             directory=Path(directory),
         )
 
@@ -1202,8 +1200,9 @@ class Parser:
 
     class SequenceDictItem(TypedDict):
         """TypedDict for storing sequence dictionary items."""
+
         name: str
-        separator: str
+        delimiter: str
         suffix: str
         frames: List[str]
         extension: str
@@ -1214,7 +1213,6 @@ class Parser:
         filename_list: List[str],
         directory: Optional[Path] = None,
     ) -> List[FileSequence]:
-
         """
         Creates a list of detected FileSequence objects from a list of filenames.
 
@@ -1243,7 +1241,7 @@ class Parser:
             if key not in sequence_dict:
                 sequence_dict[key] = {
                     "name": parsed_item.prefix,
-                    "separator": parsed_item.delimiter or "",
+                    "delimiter": parsed_item.delimiter or "",
                     "suffix": parsed_item.suffix or "",
                     "frames": [],
                     "extension": parsed_item.extension or "",
@@ -1494,14 +1492,15 @@ class Parser:
 
     @staticmethod
     def filesequence_from_sequence_string(
-        filename: str,
+        sequence_string: str,
         filename_list: List[str],
         directory: Optional[Path] = None,
     ) -> Union[FileSequence, None]:
-        """Matches a sequence file name against a list of filenames and returns
+        """
+        Matches a sequence string against a list of filenames and returns
         a detected sequence as a FileSequence object.
 
-        Sequence filenames take the form: prefix.####.suffix.extension where the
+        Sequence strings take the form: prefix.####.suffix.extension where the
         number of # symbols determines the padding
 
         Examples:
@@ -1521,33 +1520,35 @@ class Parser:
 
         """
 
+        sequence_string = Parser.convert_padding_to_hashes(sequence_string)
+
         sequences = Parser.filesequences_from_file_list(filename_list, directory)
 
         matched = []
 
         for sequence in sequences:
 
-            if sequence.file_name == filename:
+            if sequence.file_name == sequence_string:
                 matched.append(sequence)
 
         if len(matched) > 1:
             raise ValueError(
-                f"Multiple sequences match {filename!r}: {matched!r}, should be only one"
+                f"Multiple sequences match {sequence_string!r}: {matched!r}, should be only one"
             )
 
         if len(matched) == 0:
             return None
 
-        logger.info("Found sequences matching %s", filename)
+        logger.info("Found sequences matching %s", sequence_string)
 
         return matched[0]
 
     @staticmethod
-    def filesequence_from_sequence_filename_in_directory(
+    def filesequence_from_sequence_string_in_directory(
         filename: str,
         directory: Path,
     ) -> Union[FileSequence, None]:
-        """Matches a sequence file name against a directory and returns
+        """Matches a sequence string name against a directory and returns
         a detected sequence as a FileSequence object.
 
         Sequence filenames take the form: prefix.####.suffix.extension where the
@@ -1608,6 +1609,41 @@ class Parser:
         )
 
         return item
+
+    @staticmethod
+    def convert_padding_to_hashes(sequence_str: str) -> str:
+        """Converts printf-style frame number patterns (%04d) to hash notation (####).
+
+        Args:
+            sequence_str (str): String containing printf-style pattern
+
+        Returns:
+            str: String with hash notation
+
+        Example:
+            >>> convert_printf_pattern("render_%04d.exr")
+            'render_####.exr'
+            >>> convert_printf_pattern("shot_%d.jpg")  # No padding specified
+            'shot_#.jpg'
+        """
+
+        # Match %[0][padding]d pattern
+        # Groups:
+        # 1 - Optional 0 flag
+        # 2 - Optional padding number
+        # Followed by mandatory 'd'
+        printf_pattern = r"%(?:(0)?(\d+))?d"
+
+        def replace_match(match):
+            padding = match.group(2)
+            if padding:
+                # If padding specified, use that many #'s
+                return "#" * int(padding)
+            else:
+                # If no padding specified, use single #
+                return "#"
+
+        return re.sub(printf_pattern, replace_match, sequence_str)
 
 
 class Problems(Flag):

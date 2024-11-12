@@ -1,0 +1,123 @@
+- description: "Basic file sequence"
+  data:
+    path: "/path/to/"
+    files:
+      - "img_001.exr"
+      - "img_002.exr"
+      - "img_003.exr"
+    name: "img"
+    first_frame: 1
+    last_frame: 3
+    extension: "exr"
+    separator: "_"
+    post_numeral: ""
+    existing_frames: [1, 2, 3]
+    missing_frames: []
+    frames_count: 3
+    padding: 3
+
+- description: "Basic file sequence"
+  data:
+    path: "/path/to/"
+    files:
+      - "img_002.exr"
+      - "img_003.exr"
+      - "img_004.exr"
+      - "img_005.exr"
+      - "img_006.exr"
+    name: "img"
+    first_frame: 2
+    last_frame: 6
+    extension: "exr"
+    separator: "_"
+    post_numeral: ""
+    existing_frames: [2, 3, 4, 5, 6]
+    missing_frames: []
+    frames_count: 5
+    padding: 3
+
+- description: "Basic file sequence"
+  data:
+    path: "/path/to/"
+    files:
+      - "img_002.jpg"
+      - "img_003.jpg"
+      - "img_004.jpg"
+      - "img_005.jpg"
+      - "img_006.jpg"
+    name: "img"
+    first_frame: 2
+    last_frame: 6
+    extension: "jpg"
+    separator: "_"
+    post_numeral: ""
+    existing_frames: [2, 3, 4, 5, 6]
+    missing_frames: []
+    frames_count: 5
+    padding: 3
+
+
+- description: "Missing File"
+  data:
+    path: "/path/to/"
+    files:
+      - "img_002.jpg"
+      - "img_003.jpg"
+      - "img_005.jpg"
+      - "img_006.jpg"
+    name: "img"
+    first_frame: 2
+    last_frame: 6
+    extension: "jpg"
+    separator: "_"
+    post_numeral: ""
+    existing_frames: [2, 3, 5, 6]
+    missing_frames: [4]
+    frames_count: 5
+    padding: 3
+
+- description: "Inconsistent Padding"
+  data:
+    path: "/path/to/"
+    files:
+      - "img_02.jpg"
+      - "img_003.jpg"
+      - "img_004.jpg"
+      - "img_05.jpg"
+      - "img_006.jpg"
+ 
+    name: "img"
+    first_frame: 2
+    last_frame: 6
+    extension: "jpg"
+    separator: "_"
+    post_numeral: ""
+    existing_frames: [2, 3, 4, 5, 6]
+    missing_frames: []
+    frames_count: 5
+    padding: 3
+
+- description: "Similar file names that should not be considered"
+  data:
+    path: "/path/to/"
+    files:
+      - "img_0002.jpg"
+      - "img_0003.jpg"
+      - "img_0004.jpg"
+      - "img_0005.jpg"
+      - "img_0006.jpg"
+      - "img_0007.jpg"
+      - "img_0007.jpeg"
+      - "img.0008.jpg"
+      
+    name: "img"
+    first_frame: 2
+    last_frame: 7
+    extension: "jpg"
+    separator: "_"
+    post_numeral: ""
+    existing_frames: [2, 3, 4, 5, 6, 7]
+    missing_frames: []
+    frames_count: 6
+    padding: 4
+

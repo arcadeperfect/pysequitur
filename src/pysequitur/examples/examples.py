@@ -46,7 +46,7 @@ def run_examples():
 
     ## Parse by filename
 
-    seq = FileSequence.from_sequence_filename_in_directory("render_###_final.exr", temp_files_directory)
+    seq = FileSequence.from_sequence_string_in_directory("render_###_final.exr", temp_files_directory)
 
     print("\n\nParsed a single sequence:\n")
     print(seq)
@@ -55,7 +55,7 @@ def run_examples():
 
     ## Operations:
 
-    seq = FileSequence.from_sequence_filename_in_directory("render_###_final.exr", temp_files_directory)
+    seq = FileSequence.from_sequence_string_in_directory("render_###_final.exr", temp_files_directory)
 
     seq.move_to("/new/directory")
     seq.rename_to("new_name")

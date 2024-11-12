@@ -1,0 +1,273 @@
+- description: "Test missing frames"
+  sequences:
+    - beauty:
+        path: "/renders/beauty/"
+        files:
+          - "beauty_0001.exr"
+          - "beauty_0002.exr"
+          - "beauty_0004.exr"
+          - "beauty_0005.exr"
+        first_frame: 1
+        last_frame: 5
+        extension: "exr"
+        separator: "_"
+        post_numeral: ""
+        existing_frames: [1, 2, 4, 5]
+        missing_frames: [3]
+        frames_count: 5
+        padding: 4
+
+    - alpha:
+        path: "/renders/alpha/"
+        files:
+          - "alpha_001.exr"
+          - "alpha_003.exr"
+          - "alpha_005.exr"
+        first_frame: 1
+        last_frame: 5
+        extension: "exr"
+        separator: "_"
+        post_numeral: ""
+        existing_frames: [1, 3, 5]
+        missing_frames: [2, 4]
+        frames_count: 5
+        padding: 3
+
+    - diffuse:
+        path: "/renders/diffuse/"
+        files:
+          - "diffuse_0001.exr"
+          - "diffuse_0003.exr"
+          - "diffuse_0004.exr"
+          - "diffuse_0006.exr"
+        first_frame: 1
+        last_frame: 6
+        extension: "exr"
+        separator: "_"
+        post_numeral: ""
+        existing_frames: [1, 3, 4, 6]
+        missing_frames: [2, 5]
+        frames_count: 6
+        padding: 4
+
+    - normals:
+        path: "/renders/normals/"
+        files:
+          - "normals_001.exr"
+          - "normals_004.exr"
+          - "normals_005.exr"
+        first_frame: 1
+        last_frame: 5
+        extension: "exr"
+        separator: "_"
+        post_numeral: ""
+        existing_frames: [1, 4, 5]
+        missing_frames: [2, 3]
+        frames_count: 5
+        padding: 3
+
+- description: "Test different separators and post numerals"
+  sequences:
+    - comp.v001:
+        path: "/comp/v001/"
+        files:
+          - "comp.v001.0010.exr"
+          - "comp.v001.0011.exr"
+          - "comp.v001.0012.exr"
+        first_frame: 10
+        last_frame: 12
+        extension: "exr"
+        separator: "."
+        post_numeral: ""
+        existing_frames: [10, 11, 12]
+        missing_frames: []
+        frames_count: 3
+        padding: 4
+
+    - matte:
+        path: "/comp/mattes/"
+        files:
+          - "matte-001_v002.exr"
+          - "matte-002_v002.exr"
+          - "matte-003_v002.exr"
+        first_frame: 1
+        last_frame: 3
+        extension: "exr"
+        separator: "-"
+        post_numeral: "_v002"
+        existing_frames: [1, 2, 3]
+        missing_frames: []
+        frames_count: 3
+        padding: 3
+
+    - roto:
+        path: "/comp/roto/"
+        files:
+          - "roto_0001_v003.exr"
+          - "roto_0002_v003.exr"
+          - "roto_0003_v003.exr"
+        first_frame: 1
+        last_frame: 3
+        extension: "exr"
+        separator: "_"
+        post_numeral: "_v003"
+        existing_frames: [1, 2, 3]
+        missing_frames: []
+        frames_count: 3
+        padding: 4
+
+    - grain:
+        path: "/comp/grain/"
+        files:
+          - "grain.001.mov"
+          - "grain.002.mov"
+          - "grain.003.mov"
+        first_frame: 1
+        last_frame: 3
+        extension: "mov"
+        separator: "."
+        post_numeral: ""
+        existing_frames: [1, 2, 3]
+        missing_frames: []
+        frames_count: 3
+        padding: 3
+
+- description: "Test mixed file types and frame ranges"
+  sequences:
+    - camera:
+        path: "/footage/cam_a/"
+        files:
+          - "camera_0100.ari"
+          - "camera_0101.ari"
+          - "camera_0102.ari"
+          - "camera_0103.ari"
+        first_frame: 100
+        last_frame: 103
+        extension: "ari"
+        separator: "_"
+        post_numeral: ""
+        existing_frames: [100, 101, 102, 103]
+        missing_frames: []
+        frames_count: 4
+        padding: 4
+
+    - proxy:
+        path: "/footage/proxies/"
+        files:
+          - "proxy_0100.mov"
+          - "proxy_0101.mov"
+          - "proxy_0102.mov"
+          - "proxy_0103.mov"
+        first_frame: 100
+        last_frame: 103
+        extension: "mov"
+        separator: "_"
+        post_numeral: ""
+        existing_frames: [100, 101, 102, 103]
+        missing_frames: []
+        frames_count: 4
+        padding: 4
+
+    - transcode:
+        path: "/footage/transcodes/"
+        files:
+          - "transcode_0100.mp4"
+          - "transcode_0101.mp4"
+          - "transcode_0102.mp4"
+          - "transcode_0103.mp4"
+        first_frame: 100
+        last_frame: 103
+        extension: "mp4"
+        separator: "_"
+        post_numeral: ""
+        existing_frames: [100, 101, 102, 103]
+        missing_frames: []
+        frames_count: 4
+        padding: 4
+
+    - thumb:
+        path: "/footage/thumbs/"
+        files:
+          - "thumb_0100.jpg"
+          - "thumb_0101.jpg"
+          - "thumb_0102.jpg"
+          - "thumb_0103.jpg"
+        first_frame: 100
+        last_frame: 103
+        extension: "jpg"
+        separator: "_"
+        post_numeral: ""
+        existing_frames: [100, 101, 102, 103]
+        missing_frames: []
+        frames_count: 4
+        padding: 4
+
+# - description: "Test negative frame numbers"
+#   sequences:
+#     - preroll:
+#         path: "/renders/preroll/"
+#         files:
+#           - "preroll_-003.exr"
+#           - "preroll_-002.exr"
+#           - "preroll_-001.exr"
+#           - "preroll_0000.exr"
+#         first_frame: -3
+#         last_frame: 0
+#         extension: "exr"
+#         separator: "_"
+#         post_numeral: ""
+#         existing_frames: [-3, -2, -1, 0]
+#         missing_frames: []
+#         frames_count: 4
+#         padding: 4
+
+    # - overlap:
+    #     path: "/renders/overlap/"
+    #     files:
+    #       - "overlap_-001.exr"
+    #       - "overlap_0000.exr"
+    #       - "overlap_0001.exr"
+    #     first_frame: -1
+    #     last_frame: 1
+    #     extension: "exr"
+    #     separator: "_"
+    #     post_numeral: ""
+    #     existing_frames: [-1, 0, 1]
+    #     missing_frames: []
+    #     frames_count: 3
+    #     padding: 4
+
+    # - countdown:
+    #     path: "/renders/countdown/"
+    #     files:
+    #       - "countdown_-005.exr"
+    #       - "countdown_-004.exr"
+    #       - "countdown_-003.exr"
+    #       - "countdown_-002.exr"
+    #     first_frame: -5
+    #     last_frame: -2
+    #     extension: "exr"
+    #     separator: "_"
+    #     post_numeral: ""
+    #     existing_frames: [-5, -4, -3, -2]
+    #     missing_frames: []
+    #     frames_count: 4
+    #     padding: 4
+
+    # - transition:
+    #     path: "/renders/transition/"
+    #     files:
+    #       - "transition_-002.exr"
+    #       - "transition_-001.exr"
+    #       - "transition_0000.exr"
+    #       - "transition_0001.exr"
+    #       - "transition_0002.exr"
+    #     first_frame: -2
+    #     last_frame: 2
+    #     extension: "exr"
+    #     separator: "_"
+    #     post_numeral: ""
+    #     existing_frames: [-2, -1, 0, 1, 2]
+    #     missing_frames: []
+    #     frames_count: 5
+    #     padding: 4
