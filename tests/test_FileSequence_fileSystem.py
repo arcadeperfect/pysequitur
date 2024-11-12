@@ -29,7 +29,7 @@ def test_file_sequence_operations(create_files_from_list):
     assert seq.prefix == "sequence"
 
     # Test rename with string
-    seq.rename(Components(prefix="renamed"))
+    seq.rename_to(Components(prefix="renamed"))
     assert all(item.exists for item in seq.items) is True
     assert all(item.prefix == "renamed" for item in seq.items)
     assert seq.prefix == "renamed"
@@ -42,7 +42,7 @@ def test_file_sequence_operations(create_files_from_list):
         suffix="_done",
         extension="exr"
     )
-    seq.rename(renamer)
+    seq.rename_to(renamer)
 
     # Verify all items were renamed correctly
     for item in seq.items:
@@ -56,7 +56,7 @@ def test_file_sequence_operations(create_files_from_list):
     # Test move operation
 
 
-    seq.move(new_directory)
+    seq.move_to(new_directory)
     assert all(item.exists for item in seq.items)
 
     # print("\n")
@@ -115,7 +115,7 @@ def test_file_sequence_operations(create_files_from_list):
 
     # Test renaming complex sequence
     renamer = Components(prefix="new@#$", suffix="_final")
-    seq2.rename(renamer)
+    seq2.rename_to(renamer)
 
 
     # Verify all items were renamed correctly
@@ -151,7 +151,7 @@ def test_file_sequence_operations(create_files_from_list):
 
         sequences = Parser.filesequences_from_file_list(paths)
         seq1 = sequences[0]
-        seq1.rename(Components(prefix="renamed"))
+        seq1.rename_to(Components(prefix="renamed"))
 
         assert len(sequences) == 1
 
@@ -183,7 +183,7 @@ def test_file_sequence_operations(create_files_from_list):
 
     # Copy the sequence with a new name
     new_name = "copied_sequence"
-    copied_sequence = sequence.copy(Components(prefix=new_name))
+    copied_sequence = sequence.copy_to(Components(prefix=new_name))
 
     # Verify the copied sequence
     assert len(copied_sequence.items) == len(sequence.items)
@@ -198,7 +198,7 @@ def test_file_sequence_operations(create_files_from_list):
     new_directory_name = "new_directory"
     new_directory = copy_directory / new_directory_name
     os.mkdir(new_directory)
-    copied_sequence_with_dir = sequence.copy(Components(prefix = new_name), new_directory)
+    copied_sequence_with_dir = sequence.copy_to(Components(prefix = new_name), new_directory)
 
     # Verify the copied sequence with new directory
     assert len(copied_sequence_with_dir.items) == len(sequence.items)

@@ -43,7 +43,7 @@ sequence = Parser.filesequences_from_file_list(files)[0]
 for item in sequence.items:
     print(item.filename)
 
-sequence.rename("new_name")
+sequence.rename_to("new_name")
 
 for item in sequence.items:
     print(item.filename)

@@ -7,7 +7,7 @@ def test_Item_checkRename(create_files_from_list):
     item = Parser.item_from_filename(file)
     assert item.exists is True
     
-    item.rename(Components(prefix='source_3'))
+    item.rename_to(Components(prefix='source_3'))
     assert item.exists is True
 
     assert item.check_rename(Components(prefix='source_2'))[2] == True

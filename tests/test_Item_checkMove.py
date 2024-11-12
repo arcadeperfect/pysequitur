@@ -18,4 +18,4 @@ def test_Item_checkMove(create_files_from_list):
     
 
     with pytest.raises(FileExistsError):
-        item.move(new_dir)
+        item.move_to(new_dir)

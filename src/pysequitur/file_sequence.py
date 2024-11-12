@@ -135,7 +135,7 @@ class Item:
 
         padding = max(value, len(str(self.frame_number)))
         # self.frame_string = f"{self.frame_number:0{padding}d}"
-        self.rename(Components(padding=padding))
+        self.rename_to(Components(padding=padding))
 
     @property
     def stem(self) -> str:
@@ -147,7 +147,7 @@ class Item:
         """Returns the frame number as an integer."""
         return int(self.frame_string)
 
-    def set_frame_number(
+    def update_frame_number(
         self, new_frame_number: int, padding: Optional[int] = None
     ) -> "Item":
         """Sets the frame number of the item.
@@ -172,11 +172,11 @@ class Item:
 
         new_padding = max(padding, len(str(new_frame_number)))
 
-        self.rename(Components(frame_number=new_frame_number, padding=new_padding))
+        self.rename_to(Components(frame_number=new_frame_number, padding=new_padding))
 
         return self
 
-    def move(self, new_directory: Path) -> "Item":
+    def move_to(self, new_directory: Path) -> "Item":
         """Moves the item to a new directory.
 
         # Args:
@@ -203,10 +203,19 @@ class Item:
 
     def check_move(self, new_directory: Path) -> Tuple[Path, Path, bool]:
 
+        """Checks if the item can be moved to the given directory.
+
+        Args:
+            new_directory: The directory to check
+
+        Returns:
+            A tuple containing the current absolute path, the path that the item would be moved to,
+            and a boolean indicating whether the path already exists.
+        """
         new_path = Path(new_directory) / self.filename
         return (self.absolute_path, new_path, new_path.exists())  # TODO test this
 
-    def rename(self, new_name: Components) -> "Item":
+    def rename_to(self, new_name: Components) -> "Item":
         """Renames the item.
 
         Any component that is None will not be changed.
@@ -247,6 +256,18 @@ class Item:
         return self
 
     def check_rename(self, new_name: Components) -> Tuple[Path, Path, bool]:
+        """
+        Checks if renaming the item to the new name would cause any conflicts.
+
+        Args:
+            new_name (Components): The new name to check for conflicts.
+
+        Returns:
+            Tuple[Path, Path, bool]: A tuple containing the current absolute path, 
+            the potential new absolute path, and a boolean indicating if the 
+            new name already exists.
+        """
+
 
         new_name = self._complete_components(new_name)
         potential_item = Item.from_components(
@@ -277,7 +298,7 @@ class Item:
 
         return components
 
-    def copy(
+    def copy_to(
         self,
         new_name: Optional[Components] = None,
         new_directory: Optional[Path] = None,
@@ -330,6 +351,18 @@ class Item:
         new_name: Optional[Components] = None,
         new_directory: Optional[Path] = None,
     ) -> Tuple[Path, Path, bool]:
+        """
+        Checks if copying the item to a new name and/or directory would cause any conflicts.
+
+        Args:
+            new_name (Optional[Components]): The new name to check for conflicts.
+            new_directory (Optional[Path]): The new directory to check for conflicts.
+
+        Returns:
+            Tuple[Path, Path, bool]: A tuple containing the current absolute path, 
+            the potential new absolute path, and a boolean indicating if the 
+            new name already exists.
+        """
 
         if isinstance(new_name, str):
             raise TypeError("new_name must be a Components object")
@@ -457,32 +490,32 @@ class FileSequence:
         """Returns the prefix Performs a check to ensure that prefix is
         consistent across all items."""
 
-        return str(self._check_consistent_property(prop_name="prefix"))
+        return str(self._validate_property_consistency(prop_name="prefix"))
 
     @property
     def extension(self) -> str:
         """Returns the extension Performs a check to ensure that extension is
         consistent across all items."""
-        return str(self._check_consistent_property(prop_name="extension"))
+        return str(self._validate_property_consistency(prop_name="extension"))
 
     @property
     def delimiter(self) -> str:
         """Returns the delimiter Performs a check to ensure that delimiter is
         consistent across all items."""
-        return str(self._check_consistent_property(prop_name="delimiter"))
+        return str(self._validate_property_consistency(prop_name="delimiter"))
 
     @property
     def suffix(self) -> str:
         """Returns the suffix Performs a check to ensure that suffix is
         consistent across all items."""
-        return str(self._check_consistent_property(prop_name="suffix"))
+        return str(self._validate_property_consistency(prop_name="suffix"))
 
     @property
     def directory(self) -> Path:
         """Returns the directory Performs a check to ensure that directory is
         consistent across all items."""
 
-        directory = self._check_consistent_property(prop_name="directory")
+        directory = self._validate_property_consistency(prop_name="directory")
 
         if not isinstance(directory, Path):
             raise TypeError(f"{self.__class__.__name__} directory must be a Path")
@@ -726,7 +759,7 @@ class FileSequence:
             filename, directory
         )
 
-    def rename(self, new_name: Components) -> "FileSequence":
+    def rename_to(self, new_name: Components) -> "FileSequence":
         """Renames all items in the sequence.
 
         Args:
@@ -750,15 +783,24 @@ class FileSequence:
             raise ValueError(f"Conflicts detected: {str(conflicts)}")
 
         for item in self.items:
-            item.rename(new_name.with_frame_number(item.frame_number))
+            item.rename_to(new_name.with_frame_number(item.frame_number))
 
         return self
 
     def check_rename(self, new_name: Components) -> None:
+        """
+        Checks if renaming the sequence to the new name would cause any conflicts.
+
+        Args:
+            new_name (Components): The new name to check for conflicts.
+
+        Returns:
+            None
+        """
 
         return [item.check_rename(new_name) for item in self.items]
 
-    def move(self, new_directory: Path) -> "FileSequence":
+    def move_to(self, new_directory: Path) -> "FileSequence":
         """Moves all items in the sequence to a new directory.
 
         Args:
@@ -782,11 +824,20 @@ class FileSequence:
         for item in self.items:
             print(f"item frame number: {item.frame_number}")
             print(f"existing file in new dir: {len(os.listdir(new_directory))}")
-            item.move(new_directory)
+            item.move_to(new_directory)
 
         return self
 
     def check_move(self, new_directory: Path) -> None:
+        """
+        Checks if moving the sequence to the new directory would cause any conflicts.
+
+        Args:
+            new_directory (Path): The directory to check for conflicts.
+
+        Returns:
+            None
+        """
 
         # TODO test this
 
@@ -800,7 +851,7 @@ class FileSequence:
 
         return self
 
-    def copy(
+    def copy_to(
         self, new_name: Optional[Components], new_directory: Optional[Path] = None
     ) -> "FileSequence":
         """Creates a copy of the sequence with a new name and optional new
@@ -825,7 +876,7 @@ class FileSequence:
 
         new_items = []
         for item in self.items:
-            new_item = item.copy(new_name, new_directory)
+            new_item = item.copy_to(new_name, new_directory)
             new_items.append(new_item)
 
         new_sequence = FileSequence(new_items)
@@ -870,7 +921,7 @@ class FileSequence:
             if any(item.frame_number == target for item in self.items):
                 raise ValueError(f"Frame {target} already exists")
 
-            item.set_frame_number(item.frame_number + offset, padding)
+            item.update_frame_number(item.frame_number + offset, padding)
 
         return self  # TODO test chaining
 
@@ -942,9 +993,13 @@ class FileSequence:
             folder_name (str): The directory to move the sequence to.
 
         """
-        raise NotImplementedError
+        new_directory = self.directory / folder_name
+        new_directory.mkdir(parents=True, exist_ok=True)
 
-    def _check_consistent_property(self, prop_name: str) -> Any:
+        for item in self.items:
+            item.move_to(new_directory) #TODO test this
+
+    def _validate_property_consistency(self, prop_name: str) -> Any:
         """Checks if all items in the sequence have the same value for a given
         property.
 
@@ -978,11 +1033,11 @@ class FileSequence:
                 values.
 
         """
-        self._check_consistent_property(prop_name="prefix")
-        self._check_consistent_property(prop_name="extension")
-        self._check_consistent_property(prop_name="delimiter")
-        self._check_consistent_property(prop_name="suffix")
-        self._check_consistent_property(prop_name="directory")
+        self._validate_property_consistency(prop_name="prefix")
+        self._validate_property_consistency(prop_name="extension")
+        self._validate_property_consistency(prop_name="delimiter")
+        self._validate_property_consistency(prop_name="suffix")
+        self._validate_property_consistency(prop_name="directory")
 
         return True
 
@@ -1136,9 +1191,18 @@ class Parser:
 
     @staticmethod
     def item_from_path(path: Path) -> Item:
+        """Creates an Item object from a Path object.
+
+        Args:
+            path (Path): Path object representing the file.
+
+        Returns:
+            Item: Item object created from the Path.
+        """
         return Parser.item_from_filename(path.name, path.parent)
 
     class SequenceDictItem(TypedDict):
+        """TypedDict for storing sequence dictionary items."""
         name: str
         separator: str
         suffix: str
@@ -1152,6 +1216,16 @@ class Parser:
         directory: Optional[Path] = None,
     ) -> List[FileSequence]:
 
+        """
+        Creates a list of detected FileSequence objects from a list of filenames.
+
+        Args:
+            filename_list (List[str]): A list of filenames to be analyzed for sequences.
+            directory (str, optional): The directory in which filenames are located.
+
+        Returns:
+            List[FileSequence]: A list of FileSequence objects representing the detected file sequences.
+        """
         sequence_dict: Dict[Tuple[str, str, str, str], Parser.SequenceDictItem] = {}
 
         for file in filename_list:

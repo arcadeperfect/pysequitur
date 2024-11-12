@@ -28,7 +28,7 @@ def test_item_chained_methods(create_files_from_list):
 
         assert item.exists is True
 
-        copied_item = item.rename(Components(prefix='renamed')).move(sub_dir).copy()
+        copied_item = item.rename_to(Components(prefix='renamed')).move_to(sub_dir).copy_to()
 
         assert item.prefix == 'renamed'
         assert item.directory == sub_dir
@@ -36,7 +36,7 @@ def test_item_chained_methods(create_files_from_list):
         assert copied_item.directory == sub_dir
         assert copied_item.prefix == item.prefix + '_copy'
 
-        item.rename(Components(prefix='renamed2')).delete()
+        item.rename_to(Components(prefix='renamed2')).delete()
         assert item.exists is False
         copied_item.delete()
         assert copied_item.exists is False

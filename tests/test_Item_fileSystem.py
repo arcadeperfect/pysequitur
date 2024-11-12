@@ -11,7 +11,7 @@ def test_item_file_system(create_files_from_list):
         item.delete()
     
     with pytest.raises(FileNotFoundError):
-        item.move('test')
+        item.move_to('test')
 
     assert item.exists == False
 
@@ -37,7 +37,7 @@ def test_item_file_system(create_files_from_list):
 
 
 
-    item.rename(Components(prefix='renamed'))
+    item.rename_to(Components(prefix='renamed'))
 
 
     assert item.prefix == 'renamed'
@@ -56,7 +56,7 @@ def test_item_file_system(create_files_from_list):
     assert item.directory == path.parent
     assert item.filename == path.name
 
-    item.rename(Components(prefix='renamed'))
+    item.rename_to(Components(prefix='renamed'))
 
     assert item.prefix == 'renamed'
     assert item.filename == 'renamed_0002.png'
@@ -74,7 +74,7 @@ def test_item_file_system(create_files_from_list):
     assert item.directory == path.parent
     assert item.filename == path.name
 
-    item.rename(Components(prefix='renamed'))
+    item.rename_to(Components(prefix='renamed'))
 
     assert item.prefix == 'renamed'
     assert item.filename == 'renamed0003_post.png'
@@ -93,7 +93,7 @@ def test_item_file_system(create_files_from_list):
     assert item.filename == path.name
     
 
-    item.rename(Components(prefix='renamed'))
+    item.rename_to(Components(prefix='renamed'))
 
     assert item.prefix == 'renamed'
     assert item.filename == 'renamed004.png'
@@ -123,7 +123,7 @@ def test_item_file_system(create_files_from_list):
     assert item.filename == path.name
     
     renamer = Components()
-    item.rename(renamer)
+    item.rename_to(renamer)
 
     assert item.prefix == "frame"
     assert item.filename == "frame.0001.png"
@@ -138,7 +138,7 @@ def test_item_file_system(create_files_from_list):
     item = Parser.item_from_filename(path)
 
     renamer = Components(prefix="renamed")
-    item.rename(renamer)
+    item.rename_to(renamer)
 
     assert item.prefix == "renamed"
     assert item.filename == "renamed.0001.png"
@@ -146,7 +146,7 @@ def test_item_file_system(create_files_from_list):
     assert item.extension == "png"
 
     renamer = Components(delimiter=r"_")
-    item.rename(renamer)
+    item.rename_to(renamer)
 
     assert item.prefix == "renamed"
     assert item.filename == "renamed_0001.png"
@@ -154,7 +154,7 @@ def test_item_file_system(create_files_from_list):
     assert item.extension == "png"
 
     renamer = Components(extension="jpg")
-    item.rename(renamer)
+    item.rename_to(renamer)
 
     assert item.prefix == "renamed"
     assert item.filename == "renamed_0001.jpg"
@@ -162,7 +162,7 @@ def test_item_file_system(create_files_from_list):
     assert item.extension == "jpg"
 
     renamer = Components(suffix="_post")
-    item.rename(renamer)
+    item.rename_to(renamer)
 
     assert item.prefix == "renamed"
     assert item.filename == "renamed_0001_post.jpg"
@@ -170,7 +170,7 @@ def test_item_file_system(create_files_from_list):
     assert item.extension == "jpg"
 
     renamer = Components(padding=3)
-    item.rename(renamer)
+    item.rename_to(renamer)
 
     assert item.prefix == "renamed"
     assert item.filename == "renamed_001_post.jpg"
@@ -183,7 +183,7 @@ def test_item_file_system(create_files_from_list):
                       suffix="_newPost",
                       extension="exr")
     
-    item.rename(renamer)
+    item.rename_to(renamer)
 
     assert item.prefix == "renamed_again"
     assert item.filename == "renamed_again.00001_newPost.exr"
@@ -283,7 +283,7 @@ def test_item_file_system(create_files_from_list):
     for path in paths:
         item = Parser.item_from_filename(path)
 
-        item.move(new_directory)
+        item.move_to(new_directory)
 
         assert item.exists is True
         assert item.directory == new_directory

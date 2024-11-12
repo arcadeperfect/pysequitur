@@ -57,10 +57,10 @@ def run_examples():
 
     seq = FileSequence.from_sequence_filename_in_directory("render_###_final.exr", temp_files_directory)
 
-    seq.move("/new/directory")
-    seq.rename("new_name")
+    seq.move_to("/new/directory")
+    seq.rename_to("new_name")
     seq.offset_frames(100)  # Shift all frame numbers by 100
-    new_sequence = seq.copy("/new/directory")
+    new_sequence = seq.copy_to("/new/directory")
 
     print("\n\nRenamed sequence:\n")
     print(new_sequence)
