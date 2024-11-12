@@ -1,4 +1,4 @@
-from pysequitur.file_sequence import FileSequence, Parser, Components
+from pysequitur.file_sequence import FileSequence, ItemParser, Components
 import os
 
 def test_item_chained_methods(create_files_from_list):
@@ -24,7 +24,7 @@ def test_item_chained_methods(create_files_from_list):
 
     for file in test_env:
 
-        item = Parser.item_from_path(file)
+        item = ItemParser.item_from_path(file)
 
         assert item.exists is True
 

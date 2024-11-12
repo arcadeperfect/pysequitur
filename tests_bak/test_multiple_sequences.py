@@ -1,4 +1,4 @@
-from pysequitur.file_sequence import FileSequence, Parser
+from pysequitur.file_sequence import FileSequence, SequenceParser
 from pathlib import Path
 import pytest
 
@@ -43,7 +43,7 @@ def test_multiple_sequences(load_test_cases_from_yaml):
 
         all_files.extend(random_files)
 
-        file_sequences = Parser.filesequences_from_file_list(all_files)
+        file_sequences = SequenceParser.filesequences_from_file_list(all_files)
 
         # Match and test each parsed sequence
         for fileSequence in file_sequences:

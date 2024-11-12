@@ -1,4 +1,4 @@
-from pysequitur.file_sequence import FileSequence, Parser
+from pysequitur.file_sequence import SequenceParser
 from pathlib import Path
 
 def normalize_empty(value):
@@ -17,7 +17,7 @@ def test_filesequence(load_test_cases_from_yaml):
     for case in cases:
         data = case['data']
 
-        sequence = Parser.filesequences_from_file_list(data['files'])[0]
+        sequence = SequenceParser.filesequences_from_file_list(data['files'])[0]
 
         compare(sequence.prefix, data['name'])
         compare(sequence.first_frame, data['first_frame'])

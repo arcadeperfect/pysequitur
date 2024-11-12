@@ -2,16 +2,16 @@
 # # This file is part of PySequitur which is released under MIT license.
 # # See file LICENSE for full license details.
 
-# import re
-# import os
-# import shutil
 # import logging
-# from enum import Flag, auto
-# from typing import Dict, Optional, Tuple, List, Any, TypedDict, Union
-# from pathlib import Path
-# from dataclasses import dataclass
+# import os
+# import re
+# import shutil
 # from collections import Counter, defaultdict
+# from dataclasses import dataclass
+# from enum import Flag, auto
 # from operator import attrgetter
+# from pathlib import Path
+# from typing import Any, Dict, List, Optional, Tuple, TypedDict, Union
 
 # logging.basicConfig(
 #     level=logging.INFO,  # Set default level to INFO
@@ -44,26 +44,27 @@
 #     """
 
 #     prefix: Optional[str] = None
+
 #     delimiter: Optional[str] = None
 #     padding: Optional[int] = None
+
 #     suffix: Optional[str] = None
 #     extension: Optional[str] = None
 #     frame_number: Optional[int] = None
 
 #     def with_frame_number(self, frame_number: int) -> "Components":
-#         return Components(
-#             prefix=self.prefix,
-#             delimiter=self.delimiter,
-#             padding=max(self.padding or 0, len(str(frame_number))),
-#             suffix=self.suffix,
-#             extension=self.extension,
-#             frame_number=frame_number,
-#         )
+#             return Components(
+#                 prefix=self.prefix,
+#                 delimiter=self.delimiter,
+#                 padding=max(self.padding or 0, len(str(frame_number))),
+#                 suffix=self.suffix,
+#                 extension=self.extension,
+#                 frame_number=frame_number,
+#             )
 
 
 # @dataclass
 # class Item:
-
 #     prefix: str
 #     frame_string: str
 #     extension: str
@@ -89,13 +90,13 @@
 #             pattern (str, optional): Pattern to use for parsing if path is a string (optional)
 #         """
 
-#         return ItemParser.item_from_filename(path, directory)
+#         return Parser.item_from_filename(path, directory)
 
 #     @staticmethod
 #     def from_components(
 #         components: Components, frame: int, directory: Optional[Path] = None
 #     ) -> "Item":
-#         return ItemParser.item_from_components(components, frame, directory)
+#         return Parser.item_from_components(components, frame, directory)
 
 #     @property
 #     def path(self) -> Path:
@@ -239,11 +240,11 @@
 #         new_name = self._complete_components(new_name)
 
 #         # Update internal state
-#         self.prefix = new_name.prefix or ""
+#         self.prefix = new_name.prefix
 #         self.delimiter = new_name.delimiter
 #         self.suffix = new_name.suffix
-#         self.extension = new_name.extension or ""
-#         new_padding = max(new_name.padding or 0, len(str(new_name.frame_number)))
+#         self.extension = new_name.extension
+#         new_padding = max(new_name.padding, len(str(new_name.frame_number)))
 #         self.frame_string = f"{new_name.frame_number:0{new_padding}d}"
 
 #         if old_path.exists():
@@ -274,7 +275,6 @@
 #         return (self.absolute_path, potential_item.absolute_path, potential_item.exists)
 
 #     def _complete_components(self, components: Components) -> Components:
-
 #         if components.prefix is None:
 #             components.prefix = self.prefix
 
@@ -296,52 +296,54 @@
 #         return components
 
 #     def copy_to(
-#         self,
-#         new_name: Optional[Components] = None,
-#         new_directory: Optional[Path] = None,
-#     ) -> "Item":
-#         """Copies the item.
+#             self,
+#             new_name: Optional[Components] = None,
+#             new_directory: Optional[Path] = None,
+#         ) -> "Item":
+#             """Copies the item.
 
-#         Args:
-#             new_name (str): New name
-#             new_directory (str, optional): New directory
+#             Args:
+#                 new_name (str): New name
+#                 new_directory (str, optional): New directory
 
-#         # Returns:
-#         #     Item: New item
+#             # Returns:
+#             #     Item: New item
 
-#         #"""
+#             #"""
 
-#         logger.info("Copying %s to %s", self.filename, new_name)
+#             logger.info("Copying %s to %s", self.filename, new_name)
 
-#         if isinstance(new_name, str):
-#             raise TypeError("new_name must be a Components object")
+#             if isinstance(new_name, str):
+#                 raise TypeError("new_name must be a Components object")
 
-#         if new_name is None:
-#             new_name = Components()
+#             if new_name is None:
+#                 new_name = Components()
 
-#         new_name = self._complete_components(new_name)
+#             new_name = self._complete_components(new_name)
 
-#         if isinstance(new_name, str):
-#             raise TypeError("new_name must be a Components object")
+#             if isinstance(new_name, str):
+#                 raise TypeError("new_name must be a Components object") 
 
-#         if new_directory is None:
-#             new_directory = self.directory
+#             if new_directory is None:
+#                 new_directory = self.directory
 
-#         new_item = Item.from_components(new_name, self.frame_number, new_directory)
+#             new_item = Item.from_components(new_name, self.frame_number, new_directory)
 
-#         if new_item.absolute_path == self.absolute_path:
-#             new_item.prefix = (new_name.prefix or "") + "_copy"
+#             if new_item.absolute_path == self.absolute_path:
+#                 if new_name.prefix is None:
+#                     new_name.prefix = self.prefix
+#                 new_item.prefix = new_name.prefix + "_copy"
 
-#         if new_item.exists:
-#             raise FileExistsError()
+#             if new_item.exists:
+#                 raise FileExistsError()
 
-#         if self.exists:
-#             shutil.copy2(self.absolute_path, new_item.absolute_path)
+#             if self.exists:
+#                 shutil.copy2(self.absolute_path, new_item.absolute_path)
 
-#         else:
-#             logger.warning("Copying %s which does not exist", self.filename)
+#             else:
+#                 logger.warning("Copying %s which does not exist", self.filename)
 
-#         return new_item
+#             return new_item
 
 #     def check_copy(
 #         self,
@@ -377,6 +379,7 @@
 #         )
 
 #         if new_item.absolute_path == self.absolute_path:
+            
 #             new_components = self._complete_components(
 #                 Components(prefix=new_name.prefix or "" + "_copy")
 #             )
@@ -610,7 +613,7 @@
 #             List[FileSequence]: A list of FileSequence objects representing the detected file sequences.
 
 #         """
-#         return SequenceParser.filesequences_from_file_list(filename_list, directory)
+#         return Parser.filesequences_from_file_list(filename_list, directory)
 
 #     @staticmethod
 #     def from_directory(directory: Path) -> List["FileSequence"]:
@@ -623,7 +626,7 @@
 #         Returns:
 #             FileSequence: A list of FileSequence objects representing the detected file sequences.
 #         """
-#         return SequenceParser.filesequences_from_directory(directory)
+#         return Parser.filesequences_from_directory(directory)
 
 #     @staticmethod
 #     def from_components_in_filename_list(
@@ -656,7 +659,7 @@
 #             list[FileSequence]: List of Sequence objects
 
 #         """
-#         return SequenceParser.filesequences_from_components_in_filename_list(
+#         return Parser.filesequences_from_components_in_filename_list(
 #             components, filename_list, directory
 #         )
 
@@ -687,7 +690,7 @@
 #             list[FileSequence]: List of Sequence objects
 
 #         """
-#         return SequenceParser.filesequences_from_components_in_directory(components, directory)
+#         return Parser.filesequences_from_components_in_directory(components, directory)
 
 #     @staticmethod
 #     def from_sequence_string_in_filename_list(
@@ -718,14 +721,14 @@
 #             FileSequence: Sequence object
 
 #         """
-#         return SequenceParser.filesequence_from_sequence_string(
+#         return Parser.filesequence_from_sequence_string(
 #             sequence_string, filename_list, directory
 #         )
 
 #     @staticmethod
 #     def from_sequence_string_in_directory(
 #         filename: str, directory: Path
-#     ) -> Union["FileSequence", None]:
+#     ) -> "FileSequence":
 #         """
 #         Matches a sequence string string against a list of files in a given directory
 #         and returns a detected sequence as a FileSequence object.
@@ -752,7 +755,7 @@
 
 #         """
 
-#         return SequenceParser.filesequence_from_sequence_string_in_directory(
+#         return Parser.filesequence_from_sequence_string_in_directory(
 #             filename, directory
 #         )
 
@@ -772,7 +775,7 @@
 
 #         conflicts = []
 
-#         for found in self.check_rename(new_name) or []:
+#         for found in self.check_rename(new_name):
 #             if found[2]:
 #                 conflicts.append(found[1])
 
@@ -784,21 +787,18 @@
 
 #         return self
 
-#     def check_rename(self, new_name: Components) -> List[Tuple[Path, Path, bool]]:
-#             """
-#             Checks if renaming the sequence to the new name would cause any conflicts.
+#     def check_rename(self, new_name: Components) -> None:
+#         """
+#         Checks if renaming the sequence to the new name would cause any conflicts.
 
-#             Args:
-#                 new_name (Components): The new name to check for conflicts.
+#         Args:
+#             new_name (Components): The new name to check for conflicts.
 
-#             Returns:
-#                 List[Tuple[Path, Path, bool]]: List of tuples containing:
-#                     - Original path
-#                     - New path that would be created
-#                     - Whether a conflict exists at the new path
-#             """
+#         Returns:
+#             None
+#         """
 
-#             return [item.check_rename(new_name) for item in self.items]
+#         return [item.check_rename(new_name) for item in self.items]
 
 #     def move_to(self, new_directory: Path) -> "FileSequence":
 #         """Moves all items in the sequence to a new directory.
@@ -812,7 +812,7 @@
 
 #         conflicts = []
 
-#         for found in self.check_move(new_directory) or []:
+#         for found in self.check_move(new_directory):
 #             if found[2]:
 #                 conflicts.append(found[1])
 
@@ -828,23 +828,20 @@
 
 #         return self
 
-#     def check_move(self, new_directory: Path) -> List[Tuple[Path, Path, bool]]:
-#             """
-#             Checks if moving the sequence to the new directory would cause any conflicts.
+#     def check_move(self, new_directory: Path) -> None:
+#         """
+#         Checks if moving the sequence to the new directory would cause any conflicts.
 
-#             Args:
-#                 new_directory (Path): The directory to check for conflicts.
+#         Args:
+#             new_directory (Path): The directory to check for conflicts.
 
-#             Returns:
-#                 List[Tuple[Path, Path, bool]]: List of tuples containing:
-#                     - Original path
-#                     - New path that would be created
-#                     - Whether a conflict exists at the new path
-#             """
+#         Returns:
+#             None
+#         """
 
-#             # TODO test this
+#         # TODO test this
 
-#             return [item.check_move(new_directory) for item in self.items]
+#         return [item.check_move(new_directory) for item in self.items]
 
 #     def delete_files(self) -> "FileSequence":
 #         """Deletes all files in the sequence."""
@@ -888,7 +885,7 @@
 
 #     def offset_frames(
 #         self, offset: int, padding: Optional[int] = None
-#     ) -> Union["FileSequence", None]:
+#     ) -> "FileSequence":
 #         """Offsets all frames in the sequence by a given offset.
 
 #         If padding is not provided, the sequence's standard padding is used.
@@ -918,7 +915,6 @@
 #         for item in sorted(
 #             self.items, key=attrgetter("frame_number"), reverse=offset > 0
 #         ):
-
 #             target = item.frame_number + offset
 
 #             if any(item.frame_number == target for item in self.items):
@@ -1057,7 +1053,7 @@
 #         return True
 
 
-# class ItemParser:
+# class Parser:
 #     """Static utility class for parsing filenames and discovering sequences.
 
 #     Most functionality is available through convenience methods in the Parser class.
@@ -1120,14 +1116,14 @@
 #         """
 
 #         if isinstance(filename, Path):
-#             directory = Path(str(filename.parent))
+#             directory = str(filename.parent)
 #             filename = str(filename.name)
 
 #         if len(Path(filename).parts) > 1:
 #             raise ValueError("first argument must be a name, not a path")
 
 #         if not pattern:
-#             pattern = ItemParser.pattern
+#             pattern = Parser.pattern
 
 #         match = re.match(pattern, filename)
 #         if not match:
@@ -1165,7 +1161,7 @@
 #             # Check for known multi-part extensions
 #             for i in range(len(ext_parts)):
 #                 possible_ext = ".".join(ext_parts[i:])
-#                 if possible_ext in ItemParser.known_extensions:
+#                 if possible_ext in Parser.known_extensions:
 #                     # Adjust suffix
 #                     if ext_parts[:i]:
 #                         parsed_dict["suffix"] += "." + ".".join(ext_parts[:i])
@@ -1193,7 +1189,7 @@
 #         )
 
 #     @staticmethod
-#     def item_from_path(path: Path) -> Union[Item, None]:
+#     def item_from_path(path: Path) -> Item:
 #         """Creates an Item object from a Path object.
 
 #         Args:
@@ -1202,87 +1198,8 @@
 #         Returns:
 #             Item: Item object created from the Path.
 #         """
-#         return ItemParser.item_from_filename(path.name, path.parent)
+#         return Parser.item_from_filename(path.name, path.parent)
 
-
-
-    
-
-
-
- 
-#     @staticmethod
-#     def item_from_components(
-#         components: Components, frame: int, directory: Optional[Path] = None
-#     ) -> Item:
-#         """Converts a Components object into an Item object.
-
-#         Args:
-#             components (Components): Components object
-
-#         Returns:
-#             Item: Item object
-
-#         """
-
-#         # TODO write a test for this
-
-#         if isinstance(components, str):
-#             raise TypeError("components must be a Components object")
-
-#         if components.padding is None:
-#             components.padding = len(str(frame))
-
-#         frame_string = str(frame).zfill(components.padding)
-
-#         item = Item(
-#             prefix=components.prefix,
-#             frame_string=frame_string,
-#             extension=components.extension,
-#             delimiter=components.delimiter,
-#             suffix=components.suffix,
-#             directory=directory,
-#         )
-
-#         return item
-
-#     @staticmethod
-#     def convert_padding_to_hashes(sequence_str: str) -> str:
-#         """Converts printf-style frame number patterns (%04d) to hash notation (####).
-
-#         Args:
-#             sequence_str (str): String containing printf-style pattern
-
-#         Returns:
-#             str: String with hash notation
-
-#         Example:
-#             >>> convert_printf_pattern("render_%04d.exr")
-#             'render_####.exr'
-#             >>> convert_printf_pattern("shot_%d.jpg")  # No padding specified
-#             'shot_#.jpg'
-#         """
-
-#         # Match %[0][padding]d pattern
-#         # Groups:
-#         # 1 - Optional 0 flag
-#         # 2 - Optional padding number
-#         # Followed by mandatory 'd'
-#         printf_pattern = r"%(?:(0)?(\d+))?d"
-
-#         def replace_match(match):
-#             padding = match.group(2)
-#             if padding:
-#                 # If padding specified, use that many #'s
-#                 return "#" * int(padding)
-#             else:
-#                 # If no padding specified, use single #
-#                 return "#"
-
-#         return re.sub(printf_pattern, replace_match, sequence_str)
-
-# class SequenceParser:
-    
 #     class SequenceDictItem(TypedDict):
 #         """TypedDict for storing sequence dictionary items."""
 
@@ -1292,9 +1209,7 @@
 #         frames: List[str]
 #         extension: str
 #         items: List[Item]
-    
-    
-    
+
 #     @staticmethod
 #     def filesequences_from_file_list(
 #         filename_list: List[str],
@@ -1310,10 +1225,10 @@
 #         Returns:
 #             List[FileSequence]: A list of FileSequence objects representing the detected file sequences.
 #         """
-#         sequence_dict: Dict[Tuple[str, str, str, str], SequenceParser.SequenceDictItem] = {}
+#         sequence_dict: Dict[Tuple[str, str, str, str], Parser.SequenceDictItem] = {}
 
 #         for file in filename_list:
-#             parsed_item = ItemParser.item_from_filename(file, directory)
+#             parsed_item = Parser.item_from_filename(file, directory)
 #             if not parsed_item:
 #                 continue
 
@@ -1393,149 +1308,7 @@
 #         logger.info("Parsed %d sequences", len(sequence_list))
 
 #         return sequence_list
-        
-#     @staticmethod
-#     def filesequences_from_components_in_directory(
-#         components: Components, directory: Path
-#     ) -> List[FileSequence]:
-#         """Matches components against a directory and returns a list of detected
-#         sequences as FileSequence objects. If no components are specified, all
-#         sequences are returned. Otherwise only sequences that match the
-#         specified components are returned.
-    
-#         Args:
-#             components (Components): Components to match
-#             directory (str): Directory that contains the files
-    
-#         Returns:
-#             list[FileSequence]: List of Sequence objects
-    
-#         """
-    
-#         sequences = SequenceParser.filesequences_from_directory(directory)
-    
-#         matches = []
-    
-#         for sequence in sequences:
-    
-#             match = True
-    
-#             if components.prefix is not None and components.prefix != sequence.prefix:
-#                 match = False
-    
-#             if (
-#                 components.delimiter is not None
-#                 and components.delimiter != sequence.delimiter
-#             ):
-#                 match = False
-    
-#             if (
-#                 components.padding is not None
-#                 and components.padding != sequence.padding
-#             ):
-#                 match = False
-    
-#             if components.suffix is not None and components.suffix != sequence.suffix:
-#                 match = False
-    
-#             if (
-#                 components.extension is not None
-#                 and components.extension != sequence.extension
-#             ):
-#                 match = False
-    
-#             if match:
-#                 matches.append(sequence)
-    
-#         logger.info("Found %d sequences matching %s", len(matches), str(components))
-    
-#         return matches
 
-#     @staticmethod
-#     def filesequence_from_sequence_string(
-#         sequence_string: str,
-#         filename_list: List[str],
-#         directory: Optional[Path] = None,
-#     ) -> Union[FileSequence, None]:
-#         """
-#         Matches a sequence string against a list of filenames and returns
-#         a detected sequence as a FileSequence object.
-    
-#         Sequence strings take the form: prefix.####.suffix.extension where the
-#         number of # symbols determines the padding
-    
-#         Examples:
-    
-#         image.####.exr
-#         render_###_revision.jpg
-#         plate_v1-#####.png
-    
-#         Args:
-#             filename (str): Sequence file name
-#             filename_list (list): List of filenames
-#             directory (str): Directory that contains the files (optional)
-#             pattern (str): Regex pattern for parsing frame-based filenames (optional)
-    
-#         Returns:
-#             FileSequence: Sequence object
-    
-#         """
-    
-#         sequence_string = ItemParser.convert_padding_to_hashes(sequence_string)
-    
-#         sequences = SequenceParser.filesequences_from_file_list(filename_list, directory)
-    
-#         matched = []
-    
-#         for sequence in sequences:
-    
-#             if sequence.file_name == sequence_string:
-#                 matched.append(sequence)
-    
-#         if len(matched) > 1:
-#             raise ValueError(
-#                 f"Multiple sequences match {sequence_string!r}: {matched!r}, should be only one"
-#             )
-    
-#         if len(matched) == 0:
-#             return None
-    
-#         logger.info("Found sequences matching %s", sequence_string)
-    
-#         return matched[0]
-
-#     @staticmethod
-#     def filesequence_from_sequence_string_in_directory(
-#         filename: str,
-#         directory: Path,
-#     ) -> Union[FileSequence, None]:
-#         """Matches a sequence string name against a directory and returns
-#         a detected sequence as a FileSequence object.
-    
-#         Sequence filenames take the form: prefix.####.suffix.extension where the
-#         number of # symbols determines the padding
-    
-#         Examples:
-    
-#         image.####.exr
-#         render_###_revision.jpg
-#         plate_v1-#####.png
-    
-#         Args:
-#             filename (str): Sequence file name
-#             filename_list (list): List of filenames
-#             directory (str): Directory that contains the files (optional)
-#             pattern (str): Regex pattern for parsing frame-based filenames (optional)
-    
-#         Returns:
-#             FileSequence: Sequence object
-    
-#         """
-    
-#         files = os.listdir(str(directory))
-    
-#         return SequenceParser.filesequence_from_sequence_string(filename, files, directory)
-        
 #     @staticmethod
 #     def filesequences_from_directory(directory: Path) -> List[FileSequence]:
 #         """Scans a directory and call Parser.detect_file_sequences to return a
@@ -1597,7 +1370,7 @@
 
 #         """
 
-#         return SequenceParser.filesequences_from_file_list(
+#         return Parser.filesequences_from_file_list(
 #             os.listdir(str(directory)), directory
 #         )
 
@@ -1623,12 +1396,11 @@
 
 #         """
 
-#         sequences = SequenceParser.filesequences_from_file_list(filename_list, directory)
+#         sequences = Parser.filesequences_from_file_list(filename_list, directory)
 
 #         matches = []
 
 #         for sequence in sequences:
-
 #             match = True
 
 #             if components.prefix is not None and components.prefix != sequence.prefix:
@@ -1661,6 +1433,216 @@
 #         logger.info("Found %d sequences matching %s", len(matches), str(components))
 
 #         return matches
+
+#     @staticmethod
+#     def filesequences_from_components_in_directory(
+#         components: Components, directory: Path
+#     ) -> List[FileSequence]:
+#         """Matches components against a directory and returns a list of detected
+#         sequences as FileSequence objects. If no components are specified, all
+#         sequences are returned. Otherwise only sequences that match the
+#         specified components are returned.
+
+#         Args:
+#             components (Components): Components to match
+#             directory (str): Directory that contains the files
+
+#         Returns:
+#             list[FileSequence]: List of Sequence objects
+
+#         """
+
+#         sequences = Parser.filesequences_from_directory(directory)
+
+#         matches = []
+
+#         for sequence in sequences:
+#             match = True
+
+#             if components.prefix is not None and components.prefix != sequence.prefix:
+#                 match = False
+
+#             if (
+#                 components.delimiter is not None
+#                 and components.delimiter != sequence.delimiter
+#             ):
+#                 match = False
+
+#             if (
+#                 components.padding is not None
+#                 and components.padding != sequence.padding
+#             ):
+#                 match = False
+
+#             if components.suffix is not None and components.suffix != sequence.suffix:
+#                 match = False
+
+#             if (
+#                 components.extension is not None
+#                 and components.extension != sequence.extension
+#             ):
+#                 match = False
+
+#             if match:
+#                 matches.append(sequence)
+
+#         logger.info("Found %d sequences matching %s", len(matches), str(components))
+
+#         return matches
+
+#     @staticmethod
+#     def filesequence_from_sequence_string(
+#         sequence_string: str,
+#         filename_list: List[str],
+#         directory: Optional[Path] = None,
+#     ) -> Union[FileSequence, None]:
+#         """
+#         Matches a sequence string against a list of filenames and returns
+#         a detected sequence as a FileSequence object.
+
+#         Sequence strings take the form: prefix.####.suffix.extension where the
+#         number of # symbols determines the padding
+
+#         Examples:
+
+#         image.####.exr
+#         render_###_revision.jpg
+#         plate_v1-#####.png
+
+#         Args:
+#             filename (str): Sequence file name
+#             filename_list (list): List of filenames
+#             directory (str): Directory that contains the files (optional)
+#             pattern (str): Regex pattern for parsing frame-based filenames (optional)
+
+#         Returns:
+#             FileSequence: Sequence object
+
+#         """
+
+#         sequence_string = Parser.convert_padding_to_hashes(sequence_string)
+
+#         sequences = Parser.filesequences_from_file_list(filename_list, directory)
+
+#         matched = []
+
+#         for sequence in sequences:
+#             if sequence.file_name == sequence_string:
+#                 matched.append(sequence)
+
+#         if len(matched) > 1:
+#             raise ValueError(
+#                 f"Multiple sequences match {sequence_string!r}: {matched!r}, should be only one"
+#             )
+
+#         if len(matched) == 0:
+#             return None
+
+#         logger.info("Found sequences matching %s", sequence_string)
+
+#         return matched[0]
+
+#     @staticmethod
+#     def filesequence_from_sequence_string_in_directory(
+#         filename: str,
+#         directory: Path,
+#     ) -> Union[FileSequence, None]:
+#         """Matches a sequence string name against a directory and returns
+#         a detected sequence as a FileSequence object.
+
+#         Sequence filenames take the form: prefix.####.suffix.extension where the
+#         number of # symbols determines the padding
+
+#         Examples:
+
+#         image.####.exr
+#         render_###_revision.jpg
+#         plate_v1-#####.png
+
+#         Args:
+#             filename (str): Sequence file name
+#             filename_list (list): List of filenames
+#             directory (str): Directory that contains the files (optional)
+#             pattern (str): Regex pattern for parsing frame-based filenames (optional)
+
+#         Returns:
+#             FileSequence: Sequence object
+
+#         """
+
+#         files = os.listdir(str(directory))
+
+#         return Parser.filesequence_from_sequence_string(filename, files, directory)
+
+#     @staticmethod
+#     def item_from_components(
+#         components: Components, frame: int, directory: Optional[Path] = None
+#     ) -> Item:
+#         """Converts a Components object into an Item object.
+
+#         Args:
+#             components (Components): Components object
+
+#         Returns:
+#             Item: Item object
+
+#         """
+
+#         # TODO write a test for this
+
+#         if isinstance(components, str):
+#             raise TypeError("components must be a Components object")
+
+#         if components.padding is None:
+#             components.padding = len(str(frame))
+
+#         frame_string = str(frame).zfill(components.padding)
+
+#         item = Item(
+#             prefix=components.prefix,
+#             frame_string=frame_string,
+#             extension=components.extension,
+#             delimiter=components.delimiter,
+#             suffix=components.suffix,
+#             directory=directory,
+#         )
+
+#         return item
+
+#     @staticmethod
+#     def convert_padding_to_hashes(sequence_str: str) -> str:
+#         """Converts printf-style frame number patterns (%04d) to hash notation (####).
+
+#         Args:
+#             sequence_str (str): String containing printf-style pattern
+
+#         Returns:
+#             str: String with hash notation
+
+#         Example:
+#             >>> convert_printf_pattern("render_%04d.exr")
+#             'render_####.exr'
+#             >>> convert_printf_pattern("shot_%d.jpg")  # No padding specified
+#             'shot_#.jpg'
+#         """
+
+#         # Match %[0][padding]d pattern
+#         # Groups:
+#         # 1 - Optional 0 flag
+#         # 2 - Optional padding number
+#         # Followed by mandatory 'd'
+#         printf_pattern = r"%(?:(0)?(\d+))?d"
+
+#         def replace_match(match):
+#             padding = match.group(2)
+#             if padding:
+#                 # If padding specified, use that many #'s
+#                 return "#" * int(padding)
+#             else:
+#                 # If no padding specified, use single #
+#                 return "#"
+
+#         return re.sub(printf_pattern, replace_match, sequence_str)
 
 
 # class Problems(Flag):

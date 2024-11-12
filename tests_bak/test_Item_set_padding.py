@@ -1,4 +1,4 @@
-from pysequitur.file_sequence import Item, Parser
+from pysequitur.file_sequence import Item, ItemParser
 
 
 
@@ -42,7 +42,7 @@ def test_item_set_padding(create_files_from_list):
 
     file = create_files_from_list(["image.0056.exr"])[0]
 
-    item = Parser.item_from_filename(file)
+    item = ItemParser.item_from_filename(file)
 
     assert item.padding == 4
     assert item.frame_string == "0056"
@@ -56,7 +56,7 @@ def test_item_set_padding(create_files_from_list):
 
     file = create_files_from_list(["render.123_final.exr"])[0]
 
-    item = Parser.item_from_filename(file)
+    item = ItemParser.item_from_filename(file)
 
     assert item.padding == 3
     assert item.frame_string == "123"
@@ -69,7 +69,7 @@ def test_item_set_padding(create_files_from_list):
 
     file = create_files_from_list(["botty_0000304104_final.exr"])[0]
 
-    item = Parser.item_from_filename(file)
+    item = ItemParser.item_from_filename(file)
 
     assert item.padding == 10
     assert item.frame_string == "0000304104"

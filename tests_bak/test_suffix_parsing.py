@@ -1,4 +1,4 @@
-from pysequitur.file_sequence import FileSequence, Parser
+from pysequitur.file_sequence import FileSequence, SequenceParser
 from pathlib import Path
 import pytest
 
@@ -17,6 +17,6 @@ def test_suffix_parsing():
         'frame.0005_b.png',
     ]
 
-    sequences = Parser.filesequences_from_file_list(files)
+    sequences = SequenceParser.filesequences_from_file_list(files)
 
     assert len(sequences) == 2

@@ -1,11 +1,11 @@
 from pathlib import Path
-from pysequitur.file_sequence import Item, Parser, Components
+from pysequitur.file_sequence import Item, ItemParser, Components
 import pytest
 import os
 
 def test_item_file_system(create_files_from_list):
 
-    item = Parser.item_from_filename('frame.0001.png')
+    item = ItemParser.item_from_filename('Itemframe.0001.png')
 
     with pytest.raises(FileNotFoundError):
         item.delete()
@@ -29,7 +29,7 @@ def test_item_file_system(create_files_from_list):
     # -------------- test ----------------- #
 
     path = paths[0]
-    item = Parser.item_from_filename(path)
+    item = ItemParser.item_from_filename(path)
 
     assert item.exists is True
     assert item.directory == path.parent
@@ -50,7 +50,7 @@ def test_item_file_system(create_files_from_list):
     # -------------- test ----------------- #
 
     path = paths[1]
-    item = Parser.item_from_filename(path)
+    item = ItemParser.item_from_filename(path)
 
     assert item.exists == True    
     assert item.directory == path.parent
@@ -68,7 +68,7 @@ def test_item_file_system(create_files_from_list):
     # -------------- test ----------------- #
 
     path = paths[2]
-    item = Parser.item_from_filename(path)
+    item = ItemParser.item_from_filename(path)
 
     assert item.exists == True    
     assert item.directory == path.parent
@@ -86,7 +86,7 @@ def test_item_file_system(create_files_from_list):
     # -------------- test ----------------- #
 
     path = paths[3]
-    item = Parser.item_from_filename(path)
+    item = ItemParser.item_from_filename(path)
 
     assert item.exists == True    
     assert item.directory == path.parent
@@ -116,7 +116,7 @@ def test_item_file_system(create_files_from_list):
     # empty renamer should have no effect
 
     path = paths[0]
-    item = Parser.item_from_filename(path)
+    item = ItemParser.item_from_filename(path)
 
     assert item.exists == True    
     assert item.directory == path.parent
@@ -135,7 +135,7 @@ def test_item_file_system(create_files_from_list):
 
     path = paths[0]
 
-    item = Parser.item_from_filename(path)
+    item = ItemParser.item_from_filename(path)
 
     renamer = Components(prefix="renamed")
     item.rename_to(renamer)
@@ -194,7 +194,7 @@ def test_item_file_system(create_files_from_list):
     item.delete()
 
     for path in paths[1:]:
-        item = Parser.item_from_filename(path)
+        item = ItemParser.item_from_filename(path)
         item.delete()
 
     # -------------- new data ----------------- #
@@ -281,7 +281,7 @@ def test_item_file_system(create_files_from_list):
     # -------------- test ----------------- #
     # test moving files
     for path in paths:
-        item = Parser.item_from_filename(path)
+        item = ItemParser.item_from_filename(path)
 
         item.move_to(new_directory)
 

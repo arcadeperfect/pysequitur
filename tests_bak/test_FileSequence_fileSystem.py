@@ -1,5 +1,5 @@
 from pathlib import Path
-from pysequitur.file_sequence import Item, Parser, Components
+from pysequitur.file_sequence import Item, SequenceParser, Components
 import os
 import cProfile
 import random
@@ -18,7 +18,7 @@ def test_file_sequence_operations(create_files_from_list):
     new_directory = directory / "moved_sequences"
     os.mkdir(new_directory)
     # Get the sequence
-    sequences = Parser.filesequences_from_file_list(files, directory)
+    sequences = SequenceParser.filesequences_from_file_list(files, directory)
     assert len(sequences) == 1
     seq = sequences[0]
 
@@ -84,7 +84,7 @@ def test_file_sequence_operations(create_files_from_list):
     ]
 
     paths = create_files_from_list(mixed_files)
-    sequences = Parser.filesequences_from_file_list(mixed_files, directory)
+    sequences = SequenceParser.filesequences_from_file_list(mixed_files, directory)
 
     # Should create two sequences due to different names
     assert len(sequences) >= 2
@@ -104,7 +104,7 @@ def test_file_sequence_operations(create_files_from_list):
     paths = create_files_from_list(complex_files)
     for path in paths:
         assert path.exists()
-    sequences = Parser.filesequences_from_file_list(paths)
+    sequences = SequenceParser.filesequences_from_file_list(paths)
     assert len(sequences) == 1
     seq2 = sequences[0]
     assert seq2.items[0].exists
@@ -149,7 +149,7 @@ def test_file_sequence_operations(create_files_from_list):
         for path in paths:
             assert path.exists()
 
-        sequences = Parser.filesequences_from_file_list(paths)
+        sequences = SequenceParser.filesequences_from_file_list(paths)
         seq1 = sequences[0]
         seq1.rename_to(Components(prefix="renamed"))
 
@@ -177,7 +177,7 @@ def test_file_sequence_operations(create_files_from_list):
     os.mkdir(copy_directory)
 
     # Get the sequence
-    sequences = Parser.filesequences_from_file_list(copy_files, directory)
+    sequences = SequenceParser.filesequences_from_file_list(copy_files, directory)
     assert len(sequences) == 1
     sequence = sequences[0]
 

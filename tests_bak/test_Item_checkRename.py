@@ -1,10 +1,10 @@
-from pysequitur.file_sequence import Item, Parser, Components
+from pysequitur.file_sequence import Item, ItemParser, Components
 from pathlib import Path
 import pytest
 def test_Item_checkRename(create_files_from_list):
     files = ['source.0001.jpg', 'source_2.0001.jpg']
     file = create_files_from_list(files)[0]
-    item = Parser.item_from_filename(file)
+    item = ItemParser.item_from_filename(file)
     assert item.exists is True
     
     item.rename_to(Components(prefix='source_3'))

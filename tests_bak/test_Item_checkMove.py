@@ -1,4 +1,4 @@
-from pysequitur.file_sequence import Item, Parser
+from pysequitur.file_sequence import Item, ItemParser
 from pathlib import Path
 import pytest
 def test_Item_checkMove(create_files_from_list):
@@ -12,7 +12,7 @@ def test_Item_checkMove(create_files_from_list):
     new_file.touch()
 
 
-    item = Parser.item_from_filename(file)
+    item = ItemParser.item_from_filename(file)
 
     assert item.check_move(new_dir)[2] is True
     
