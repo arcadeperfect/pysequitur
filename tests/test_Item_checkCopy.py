@@ -12,7 +12,7 @@ def test_Item_checkCpoy(create_files_from_list):
 
     assert item.check_copy()[2] is True
 
-    assert item.check_copy('source_copy')[2] is True
+    assert item.check_copy(Components(prefix = 'source_copy'))[2] is True
 
     with pytest.raises(FileExistsError):
         item.copy()

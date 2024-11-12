@@ -183,7 +183,7 @@ def test_file_sequence_operations(create_files_from_list):
 
     # Copy the sequence with a new name
     new_name = "copied_sequence"
-    copied_sequence = sequence.copy(new_name)
+    copied_sequence = sequence.copy(Components(prefix=new_name))
 
     # Verify the copied sequence
     assert len(copied_sequence.items) == len(sequence.items)
@@ -198,7 +198,7 @@ def test_file_sequence_operations(create_files_from_list):
     new_directory_name = "new_directory"
     new_directory = copy_directory / new_directory_name
     os.mkdir(new_directory)
-    copied_sequence_with_dir = sequence.copy(new_name, new_directory)
+    copied_sequence_with_dir = sequence.copy(Components(prefix = new_name), new_directory)
 
     # Verify the copied sequence with new directory
     assert len(copied_sequence_with_dir.items) == len(sequence.items)
