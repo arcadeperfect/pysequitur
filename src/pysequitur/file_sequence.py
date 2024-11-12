@@ -7,7 +7,7 @@ import os
 import shutil
 import logging
 from enum import Flag, auto
-from typing import Dict, Optional, Tuple, List, Any, TypedDict
+from typing import Dict, Optional, Tuple, List, Any, TypedDict, Union
 from pathlib import Path
 from dataclasses import dataclass
 from collections import Counter, defaultdict
@@ -77,7 +77,7 @@ class Item:
 
     @staticmethod
     def from_path(
-        path: Path | str,
+        path: Path,
         directory: Optional[Path] = None,
     ) -> "Item | None":
         """Creates an Item object from a Path object, or a string representing
@@ -87,7 +87,6 @@ class Item:
             path (Path | str): Path object or string representing the file name
             directory (str, optional): Directory to use if path is a string (optional)
             pattern (str, optional): Pattern to use for parsing if path is a string (optional)
-
         """
 
         return Parser.item_from_filename(path, directory)
@@ -616,7 +615,7 @@ class FileSequence:
         return Parser.filesequences_from_file_list(filename_list, directory)
 
     @staticmethod
-    def from_directory(directory: str | Path) -> List["FileSequence"]:
+    def from_directory(directory: Path) -> List["FileSequence"]:
         """
         Creates a list of detected FileSequence objects from files found in a given directory.
 
@@ -693,7 +692,7 @@ class FileSequence:
         return Parser.filesequences_from_components_in_directory(components, directory)
 
     @staticmethod
-    def from_sequence_filename(
+    def from_filename_list(
         filename: str, filename_list: List[str], directory: Optional[Path] = None
     ) -> "FileSequence":
         """
@@ -1100,10 +1099,10 @@ class Parser:
 
     @staticmethod
     def item_from_filename(
-        filename: str | Path,
+        filename: Union[str, Path],
         directory: Optional[Path] = None,
         pattern: Optional[str] = None,
-    ) -> Item | None:
+    ) -> Union[Item, None]:
         """Parse a single filename into components.
 
         Args:
@@ -1498,7 +1497,7 @@ class Parser:
         filename: str,
         filename_list: List[str],
         directory: Optional[Path] = None,
-    ) -> FileSequence | None:
+    ) -> Union[FileSequence, None]:
         """Matches a sequence file name against a list of filenames and returns
         a detected sequence as a FileSequence object.
 
@@ -1547,7 +1546,7 @@ class Parser:
     def filesequence_from_sequence_filename_in_directory(
         filename: str,
         directory: Path,
-    ) -> FileSequence | None:
+    ) -> Union[FileSequence, None]:
         """Matches a sequence file name against a directory and returns
         a detected sequence as a FileSequence object.
 

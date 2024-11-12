@@ -18,32 +18,32 @@ def test_match_filename():
 
 
     name = "not_a_sequence.txt"
-    sequence = FileSequence.from_sequence_filename(name, files)
+    sequence = FileSequence.from_filename_list(name, files)
     assert sequence is None
 
     name = "frame.####.png"
-    sequence = FileSequence.from_sequence_filename(name, files)
+    sequence = FileSequence.from_filename_list(name, files)
     assert sequence.prefix == "frame"
     assert sequence.delimiter == "."
     assert sequence.extension == "png"
     assert sequence.padding == 4
     
     name = "frame.####.jpg"
-    sequence = FileSequence.from_sequence_filename(name, files)
+    sequence = FileSequence.from_filename_list(name, files)
     assert sequence.prefix == "frame"
     assert sequence.delimiter == "."
     assert sequence.extension == "jpg"
     assert sequence.padding == 4
 
     name = "frame_####.jpg"
-    sequence = FileSequence.from_sequence_filename(name, files)
+    sequence = FileSequence.from_filename_list(name, files)
     assert sequence.prefix == "frame"
     assert sequence.delimiter == "_"
     assert sequence.extension == "jpg"
     assert sequence.padding == 4
         
     name = "render.###_post.png"
-    sequence = FileSequence.from_sequence_filename(name, files)
+    sequence = FileSequence.from_filename_list(name, files)
     assert sequence.prefix == "render"
     assert sequence.delimiter == "."
     assert sequence.suffix == "_post"
