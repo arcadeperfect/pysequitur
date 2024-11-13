@@ -1,6 +1,7 @@
 # Copyright (c) 2024 Alex Harding (alexharding.ooo)
 # This file is part of PySequitur which is released under MIT license.
 # See file LICENSE for full license details.
+from enum import Enum, auto
 
 import re
 import os
@@ -20,6 +21,11 @@ logging.basicConfig(
 
 logger = logging.getLogger("pysequitur")
 
+class SequenceExistence(Enum):
+
+    FALSE = auto()
+    PARTIAL = auto()
+    TRUE = auto()
 
 @dataclass
 class Components:
@@ -474,6 +480,180 @@ class FileSequence:
 
         return result
 
+    @staticmethod
+    def find_sequences_in_filename_list(
+        filename_list: List[str],
+        directory: Optional[Path] = None,
+    ) -> List["FileSequence"]:
+        """
+        Creates a list of detected FileSequence objects from a list of filenames.
+
+        If no directory is supplied, the pathlib.Path objects cannot be verified
+        and the sequence is considered virtual.
+
+        Args:
+            filename_list (List[str]): A list of filenames to be analyzed for sequences.
+            directory (str, optional): The directory in which filenames are located.
+
+
+        Returns:
+            List[FileSequence]: A list of FileSequence objects representing the detected file sequences.
+
+        """
+        if not isinstance(filename_list, list):
+            raise TypeError("filename_list must be a list")
+            
+        if directory is not None:
+            if not isinstance(directory, Path):
+                raise TypeError("directory must be a Path object")
+        
+        return SequenceParser.from_file_list(filename_list, directory)
+
+    @staticmethod
+    def find_sequences_in_path(directory: Path) -> List["FileSequence"]:
+        """
+        Creates a list of detected FileSequence objects from files found in a given directory.
+
+        Args:
+            directory (str | Path): The directory in which to search for sequences.
+
+        Returns:
+            FileSequence: A list of FileSequence objects representing the detected file sequences.
+        """
+        return SequenceParser.from_directory(directory)
+
+    @staticmethod
+    def match_components_in_filename_list(
+        components: Components,
+        filename_list: List[str],
+        directory: Optional[Path] = None,
+    ) -> List["FileSequence"]:
+        """
+        Matches components against a list of filenames and returns a list of detected
+        sequences as FileSequence objects. If no components are specified, all
+        possible sequences are returned. Otherwise only sequences that match the
+        specified components are returned.
+
+        If no directory is supplied, the pathlib.Path objects cannot be verified
+        and the sequence is considered virtual.
+
+        Examples:
+
+        >>> FileSequence.from_components_in_filename_list(Components(prefix = "image), filename_list)
+            Returns all sequences with prefix "image"
+
+        >>> FileSequence.from_components_in_filename_list(Components(prefix = "image", extension = "exr"), filename_list)
+            Returns all sequences with prefix "image" and extension "exr"
+
+        Args:
+            components (Components): Components to match
+            directory (str): Directory that contains the files
+
+        Returns:
+            list[FileSequence]: List of Sequence objects
+
+        """
+        return SequenceParser.filesequences_from_components_in_filename_list(
+            components, filename_list, directory
+        )
+
+    @staticmethod
+    def match_components_in_path(
+        components: Components, directory: Path
+    ) -> List["FileSequence"]:
+        """
+        Matches components against the contents of a directory and returns a list of detected
+        sequences as FileSequence objects. If no components are specified, all
+        possible sequences are returned. Otherwise only sequences that match the
+        specified components are returned.
+
+
+        Examples:
+
+        >>> FileSequence.from_components_in_filename_list(Components(prefix = "image), filename_list)
+            Returns all sequences with prefix "image"
+
+        >>> FileSequence.from_components_in_filename_list(Components(prefix = "image", extension = "exr"), filename_list)
+            Returns all sequences with prefix "image" and extension "exr"
+
+        Args:
+            components (Components): Components to match
+            directory (str): Directory that contains the files
+
+        Returns:
+            list[FileSequence]: List of Sequence objects
+
+        """
+        return SequenceParser.filesequences_from_components_in_directory(components, directory)
+
+    @staticmethod
+    def match_sequence_string_in_filename_list(
+        sequence_string: str, filename_list: List[str], directory: Optional[Path] = None
+    ) -> Union["FileSequence", None]:
+        """
+        Matches a sequence string against a list of filenames and returns
+        a detected sequence as a FileSequence object.
+
+        Sequence strings take the form: <prefix><delimiter><####><suffix>.<extension>
+        where the number of # symbols determines the padding.
+
+        Supported Examples:
+
+        image.####.exr
+        render_###_revision.jpg
+        plate_v1-#####.png
+
+        Digits in the suffix are not supported.
+
+        Args:
+            sequencestring (str): Sequence String Pattern ie "image.####.exr"
+            filename_list (list): List of filenames
+            directory (str): Directory that contains the files (optional)
+            pattern (str): Regex pattern for parsing frame-based filenames (optional)
+
+        Returns:
+            FileSequence: Sequence object
+
+        """
+        return SequenceParser.match_sequence_string_in_filename_list(
+            sequence_string, filename_list, directory
+        )
+
+    @staticmethod
+    def match_sequence_string_in_directory(
+        filename: str, directory: Path
+    ) -> Union["FileSequence", None]:
+        """
+        Matches a sequence string string against a list of files in a given directory
+        and returns a detected sequence as a FileSequence object.
+
+        Sequence strings take the form: <prefix><delimiter><####><suffix>.<extension>
+        where the number of # symbols determines the padding.
+
+        Supported Examples:
+
+        image.####.exr
+        render_###_revision.jpg
+        plate_v1-#####.png
+
+        Digits in the suffix are not supported.
+
+        Args:
+            filename (str): Sequence file name
+            filename_list (list): List of filenames
+            directory (str): Directory that contains the files (optional)
+            pattern (str): Regex pattern for parsing frame-based filenames (optional)
+
+        Returns:
+            FileSequence: Sequence object
+
+        """
+
+        return SequenceParser.match_sequence_string_in_directory(
+            filename, directory
+        )
+
+
     @property
     def actual_frame_count(self) -> int:
         """Returns the total number of frames in the sequence, taking missing
@@ -586,6 +766,19 @@ class FileSequence:
     def absolute_file_name(self) -> str:
         """Returns the absolute file name."""
         return os.path.join(self.directory, self.file_name)
+        
+    @property
+    def exists(self) -> SequenceExistence:
+        """Returns True if the sequence exists on disk."""
+        existing_count = sum(1 for item in self.items if item.exists)
+        
+        if existing_count == 0:
+            return SequenceExistence.FALSE
+        elif existing_count == len(self.items):
+            return SequenceExistence.TRUE
+        else:
+            return SequenceExistence.PARTIAL
+
 
     @property
     def problems(self) -> "Problems":
@@ -598,171 +791,8 @@ class FileSequence:
 
         return problems
 
-    @staticmethod
-    def from_file_list(
-        filename_list: List[str],
-        directory: Optional[Path] = None,
-    ) -> List["FileSequence"]:
-        """
-        Creates a list of detected FileSequence objects from a list of filenames.
-
-        If no directory is supplied, the pathlib.Path objects cannot be verified
-        and the sequence is considered virtual.
-
-        Args:
-            filename_list (List[str]): A list of filenames to be analyzed for sequences.
-            directory (str, optional): The directory in which filenames are located.
-
-
-        Returns:
-            List[FileSequence]: A list of FileSequence objects representing the detected file sequences.
-
-        """
-        return SequenceParser.filesequences_from_file_list(filename_list, directory)
 
     @staticmethod
-    def from_directory(directory: Path) -> List["FileSequence"]:
-        """
-        Creates a list of detected FileSequence objects from files found in a given directory.
-
-        Args:
-            directory (str | Path): The directory in which to search for sequences.
-
-        Returns:
-            FileSequence: A list of FileSequence objects representing the detected file sequences.
-        """
-        return SequenceParser.filesequences_from_directory(directory)
-
-    @staticmethod
-    def from_components_in_filename_list(
-        components: Components,
-        filename_list: List[str],
-        directory: Optional[Path] = None,
-    ) -> List["FileSequence"]:
-        """
-        Matches components against a list of filenames and returns a list of detected
-        sequences as FileSequence objects. If no components are specified, all
-        possible sequences are returned. Otherwise only sequences that match the
-        specified components are returned.
-
-        If no directory is supplied, the pathlib.Path objects cannot be verified
-        and the sequence is considered virtual.
-
-        Examples:
-
-        >>> FileSequence.from_components_in_filename_list(Components(prefix = "image), filename_list)
-            Returns all sequences with prefix "image"
-
-        >>> FileSequence.from_components_in_filename_list(Components(prefix = "image", extension = "exr"), filename_list)
-            Returns all sequences with prefix "image" and extension "exr"
-
-        Args:
-            components (Components): Components to match
-            directory (str): Directory that contains the files
-
-        Returns:
-            list[FileSequence]: List of Sequence objects
-
-        """
-        return SequenceParser.filesequences_from_components_in_filename_list(
-            components, filename_list, directory
-        )
-
-    @staticmethod
-    def from_components_in_directory(
-        components: Components, directory: Path
-    ) -> List["FileSequence"]:
-        """
-        Matches components against the contents of a directory and returns a list of detected
-        sequences as FileSequence objects. If no components are specified, all
-        possible sequences are returned. Otherwise only sequences that match the
-        specified components are returned.
-
-
-        Examples:
-
-        >>> FileSequence.from_components_in_filename_list(Components(prefix = "image), filename_list)
-            Returns all sequences with prefix "image"
-
-        >>> FileSequence.from_components_in_filename_list(Components(prefix = "image", extension = "exr"), filename_list)
-            Returns all sequences with prefix "image" and extension "exr"
-
-        Args:
-            components (Components): Components to match
-            directory (str): Directory that contains the files
-
-        Returns:
-            list[FileSequence]: List of Sequence objects
-
-        """
-        return SequenceParser.filesequences_from_components_in_directory(components, directory)
-
-    @staticmethod
-    def from_sequence_string_in_filename_list(
-        sequence_string: str, filename_list: List[str], directory: Optional[Path] = None
-    ) -> Union["FileSequence", None]:
-        """
-        Matches a sequence string against a list of filenames and returns
-        a detected sequence as a FileSequence object.
-
-        Sequence strings take the form: <prefix><delimiter><####><suffix>.<extension>
-        where the number of # symbols determines the padding.
-
-        Supported Examples:
-
-        image.####.exr
-        render_###_revision.jpg
-        plate_v1-#####.png
-
-        Digits in the suffix are not supported.
-
-        Args:
-            sequencestring (str): Sequence String Pattern ie "image.####.exr"
-            filename_list (list): List of filenames
-            directory (str): Directory that contains the files (optional)
-            pattern (str): Regex pattern for parsing frame-based filenames (optional)
-
-        Returns:
-            FileSequence: Sequence object
-
-        """
-        return SequenceParser.filesequence_from_sequence_string(
-            sequence_string, filename_list, directory
-        )
-
-    @staticmethod
-    def from_sequence_string_in_directory(
-        filename: str, directory: Path
-    ) -> Union["FileSequence", None]:
-        """
-        Matches a sequence string string against a list of files in a given directory
-        and returns a detected sequence as a FileSequence object.
-
-        Sequence strings take the form: <prefix><delimiter><####><suffix>.<extension>
-        where the number of # symbols determines the padding.
-
-        Supported Examples:
-
-        image.####.exr
-        render_###_revision.jpg
-        plate_v1-#####.png
-
-        Digits in the suffix are not supported.
-
-        Args:
-            filename (str): Sequence file name
-            filename_list (list): List of filenames
-            directory (str): Directory that contains the files (optional)
-            pattern (str): Regex pattern for parsing frame-based filenames (optional)
-
-        Returns:
-            FileSequence: Sequence object
-
-        """
-
-        return SequenceParser.filesequence_from_sequence_string_in_directory(
-            filename, directory
-        )
 
     def rename_to(self, new_name: Components) -> "FileSequence":
         """Renames all items in the sequence.
@@ -830,8 +860,8 @@ class FileSequence:
             )  # TODO test this
 
         for item in self.items:
-            print(f"item frame number: {item.frame_number}")
-            print(f"existing file in new dir: {len(os.listdir(new_directory))}")
+            # print(f"item frame number: {item.frame_number}")
+            # print(f"existing file in new dir: {len(os.listdir(new_directory))}")
             item.move_to(new_directory)
 
         return self
@@ -877,7 +907,7 @@ class FileSequence:
 
         """
 
-        self._validate()
+        self.validate()
 
         if isinstance(new_name, str):
             raise TypeError("new_name must be a Components object, not a string")
@@ -893,6 +923,10 @@ class FileSequence:
         new_sequence = FileSequence(new_items)
 
         return new_sequence
+
+    def check_copy():
+        # TODO implement this
+        raise NotImplementedError
 
     def offset_frames(
         self, offset: int, padding: Optional[int] = None
@@ -1035,7 +1069,7 @@ class FileSequence:
             raise AnomalousItemDataError(f"Inconsistent {prop_name} values")
         return first
 
-    def _validate(self) -> bool:
+    def validate(self) -> bool:
         """Checks that all items in the sequence have consistent values for the
         prefix, extension, delimiter, suffix, and directory properties.
 
@@ -1293,7 +1327,7 @@ class SequenceParser:
     
     
     @staticmethod
-    def filesequences_from_file_list(
+    def from_file_list(
         filename_list: List[str],
         directory: Optional[Path] = None,
     ) -> List[FileSequence]:
@@ -1310,6 +1344,7 @@ class SequenceParser:
         sequence_dict: Dict[Tuple[str, str, str, str], SequenceParser.SequenceDictItem] = {}
 
         for file in filename_list:
+            
             parsed_item = ItemParser.item_from_filename(file, directory)
             if not parsed_item:
                 continue
@@ -1352,6 +1387,8 @@ class SequenceParser:
                 continue
 
             padding_counts = Counter(item.padding for item in temp_sequence.items)
+                
+        
             nominal_padding = padding_counts.most_common(1)[0][0]
 
             main_sequence_items = []
@@ -1380,10 +1417,16 @@ class SequenceParser:
                 )
                 sequence_list.append(main_sequence)
 
-            for items in anomalous_items.items():
-                if len(items) >= 2:
+            # for items in anomalous_items.items():
+            #     if len(items) >= 2:
+            #         anomalous_sequence = FileSequence(
+            #             sorted(items, key=lambda i: i.frame_number)
+            #         )
+            #         sequence_list.append(anomalous_sequence)
+            for padding, items_list in anomalous_items.items():
+                if len(items_list) >= 2:
                     anomalous_sequence = FileSequence(
-                        sorted(items, key=lambda i: i.frame_number)
+                        sorted(items_list, key=lambda i: i.frame_number)
                     )
                     sequence_list.append(anomalous_sequence)
 
@@ -1409,7 +1452,7 @@ class SequenceParser:
     
         """
     
-        sequences = SequenceParser.filesequences_from_directory(directory)
+        sequences = SequenceParser.from_directory(directory)
     
         matches = []
     
@@ -1449,7 +1492,7 @@ class SequenceParser:
         return matches
 
     @staticmethod
-    def filesequence_from_sequence_string(
+    def match_sequence_string_in_filename_list(
         sequence_string: str,
         filename_list: List[str],
         directory: Optional[Path] = None,
@@ -1480,7 +1523,7 @@ class SequenceParser:
     
         sequence_string = ItemParser.convert_padding_to_hashes(sequence_string)
     
-        sequences = SequenceParser.filesequences_from_file_list(filename_list, directory)
+        sequences = SequenceParser.from_file_list(filename_list, directory)
     
         matched = []
     
@@ -1502,7 +1545,7 @@ class SequenceParser:
         return matched[0]
 
     @staticmethod
-    def filesequence_from_sequence_string_in_directory(
+    def match_sequence_string_in_directory(
         filename: str,
         directory: Path,
     ) -> Union[FileSequence, None]:
@@ -1531,10 +1574,10 @@ class SequenceParser:
     
         files = os.listdir(str(directory))
     
-        return SequenceParser.filesequence_from_sequence_string(filename, files, directory)
+        return SequenceParser.match_sequence_string_in_filename_list(filename, files, directory)
         
     @staticmethod
-    def filesequences_from_directory(directory: Path) -> List[FileSequence]:
+    def from_directory(directory: Path) -> List[FileSequence]:
         """Scans a directory and call Parser.detect_file_sequences to return a
         list of detected sequences as FileSequence objects.
 
@@ -1593,9 +1636,19 @@ class SequenceParser:
             list[FileSequence]: List of Sequence objects
 
         """
+        
+        files = os.listdir(str(directory))
+        
+        if not isinstance(files, list):
+            raise TypeError("files must be a list")
+            
+        if not isinstance(directory, Path):
+            raise TypeError("directory must be a Path object")
 
-        return SequenceParser.filesequences_from_file_list(
-            os.listdir(str(directory)), directory
+        # return None
+
+        return SequenceParser.from_file_list(
+            files, directory
         )
 
     @staticmethod
@@ -1620,7 +1673,7 @@ class SequenceParser:
 
         """
 
-        sequences = SequenceParser.filesequences_from_file_list(filename_list, directory)
+        sequences = SequenceParser.from_file_list(filename_list, directory)
 
         matches = []
 
@@ -1730,3 +1783,5 @@ class Problems(Flag):
 
 class AnomalousItemDataError(Exception):
     """Raised when unacceptable inconsistent data is found in a FileSequence."""
+
+
