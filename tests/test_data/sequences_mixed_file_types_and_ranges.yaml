@@ -1,0 +1,67 @@
+- path: "/footage/cam_a/"
+  files:
+    - "camera_0100.ari"
+    - "camera_0101.ari"
+    - "camera_0102.ari"
+    - "camera_0103.ari"
+  prefix: "camera"
+  first_frame: 100
+  last_frame: 103
+  extension: "ari"
+  delimiter: "_"
+  suffix: ""
+  existing_frames: [100, 101, 102, 103]
+  missing_frames: []
+  frames_count: 4
+  padding: 4
+
+- path: "/footage/proxies/"
+  files:
+    - "proxy_0100.mov"
+    - "proxy_0101.mov"
+    - "proxy_0102.mov"
+    - "proxy_0103.mov"
+  prefix: "proxy"  
+  first_frame: 100
+  last_frame: 103
+  extension: "mov"
+  delimiter: "_"
+  suffix: ""
+  existing_frames: [100, 101, 102, 103]
+  missing_frames: []
+  frames_count: 4
+  padding: 4
+
+- path: "/footage/transcodes/"
+  files:
+    - "transcode_0100.mp4"
+    - "transcode_0101.mp4"
+    - "transcode_0102.mp4"
+    - "transcode_0103.mp4"
+  prefix: "transcode"
+  first_frame: 100
+  last_frame: 103
+  extension: "mp4"
+  delimiter: "_"
+  suffix: ""
+  existing_frames: [100, 101, 102, 103]
+  missing_frames: []
+  frames_count: 4
+  padding: 4
+
+- path: "/footage/thumbs/"
+  files:
+    - "thumb_0100.jpg"
+    - "thumb_0101.jpg"
+    - "thumb_0102.jpg"
+    - "thumb_0103.jpg"
+  prefix: "thumb"
+  first_frame: 100
+  last_frame: 103
+  extension: "jpg"
+  delimiter: "_"
+  suffix: ""
+  existing_frames: [100, 101, 102, 103]
+  missing_frames: []
+  frames_count: 4
+  padding: 4

@@ -1,0 +1,63 @@
+- path: "/comp/v001/"
+  files:
+    - "comp.v001.0010.exr"
+    - "comp.v001.0011.exr"
+    - "comp.v001.0012.exr"
+  prefix: "comp.v001"
+  first_frame: 10
+  last_frame: 12
+  extension: "exr"
+  delimiter: "."
+  suffix: ""
+  existing_frames: [10, 11, 12]
+  missing_frames: []
+  frames_count: 3
+  padding: 4
+
+- path: "/comp/mattes/"
+  files:
+    - "matte-001_suffix.exr"
+    - "matte-002_suffix.exr"
+    - "matte-003_suffix.exr"
+  prefix: "matte"
+  first_frame: 1
+  last_frame: 3
+  extension: "exr"
+  delimiter: "-"
+  suffix: "_suffix"
+  existing_frames: [1, 2, 3]
+  missing_frames: []
+  frames_count: 3
+  padding: 3
+
+- path: "/comp/roto/"
+  files:
+    - "roto_0001_suffix.exr"
+    - "roto_0002_suffix.exr"
+    - "roto_0003_suffix.exr"
+  prefix: "roto"
+  first_frame: 1
+  last_frame: 3
+  extension: "exr"
+  delimiter: "_"
+  suffix: "_suffix"
+  existing_frames: [1, 2, 3]
+  missing_frames: []
+  frames_count: 3
+  padding: 4
+
+- path: "/comp/grain/"
+  files:
+    - "grain.001.mov"
+    - "grain.002.mov"
+    - "grain.003.mov"
+  prefix: "grain"
+  first_frame: 1
+  last_frame: 3
+  extension: "mov"
+  delimiter: "."
+  suffix: ""
+  existing_frames: [1, 2, 3]
+  missing_frames: []
+  frames_count: 3
+  padding: 3

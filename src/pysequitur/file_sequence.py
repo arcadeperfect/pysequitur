@@ -1125,6 +1125,106 @@ class ItemParser:
 
     """
 
+    # pattern = (
+    #     r"^"
+    #     # Name up to last frame number
+    #     r"(?P<name>.*?(?=[^a-zA-Z\d]*\d+(?!.*\d+)))"
+    #     # Separator before frame (optional)
+    #     r"(?P<delimiter>[^a-zA-Z\d]*)"
+    #     # Frame number (1 or more digits)
+    #     r"(?P<frame>\d+)"
+    #     # Negative lookahead for more digits
+    #     r"(?!.*\d+)"
+    #     # Non-greedy match up to extension
+    #     r"(?P<suffix>.*?)"
+    #     # Dot and extension (everything after last dot)
+    #     r"(?:\.(?P<ext>.*))?$"
+    # )
+
+
+
+    # known_extensions = {"tar.gz", "tar.bz2", "log.gz"}
+
+    # @staticmethod
+    # def item_from_filename(
+    #     filename: str,
+    #     directory: Optional[Path] = None,
+    #     pattern: Optional[str] = None,
+    # ) -> Union[Item, None]:
+     
+    #     # if isinstance(filename, Path):
+    #     #     directory = Path(str(filename.parent))
+    #     #     filename = str(filename.name)
+
+    #     if len(Path(filename).parts) > 1:
+    #         raise ValueError("first argument must be a name, not a path")
+
+    #     if not pattern:
+    #         pattern = ItemParser.pattern
+
+    #     match = re.match(pattern, filename)
+    #     if not match:
+    #         return None
+
+    #     parsed_dict = match.groupdict()
+
+    #     # Set default values if keys are missing
+    #     parsed_dict.setdefault("frame", "")
+    #     parsed_dict.setdefault("name", "")
+    #     parsed_dict.setdefault("ext", "")
+    #     parsed_dict.setdefault("delimiter", "")
+    #     parsed_dict.setdefault("suffix", "")
+
+    #     name = parsed_dict["name"]
+    #     delimiter = parsed_dict["delimiter"]
+
+    #     if len(delimiter) > 1:
+    #         name += delimiter[0:-1]
+    #         delimiter = delimiter[-1]
+
+    #     if directory is None:
+    #         directory = Path("")
+
+    #     path = Path(directory) / filename
+
+    #     if not path:
+    #         raise ValueError("invalid filepath")
+
+    #     ext = parsed_dict.get("ext", "")
+
+    #     if parsed_dict["ext"]:
+    #         # Split the extension by dots
+    #         ext_parts = parsed_dict["ext"].split(".")
+    #         # Check for known multi-part extensions
+    #         for i in range(len(ext_parts)):
+    #             possible_ext = ".".join(ext_parts[i:])
+    #             if possible_ext in ItemParser.known_extensions:
+    #                 # Adjust suffix
+    #                 if ext_parts[:i]:
+    #                     parsed_dict["suffix"] += "." + ".".join(ext_parts[:i])
+    #                 ext = possible_ext
+    #                 break
+    #         else:
+    #             # If no known multi-part extension is found, use the last part as the extension
+    #             if len(ext_parts) > 1:
+    #                 parsed_dict["suffix"] += "." + ".".join(ext_parts[:-1])
+    #             ext = ext_parts[-1]
+    #     else:
+    #         ext = ""
+
+    #     # Remove trailing dot from suffix if present
+    #     if parsed_dict["suffix"].endswith("."):
+    #         parsed_dict["suffix"] = parsed_dict["suffix"][:-1]
+
+    #     return Item(
+    #         prefix=name,
+    #         frame_string=parsed_dict["frame"],
+    #         extension=ext,
+    #         delimiter=delimiter,
+    #         suffix=parsed_dict["suffix"],
+    #         directory=Path(directory),
+    #     )
+
     pattern = (
         r"^"
         # Name up to last frame number
@@ -1135,10 +1235,8 @@ class ItemParser:
         r"(?P<frame>\d+)"
         # Negative lookahead for more digits
         r"(?!.*\d+)"
-        # Non-greedy match up to extension
-        r"(?P<suffix>.*?)"
-        # Dot and extension (everything after last dot)
-        r"(?:\.(?P<ext>.*))?$"
+        # Non-greedy match up to end
+        r"(?P<suffix>.*?)$"
     )
 
     known_extensions = {"tar.gz", "tar.bz2", "log.gz"}
@@ -1149,18 +1247,46 @@ class ItemParser:
         directory: Optional[Path] = None,
         pattern: Optional[str] = None,
     ) -> Union[Item, None]:
-     
-        # if isinstance(filename, Path):
-        #     directory = Path(str(filename.parent))
-        #     filename = str(filename.name)
+        """Parse a filename into an Item object.
+        
+        First identifies the extension using known compound extensions or the last dot,
+        then parses the remainder for sequence components.
 
+        Args:
+            filename: The filename to parse
+            directory: Optional directory Path
+            pattern: Optional custom regex pattern
+
+        Returns:
+            Item object if parsing succeeds, None if the filename doesn't match the pattern
+        """
+     
         if len(Path(filename).parts) > 1:
             raise ValueError("first argument must be a name, not a path")
 
+        # First split on dots and determine the extension
+        parts = filename.split('.')
+        if len(parts) <= 1:  # No extension
+            name_part = filename
+            extension = ""
+        else:
+            # Check for known compound extensions
+            for i in range(len(parts)-1):
+                possible_ext = '.'.join(parts[-(i+1):])
+                if possible_ext in ItemParser.known_extensions:
+                    name_part = '.'.join(parts[:-(i+1)])
+                    extension = possible_ext
+                    break
+            else:
+                # If no compound extension found, use the last part
+                name_part = '.'.join(parts[:-1])
+                extension = parts[-1]
+
+        # Now parse the name part with the regex
         if not pattern:
             pattern = ItemParser.pattern
 
-        match = re.match(pattern, filename)
+        match = re.match(pattern, name_part)
         if not match:
             return None
 
@@ -1169,7 +1295,6 @@ class ItemParser:
         # Set default values if keys are missing
         parsed_dict.setdefault("frame", "")
         parsed_dict.setdefault("name", "")
-        parsed_dict.setdefault("ext", "")
         parsed_dict.setdefault("delimiter", "")
         parsed_dict.setdefault("suffix", "")
 
@@ -1188,40 +1313,16 @@ class ItemParser:
         if not path:
             raise ValueError("invalid filepath")
 
-        ext = parsed_dict.get("ext", "")
-
-        if parsed_dict["ext"]:
-            # Split the extension by dots
-            ext_parts = parsed_dict["ext"].split(".")
-            # Check for known multi-part extensions
-            for i in range(len(ext_parts)):
-                possible_ext = ".".join(ext_parts[i:])
-                if possible_ext in ItemParser.known_extensions:
-                    # Adjust suffix
-                    if ext_parts[:i]:
-                        parsed_dict["suffix"] += "." + ".".join(ext_parts[:i])
-                    ext = possible_ext
-                    break
-            else:
-                # If no known multi-part extension is found, use the last part as the extension
-                if len(ext_parts) > 1:
-                    parsed_dict["suffix"] += "." + ".".join(ext_parts[:-1])
-                ext = ext_parts[-1]
-        else:
-            ext = ""
-
-        # Remove trailing dot from suffix if present
-        if parsed_dict["suffix"].endswith("."):
-            parsed_dict["suffix"] = parsed_dict["suffix"][:-1]
-
         return Item(
             prefix=name,
             frame_string=parsed_dict["frame"],
-            extension=ext,
+            extension=extension,
             delimiter=delimiter,
             suffix=parsed_dict["suffix"],
             directory=Path(directory),
         )
+
+
 
     @staticmethod
     def item_from_path(path: Path) -> Union[Item, None]:

@@ -38,6 +38,7 @@
 #     suffix: ""
 #     file_name: image0050.jpg
 
+
 # - description: "File sequence with dot separator and post-numeral"
 #   data:
 #     path: "/another/path/image.0050_warm.jpg"

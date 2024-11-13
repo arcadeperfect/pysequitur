@@ -1,23 +1,21 @@
+import pytest
 from pysequitur.file_sequence import FileSequence, SequenceExistence
 from pathlib import Path
+import os
 
-def test_filesequence_from_file_list(parse_sequence_yaml):
-
-    print("test_filesequence")
-    filename = "1.yaml"
-    cases = parse_sequence_yaml(Path(__file__).parent / 'test_data' / filename)
+def test_find_sequences_in_filename_list(parse_sequence_yaml):
+    print("\nD:")
+    """Test sequence parsing for both unlinked and linked sequences"""
+    test_env_list = parse_sequence_yaml()
     
-    for case in cases:
-        for file in case['real_files']:
-            assert file.exists()
-    
-    # unlinked
-    
-    for case in cases:
-        
+    # Test unlinked sequences (without path)
+    for case in test_env_list:
         sequences = FileSequence.find_sequences_in_filename_list(case['files'])
-        assert len(sequences) == 1
+        error_context = f"Failed in case with prefix {case['prefix']}"
+        
+        assert len(sequences) == 1, f"Expected 1 sequence but found {len(sequences)}. {error_context}"
         sequence = sequences[0]
+        
         assert sequence.exists == SequenceExistence.FALSE
         assert sequence.prefix == case['prefix']
         assert sequence.first_frame == case['first_frame']
@@ -29,17 +27,19 @@ def test_filesequence_from_file_list(parse_sequence_yaml):
         assert sequence.missing_frames == case['missing_frames']
         assert sequence.frame_count == case['frames_count']
         assert sequence.padding == case['padding']
-
-    # linked
     
-    for case in cases:
+    # Test linked sequences (with path)
+    for case in test_env_list:
         
         path = Path(case['tmp_dir']).joinpath(*Path(case['path']).parts[1:])
         
+        # print(os.listdir(path))
         sequences = FileSequence.find_sequences_in_filename_list(case['files'], path)
-        assert len(sequences) == 1
+        error_context = f"Failed in case with prefix {case['prefix']}"
+        
+        assert len(sequences) == 1, f"Expected 1 sequence but found {len(sequences)}. {error_context}"
         sequence = sequences[0]
-    
+        
         assert sequence.exists == SequenceExistence.TRUE
         assert sequence.prefix == case['prefix']
         assert sequence.first_frame == case['first_frame']
