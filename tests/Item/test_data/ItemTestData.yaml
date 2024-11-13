@@ -1,0 +1,514 @@
+# - description: "Basic file sequence with underscore separator"
+#   data:
+#     path: "/path/to/file_001.exr"
+#     prefix: "file"
+#     frame_string: "001"
+#     extension: "exr"
+#     delimiter:  "_"
+#     padding: 3
+#     directory: "/path/to"
+#     file_stem: "file_001"
+#     suffix: ""
+#     file_name: file_001.exr
+#     frame_number: 1
+
+# - description: "File sequence with dot separator and 4-digit padding"
+#   data:
+#     path: "/another/path/image.0050.jpg"
+#     prefix: "image"
+#     frame_string: "0050"
+#     extension: "jpg"
+#     delimiter:  "."
+#     padding: 4
+#     directory: "/another/path"
+#     file_stem: "image.0050"
+#     suffix: ""
+#     file_name: image.0050.jpg
+
+# - description: "File sequence without separator"
+#   data:
+#     path: "/another/path/image0050.jpg"
+#     prefix: "image"
+#     frame_string: "0050"
+#     extension: "jpg"
+#     delimiter:  ""
+#     padding: 4
+#     directory: "/another/path"
+#     file_stem: "image0050"
+#     suffix: ""
+#     file_name: image0050.jpg
+
+# - description: "File sequence with dot separator and post-numeral"
+#   data:
+#     path: "/another/path/image.0050_warm.jpg"
+#     prefix: "image"
+#     frame_string: "0050"
+#     extension: "jpg"
+#     delimiter:  "."
+#     padding: 4
+#     directory: "/another/path"
+#     file_stem: "image.0050_warm"
+#     suffix: "_warm"
+#     file_name: image.0050_warm.jpg
+
+# - description: "File sequence with version number in name"
+#   data:
+#     path: "/another/path/image_v001.12345.jpg"
+#     prefix: "image_v001"
+#     frame_string: "12345"
+#     extension: "jpg"
+#     delimiter:  "."
+#     padding: 5
+#     directory: "/another/path"
+#     file_stem: "image_v001.12345"
+#     suffix: ""
+#     file_name: image_v001.12345.jpg
+
+# - description: "Complex file sequence with version, frame number, and post-numeral"
+#   data:
+#     path: "/another/path/image_023_v001.12345.moist.jpg"
+#     prefix: "image_023_v001"
+#     frame_string: "12345"
+#     extension: "jpg"
+#     delimiter:  "."
+#     padding: 5
+#     directory: "/another/path"
+#     file_stem: "image_023_v001.12345.moist"
+#     suffix: ".moist"
+#     file_name: image_023_v001.12345.moist.jpg
+
+# - description: "File sequence with multiple extensions"
+#   data:
+#     path: "/path/to/render.1001.tar.gz"
+#     prefix: "render"
+#     frame_string: "1001"
+#     extension: "tar.gz"
+#     delimiter:  "."
+#     padding: 4
+#     directory: "/path/to"
+#     file_stem: "render.1001.tar"
+#     suffix: ""
+#     file_name: render.1001.tar.gz
+
+# - description: "File sequence with large frame number"
+#   data:
+#     path: "/path/to/longrender_9999999.png"
+#     prefix: "longrender"
+#     frame_string: "9999999"
+#     extension: "png"
+#     delimiter:  "_"
+#     padding: 7
+#     directory: "/path/to"
+#     file_stem: "longrender_9999999"
+#     suffix: ""
+#     file_name: longrender_9999999.png
+
+# - description: "File sequence with special characters in name"
+#   data:
+#     path: "/path/to/spécial@char_001.jpg"
+#     prefix: "spécial@char"
+#     frame_string: "001"
+#     extension: "jpg"
+#     delimiter:  "_"
+#     padding: 3
+#     directory: "/path/to"
+#     file_stem: "spécial@char_001"
+#     suffix: ""
+#     file_name: spécial@char_001.jpg
+
+# - description: "File sequence without extension"
+#   data:
+#     path: "/path/to/noext_0010"
+#     prefix: "noext"
+#     frame_string: "0010"
+#     extension: ""
+#     delimiter:  "_"
+#     padding: 4
+#     directory: "/path/to"
+#     file_stem: "noext_0010"
+#     suffix: ""
+#     file_name: noext_0010
+
+# - description: "File sequence with multiple frame numbers"
+#   data:
+#     path: "/path/to/shot_001_v002_0030.exr"
+#     prefix: "shot_001_v002"
+#     frame_string: "0030"
+#     extension: "exr"
+#     delimiter:  "_"
+#     padding: 4
+#     directory: "/path/to"
+#     file_stem: "shot_001_v002_0030"
+#     suffix: ""
+#     file_name: shot_001_v002_0030.exr
+
+# - description: "File sequence with frame number in the middle"
+#   data:
+#     path: "/path/to/prefix.1001.postfix.png"
+#     prefix: "prefix"
+#     frame_string: "1001"
+#     extension: "png"
+#     delimiter:  "."
+#     padding: 4
+#     directory: "/path/to"
+#     file_stem: "prefix.1001.postfix"
+#     suffix: ".postfix"
+#     file_name: prefix.1001.postfix.png
+
+# - description: "Single frame padding"
+#   data:
+#     path: "/path/to/prefix.6.png"
+#     prefix: "prefix"
+#     frame_string: "6"
+#     extension: "png"
+#     delimiter:  "."
+#     padding: 1
+#     directory: "/path/to"
+#     file_stem: "prefix.6"
+#     suffix: ""
+#     file_name: prefix.6.png
+
+# - description: "Double frame padding"
+#   data:
+#     path: "/path/to/prefix.06.png"
+#     prefix: "prefix"
+#     frame_string: "06"
+#     extension: "png"
+#     delimiter:  "."
+#     padding: 2
+#     directory: "/path/to"
+#     file_stem: "prefix.06"
+#     suffix: ""
+#     file_name: prefix.06.png
+
+# - description: "15 frame padding"
+#   data:
+#     path: "/path/to/prefix.123456789012345.png"
+#     prefix: "prefix"
+#     frame_string: "123456789012345"
+#     extension: "png"
+#     delimiter:  "."
+#     padding: 15
+#     directory: "/path/to"
+#     file_stem: "prefix.123456789012345"
+#     suffix: ""
+#     file_name: prefix.123456789012345.png
+
+# - description: "?"
+#   data:
+#     path: "/comp/v001/comp.v001.0010.exr"
+#     prefix: "comp.v001"
+#     frame_string: "0010"
+#     extension: "exr"
+#     delimiter:  "."
+#     padding: 4
+#     directory: "/comp/v001"
+#     file_stem: "comp.v001.0010"
+#     suffix: ""
+#     file_name: comp.v001.0010.exr
+
+# - description: "0 as frame number"
+#   data:
+#     path: "/comp/v001/comp.v001.0000.exr"
+#     prefix: "comp.v001"
+#     frame_string: "0000"
+#     extension: "exr"
+#     delimiter:  "."
+#     padding: 4
+#     directory: "/comp/v001"
+#     file_stem: "comp.v001.0000"
+#     suffix: ""
+#     file_name: comp.v001.0000.exr
+
+
+# - description: "special characters before separator"
+#   data:
+#     path: "/comp/v001/comp@#$%_0010.exr"
+#     prefix: "comp@#$%"
+#     frame_string: "0010"
+#     extension: "exr"
+#     delimiter:  "_"
+#     padding: 4
+#     directory: "/comp/v001"
+#     file_stem: "comp@#$%_0010"
+#     suffix: ""
+#     file_name: comp@#$%_0010.exr
+
+# - description: "fails"
+#   data:
+#     path: "/comp/v001/comp@#$_0010.exr"
+#     prefix: "comp@#$"
+#     frame_string: "0010"
+#     extension: "exr"
+#     delimiter:  "_"
+#     padding: 4
+#     directory: "/comp/v001"
+#     file_stem: "comp@#$_0010"
+#     suffix: ""
+#     file_name: comp@#$_0010.exr
+
+- description: "Basic file sequence with underscore separator"
+  data:
+    path: "/path/to/file_001.exr"
+    prefix: "file"
+    frame_string: "001"
+    extension: "exr"
+    delimiter: "_"
+    padding: 3
+    directory: "/path/to"
+    file_stem: "file_001"
+    suffix: ""
+    file_name: file_001.exr
+    frame_number: 1
+
+- description: "File sequence with dot separator and 4-digit padding"
+  data:
+    path: "/another/path/image.0050.jpg"
+    prefix: "image"
+    frame_string: "0050"
+    extension: "jpg"
+    delimiter: "."
+    padding: 4
+    directory: "/another/path"
+    file_stem: "image.0050"
+    suffix: ""
+    file_name: image.0050.jpg
+    frame_number: 50
+
+- description: "File sequence without separator"
+  data:
+    path: "/another/path/image0050.jpg"
+    prefix: "image"
+    frame_string: "0050"
+    extension: "jpg"
+    delimiter: ""
+    padding: 4
+    directory: "/another/path"
+    file_stem: "image0050"
+    suffix: ""
+    file_name: image0050.jpg
+    frame_number: 50
+
+- description: "File sequence with dot separator and post-numeral"
+  data:
+    path: "/another/path/image.0050_warm.jpg"
+    prefix: "image"
+    frame_string: "0050"
+    extension: "jpg"
+    delimiter: "."
+    padding: 4
+    directory: "/another/path"
+    file_stem: "image.0050_warm"
+    suffix: "_warm"
+    file_name: image.0050_warm.jpg
+    frame_number: 50
+
+- description: "File sequence with version number in name"
+  data:
+    path: "/another/path/image_v001.12345.jpg"
+    prefix: "image_v001"
+    frame_string: "12345"
+    extension: "jpg"
+    delimiter: "."
+    padding: 5
+    directory: "/another/path"
+    file_stem: "image_v001.12345"
+    suffix: ""
+    file_name: image_v001.12345.jpg
+    frame_number: 12345
+
+- description: "Complex file sequence with version, frame number, and post-numeral"
+  data:
+    path: "/another/path/image_023_v001.12345.moist.jpg"
+    prefix: "image_023_v001"
+    frame_string: "12345"
+    extension: "jpg"
+    delimiter: "."
+    padding: 5
+    directory: "/another/path"
+    file_stem: "image_023_v001.12345.moist"
+    suffix: ".moist"
+    file_name: image_023_v001.12345.moist.jpg
+    frame_number: 12345
+
+- description: "File sequence with multiple extensions"
+  data:
+    path: "/path/to/render.1001.tar.gz"
+    prefix: "render"
+    frame_string: "1001"
+    extension: "tar.gz"
+    delimiter: "."
+    padding: 4
+    directory: "/path/to"
+    file_stem: "render.1001.tar"
+    suffix: ""
+    file_name: render.1001.tar.gz
+    frame_number: 1001
+
+- description: "File sequence with large frame number"
+  data:
+    path: "/path/to/longrender_9999999.png"
+    prefix: "longrender"
+    frame_string: "9999999"
+    extension: "png"
+    delimiter: "_"
+    padding: 7
+    directory: "/path/to"
+    file_stem: "longrender_9999999"
+    suffix: ""
+    file_name: longrender_9999999.png
+    frame_number: 9999999
+
+- description: "File sequence with special characters in name"
+  data:
+    path: "/path/to/spécial@char_001.jpg"
+    prefix: "spécial@char"
+    frame_string: "001"
+    extension: "jpg"
+    delimiter: "_"
+    padding: 3
+    directory: "/path/to"
+    file_stem: "spécial@char_001"
+    suffix: ""
+    file_name: spécial@char_001.jpg
+    frame_number: 1
+
+- description: "File sequence without extension"
+  data:
+    path: "/path/to/noext_0010"
+    prefix: "noext"
+    frame_string: "0010"
+    extension: ""
+    delimiter: "_"
+    padding: 4
+    directory: "/path/to"
+    file_stem: "noext_0010"
+    suffix: ""
+    file_name: noext_0010
+    frame_number: 10
+
+- description: "File sequence with multiple frame numbers"
+  data:
+    path: "/path/to/shot_001_v002_0030.exr"
+    prefix: "shot_001_v002"
+    frame_string: "0030"
+    extension: "exr"
+    delimiter: "_"
+    padding: 4
+    directory: "/path/to"
+    file_stem: "shot_001_v002_0030"
+    suffix: ""
+    file_name: shot_001_v002_0030.exr
+    frame_number: 30
+
+- description: "File sequence with frame number in the middle"
+  data:
+    path: "/path/to/prefix.1001.postfix.png"
+    prefix: "prefix"
+    frame_string: "1001"
+    extension: "png"
+    delimiter: "."
+    padding: 4
+    directory: "/path/to"
+    file_stem: "prefix.1001.postfix"
+    suffix: ".postfix"
+    file_name: prefix.1001.postfix.png
+    frame_number: 1001
+
+- description: "Single frame padding"
+  data:
+    path: "/path/to/prefix.6.png"
+    prefix: "prefix"
+    frame_string: "6"
+    extension: "png"
+    delimiter: "."
+    padding: 1
+    directory: "/path/to"
+    file_stem: "prefix.6"
+    suffix: ""
+    file_name: prefix.6.png
+    frame_number: 6
+
+- description: "Double frame padding"
+  data:
+    path: "/path/to/prefix.06.png"
+    prefix: "prefix"
+    frame_string: "06"
+    extension: "png"
+    delimiter: "."
+    padding: 2
+    directory: "/path/to"
+    file_stem: "prefix.06"
+    suffix: ""
+    file_name: prefix.06.png
+    frame_number: 6
+
+- description: "15 frame padding"
+  data:
+    path: "/path/to/prefix.123456789012345.png"
+    prefix: "prefix"
+    frame_string: "123456789012345"
+    extension: "png"
+    delimiter: "."
+    padding: 15
+    directory: "/path/to"
+    file_stem: "prefix.123456789012345"
+    suffix: ""
+    file_name: prefix.123456789012345.png
+    frame_number: 123456789012345
+
+- description: "?"
+  data:
+    path: "/comp/v001/comp.v001.0010.exr"
+    prefix: "comp.v001"
+    frame_string: "0010"
+    extension: "exr"
+    delimiter: "."
+    padding: 4
+    directory: "/comp/v001"
+    file_stem: "comp.v001.0010"
+    suffix: ""
+    file_name: comp.v001.0010.exr
+    frame_number: 10
+
+- description: "0 as frame number"
+  data:
+    path: "/comp/v001/comp.v001.0000.exr"
+    prefix: "comp.v001"
+    frame_string: "0000"
+    extension: "exr"
+    delimiter: "."
+    padding: 4
+    directory: "/comp/v001"
+    file_stem: "comp.v001.0000"
+    suffix: ""
+    file_name: comp.v001.0000.exr
+    frame_number: 0
+
+- description: "special characters before separator"
+  data:
+    path: "/comp/v001/comp@#$%_0010.exr"
+    prefix: "comp@#$%"
+    frame_string: "0010"
+    extension: "exr"
+    delimiter: "_"
+    padding: 4
+    directory: "/comp/v001"
+    file_stem: "comp@#$%_0010"
+    suffix: ""
+    file_name: comp@#$%_0010.exr
+    frame_number: 10
+
+- description: "fails"
+  data:
+    path: "/comp/v001/comp@#$_0010.exr"
+    prefix: "comp@#$"
+    frame_string: "0010"
+    extension: "exr"
+    delimiter: "_"
+    padding: 4
+    directory: "/comp/v001"
+    file_stem: "comp@#$_0010"
+    suffix: ""
+    file_name: comp@#$_0010.exr
+    frame_number: 10

@@ -78,21 +78,30 @@ class Item:
     @staticmethod
     def from_path(
         path: Path,
-        directory: Optional[Path] = None,
-    ) -> "Item | None":
-        """Creates an Item object from a Path object, or a string representing
-        the file name, with an optional string representing the directory.
+    ) -> Union["Item", None]:
+        """
+        Creates an Item object from a Path object
 
         Args:
-            path (Path | str): Path object or string representing the file name
-            directory (str, optional): Directory to use if path is a string (optional)
-            pattern (str, optional): Pattern to use for parsing if path is a string (optional)
+            path (Path): Path object or string representing the file name
+            directory (Path): Directory to use if path is a string (optional)
         """
-
-        return ItemParser.item_from_filename(path, directory)
+        
+        if path.name is None:
+            raise ValueError("Path object must have a name")
+        
+        return ItemParser.item_from_filename(path.name, path.parent)
+        
+    @staticmethod
+    def from_file_name(
+        file_name: str,
+        directory: Optional[Path] = None
+    ) -> Union["Item", None]:
+        
+        return ItemParser.item_from_filename(file_name, directory)
 
     @staticmethod
-    def from_components(
+    def from_components(    
         components: Components, frame: int, directory: Optional[Path] = None
     ) -> "Item":
         return ItemParser.item_from_components(components, frame, directory)
@@ -308,7 +317,6 @@ class Item:
 
         # Returns:
         #     Item: New item
-
         #"""
 
         logger.info("Copying %s to %s", self.filename, new_name)
@@ -1103,25 +1111,14 @@ class ItemParser:
 
     @staticmethod
     def item_from_filename(
-        filename: Union[str, Path],
+        filename: str,
         directory: Optional[Path] = None,
         pattern: Optional[str] = None,
     ) -> Union[Item, None]:
-        """Parse a single filename into components.
-
-        Args:
-            filename (str | Path): Filename to parse
-            directory (str, optional): Directory of the file. Defaults to None.
-            pattern (str, optional): Regex pattern for parsing. Defaults to None.
-
-        Returns:
-            Item: Parsed filename components
-
-        """
-
-        if isinstance(filename, Path):
-            directory = Path(str(filename.parent))
-            filename = str(filename.name)
+     
+        # if isinstance(filename, Path):
+        #     directory = Path(str(filename.parent))
+        #     filename = str(filename.name)
 
         if len(Path(filename).parts) > 1:
             raise ValueError("first argument must be a name, not a path")
