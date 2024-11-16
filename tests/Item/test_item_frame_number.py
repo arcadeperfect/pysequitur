@@ -2,7 +2,7 @@ from pathlib import Path
 from pysequitur import Item
 
 def test_item_frame_number(parse_item_yaml):
-    print("\n test")
+    
     
     test_env_list = parse_item_yaml()
 

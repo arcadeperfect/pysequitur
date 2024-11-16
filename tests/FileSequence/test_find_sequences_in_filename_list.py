@@ -4,7 +4,7 @@ from pathlib import Path
 import os
 
 def test_find_sequences_in_filename_list(parse_sequence_yaml):
-    print("\nD:")
+    
     """Test sequence parsing for both unlinked and linked sequences"""
     test_env_list = parse_sequence_yaml()
     
@@ -22,7 +22,7 @@ def test_find_sequences_in_filename_list(parse_sequence_yaml):
         assert sequence.last_frame == case['last_frame']
         assert sequence.extension == case['extension']
         assert sequence.delimiter == case['delimiter']
-        assert sequence.suffix == case['suffix']
+        assert sequence.suffix == case['suffix'] or (sequence.suffix is None and case['suffix'] == "")
         assert sequence.existing_frames == case['existing_frames']
         assert sequence.missing_frames == case['missing_frames']
         assert sequence.frame_count == case['frames_count']
@@ -33,7 +33,7 @@ def test_find_sequences_in_filename_list(parse_sequence_yaml):
         
         path = Path(case['tmp_dir']).joinpath(*Path(case['path']).parts[1:])
         
-        # print(os.listdir(path))
+        
         sequences = FileSequence.find_sequences_in_filename_list(case['files'], path)
         error_context = f"Failed in case with prefix {case['prefix']}"
         
@@ -46,7 +46,7 @@ def test_find_sequences_in_filename_list(parse_sequence_yaml):
         assert sequence.last_frame == case['last_frame']
         assert sequence.extension == case['extension']
         assert sequence.delimiter == case['delimiter']
-        assert sequence.suffix == case['suffix']
+        assert sequence.suffix == case['suffix'] or (sequence.suffix is None and case['suffix'] == "")
         assert sequence.existing_frames == case['existing_frames']
         assert sequence.missing_frames == case['missing_frames']
         assert sequence.frame_count == case['frames_count']

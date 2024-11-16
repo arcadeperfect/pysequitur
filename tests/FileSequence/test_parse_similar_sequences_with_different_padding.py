@@ -4,7 +4,7 @@ from pysequitur.file_sequence import FileSequence, SequenceExistence
 
 def test_parse_similar_sequences_with_different_padding():
     
-    print("\n")
+    
     
     files = [
         "file.0001.exr",

@@ -4,7 +4,7 @@ from pysequitur import Item
 from pysequitur.file_sequence import Components
 
 def test_item_check_rename(parse_item_yaml):
-    print("\n test")
+    
     
     test_env_list = parse_item_yaml()
 

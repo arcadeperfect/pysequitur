@@ -4,7 +4,7 @@ import shutil
 from pysequitur import Item
 
 def test_item_move_to(parse_item_yaml):
-    print("\n test")
+    
     
     test_env_list = parse_item_yaml()
 

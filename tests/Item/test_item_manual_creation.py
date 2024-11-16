@@ -3,7 +3,7 @@ from pysequitur import Item
 
 def test_item_files(parse_item_yaml):
     
-    print("\n test")
+    
     
     test_env_list = parse_item_yaml()  # No need to pass any arguments
 

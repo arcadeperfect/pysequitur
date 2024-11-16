@@ -28,7 +28,7 @@ def generate_files(tmp_path):
             relative_path = Path(str(path).lstrip('/'))
             full_path = test_dir / relative_path
             full_path.parent.mkdir(parents=True, exist_ok=True)
-            print(full_path)
+            # print(full_path)
             full_path.touch()
             assert full_path.exists()
             created_files.append(full_path)
@@ -83,3 +83,23 @@ def parse_sequence_yaml(parse_yaml, generate_files, tmp_path, test_data_dir):
             
         return test_env_list
     return _parse_sequence_yaml
+    
+    
+@pytest.fixture
+def parse_jumble_yaml(parse_yaml, generate_files, tmp_path, test_data_dir):
+    def _parse_jumble_yaml():
+        test_env_list = []
+        yaml_files = test_data_dir.glob('jumble_*.yaml')
+        
+        for yaml_file in yaml_files:
+            test_env = parse_yaml(yaml_file)
+            files = test_env['files']
+            these_paths = [Path(file) for file in files]
+            real_files = generate_files(these_paths)
+            test_env['real_files'] = real_files
+            test_env['test_dir'] = tmp_path / "test_sequence"
+    
+            test_env_list.append(test_env)
+            
+        return test_env_list
+    return _parse_jumble_yaml

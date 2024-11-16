@@ -7,7 +7,7 @@ import re
 import os
 import shutil
 import logging
-from enum import Flag, auto
+from enum import Flag
 from typing import Dict, Optional, Tuple, List, Any, TypedDict, Union
 from pathlib import Path
 from dataclasses import dataclass
@@ -553,7 +553,7 @@ class FileSequence:
             list[FileSequence]: List of Sequence objects
 
         """
-        return SequenceParser.filesequences_from_components_in_filename_list(
+        return SequenceParser.match_components_in_filename_list(
             components, filename_list, directory
         )
 
@@ -690,10 +690,11 @@ class FileSequence:
         return str(self._validate_property_consistency(prop_name="delimiter"))
 
     @property
-    def suffix(self) -> str:
+    def suffix(self) -> Union[str, None]:
         """Returns the suffix Performs a check to ensure that suffix is
         consistent across all items."""
         return str(self._validate_property_consistency(prop_name="suffix"))
+
 
     @property
     def directory(self) -> Path:
@@ -757,15 +758,15 @@ class FileSequence:
         return padding_counts.most_common(1)[0][0]
 
     @property
-    def file_name(self) -> str:
+    def sequence_string(self) -> str:
         """Returns the file name, computed from the components."""
         padding = "#" * self.padding
-        return f"{self.prefix}{self.delimiter}{padding}{self.suffix}.{self.extension}"
+        return f"{self.prefix}{self.delimiter}{padding}{self.suffix if self.suffix is not None else ''}.{self.extension}"
 
     @property
     def absolute_file_name(self) -> str:
         """Returns the absolute file name."""
-        return os.path.join(self.directory, self.file_name)
+        return os.path.join(self.directory, self.sequence_string)
         
     @property
     def exists(self) -> SequenceExistence:
@@ -860,8 +861,6 @@ class FileSequence:
             )  # TODO test this
 
         for item in self.items:
-            # print(f"item frame number: {item.frame_number}")
-            # print(f"existing file in new dir: {len(os.listdir(new_directory))}")
             item.move_to(new_directory)
 
         return self
@@ -1630,7 +1629,7 @@ class SequenceParser:
     
         for sequence in sequences:
     
-            if sequence.file_name == sequence_string:
+            if sequence.sequence_string == sequence_string:
                 matched.append(sequence)
     
         if len(matched) > 1:
@@ -1753,7 +1752,7 @@ class SequenceParser:
         )
 
     @staticmethod
-    def filesequences_from_components_in_filename_list(
+    def match_components_in_filename_list(
         components: Components,
         filename_list: List[str],
         directory: Optional[Path] = None,
