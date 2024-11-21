@@ -28,8 +28,6 @@ def test_single_sequence_in_directory(parse_sequence_yaml):
         assert sequence.extension == case['extension'], error_context
         assert sequence.delimiter == case['delimiter'], error_context
         assert sequence.suffix == case['suffix']
-        # expected_suffix = None if case['suffix'] == "" else case['suffix']
-        # assert sequence.suffix == expected_suffix, error_context
         assert sequence.existing_frames == case['existing_frames'], error_context
         assert sequence.missing_frames == case['missing_frames'], error_context
         assert sequence.frame_count == case['frames_count'], error_context
