@@ -1394,11 +1394,16 @@ class ItemParser:
             'shot_#.jpg'
         """
 
+        #TODO test this
+        
         # Match %[0][padding]d pattern
         # Groups:
         # 1 - Optional 0 flag
         # 2 - Optional padding number
         # Followed by mandatory 'd'
+
+        print("converting item to hashes")
+
         printf_pattern = r"%(?:(0)?(\d+))?d"
 
         def replace_match(match):
@@ -1620,9 +1625,10 @@ class SequenceParser:
             FileSequence: Sequence object
     
         """
-    
+        print(f"pre padding conversion: {sequence_string}")
         sequence_string = ItemParser.convert_padding_to_hashes(sequence_string)
-    
+        print(f"post padding conversion: {sequence_string}")
+        
         sequences = SequenceParser.from_file_list(filename_list, directory)
     
         matched = []
@@ -1671,7 +1677,9 @@ class SequenceParser:
             FileSequence: Sequence object
     
         """
-    
+
+        print(f"matching sequence string in directory: {filename}")
+
         files = os.listdir(str(directory))
     
         return SequenceParser.match_sequence_string_in_filename_list(filename, files, directory)

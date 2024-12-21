@@ -17,7 +17,7 @@ from typing import List, Type
 
 __version__ = "0.1.0"
 
-from .file_sequence import Item, FileSequence, Components  # type: ignore
+from .file_sequence import Item, FileSequence, Components, ItemParser  # type: ignore
 
 # Type definitions for better IDE support
 ItemType = Type[Item]
