@@ -785,6 +785,8 @@ class FileSequence:
     def problems(self) -> "Problems":
         """Returns a flag containing all detected problems."""
 
+        #TODO write tests for this
+
         problems = Problems.check_sequence(self)
 
         if problems is not Problems.NONE:
