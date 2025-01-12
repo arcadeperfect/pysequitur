@@ -1,0 +1,74 @@
+[tool.poetry]
+name = "pysequitur"
+version = "0.1.0"
+description = "parsing and manipulation tool for file sequences"
+authors = ["arcadeperfect <alexharding.ooo>"]
+readme = "README.md"
+packages = [{include = "pysequitur", from = "src"}]
+license = "MIT"
+repository = "https://github.com/arcadeperfect/pysequitur"  # Add this
+keywords = ["vfx", "file-sequence", "image-sequence", "file-management"]  # Add this
+classifiers = [  # Add this
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Topic :: Multimedia :: Graphics",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.12",
+]
+
+[tool.poetry.dependencies]
+python = "^3.12"
+docformatter = "^1.7.5"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.3.3"
+pytest-cov = "^4.1.0"  # Add this for coverage reports
+pyyaml = "^6.0.2"
+mypy = "^1.0"
+pylint = "^3.1.0"
+isort = "^5.13.2"
+docformatter = "^1.7.5"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.scripts]
+pysequitur = "pysequitur.main:main"
+lint = "pylint src/pysequitur"
+typecheck = "mypy src/pysequitur"
+sort-imports = "isort src/pysequitur"
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+line_length = 88
+
+[tool.mypy]
+python_version = "3.12"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+check_untyped_defs = true
+exclude = '^tests/'
+
+[tool.pylint.MASTER]
+ignore = ["tests", "test_*.py"]
+
+[tool.pylint.messages_control]
+disable = [
+    "C0301",  # line-too-long
+#     "C0111",  # missing-docstring
+#     "C0103",  # invalid-name
+#     "C0330",  # bad-continuation
+#     "C0326",  # bad-whitespace
+]
+
+[tool.pylint.format]
+max-line-length = 88
+
+[tool.pytest.ini_options]  # Add this section
+testpaths = ["tests"]
+addopts = "--cov=pysequitur --cov-report=xml --cov-report=term-missing"
+python_files = "test_*.py"

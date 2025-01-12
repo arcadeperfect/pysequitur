@@ -11,6 +11,11 @@ p = Path("/Volumes/porb/test_seqs")
 n = crawl.Node(p)
 
 
-# print(n.nodes)
 
-crawl.visualize_tree(n)
+
+# crawl.visualize_tree(n)
+
+sqs =crawl.collect_sequences(n)
+
+for s in sqs:
+    print(s.frame_count)

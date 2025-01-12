@@ -48,5 +48,12 @@ def visualize_tree(node: Node, level=0):
     
     for n in node.nodes:
         visualize_tree(n, level + 1)
+        
+def collect_sequences(node: Node) -> List[FileSequence]:
+    sequences = []
+    sequences.extend(node.sequences)
+    for n in node.nodes:
+        sequences.extend(collect_sequences(n))
+    return sequences
     
     
