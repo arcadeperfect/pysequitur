@@ -1,17 +1,16 @@
-class test:
-
-    def __init_(self):
-        print("test")
-    def thing1(self):
-        print("test")
-
-    print("poo")
-
-
-    def thing2(self):
-        print("test")
+from pysequitur import crawl
+from pathlib import Path
 
 
 
+print("hello")
+
+p = Path("/Volumes/porb/test_seqs")
 
 
+n = crawl.Node(p)
+
+
+# print(n.nodes)
+
+crawl.visualize_tree(n)

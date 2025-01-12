@@ -1452,6 +1452,10 @@ class SequenceParser:
 
         for file in filename_list:
             
+            #TODO config file for this
+            if file[0] == ".":
+                continue
+            
             parsed_item = ItemParser.item_from_filename(file, directory)
             if not parsed_item:
                 continue
@@ -1537,7 +1541,7 @@ class SequenceParser:
                     )
                     sequence_list.append(anomalous_sequence)
 
-        logger.info("Parsed %d sequences", len(sequence_list))
+        logger.info(f"Parsed {len(sequence_list)} sequences in {directory}")
 
         return sequence_list
         
@@ -1747,7 +1751,9 @@ class SequenceParser:
 
         """
         
-        files = os.listdir(str(directory))
+        # files = os.listdir(str(directory))
+        
+        files = ([str(f.name) for f in directory.iterdir() if f.is_file()])
         
         if not isinstance(files, list):
             raise TypeError("files must be a list")
