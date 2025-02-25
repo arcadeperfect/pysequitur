@@ -13,19 +13,22 @@ Classes:
     Components: Configuration class for specifying filename components
 """
 
-from typing import List, Type
+# from typing import List, type
 
 __version__ = "0.1.0"
 
-from .file_sequence import Item, FileSequence, Components, ItemParser  # type: ignore
+from .file_sequence import Components, FileSequence, Item, ItemParser  # type: ignore
+from . import integrations  # Add this line
 
 # Type definitions for better IDE support
-ItemType = Type[Item]
-FileSequenceType = Type[FileSequence]
-ComponentsType = Type[Components]
+ItemType = type[Item]
+FileSequenceType = type[FileSequence]
+ComponentsType = type[Components]
 
-__all__: List[str] = [
+__all__: list[str] = [
     "Item",
     "FileSequence",
     "Components",
+    "ItemParser",
+    "integrations"  # Add this to __all__
 ]

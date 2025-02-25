@@ -16,13 +16,13 @@
 
 - path: "/comp/mattes/"
   files:
-    - "matte-001_suffix.exr"
-    - "matte-002_suffix.exr"
-    - "matte-003_suffix.exr"
+    - "matte-001_suffix.tif"
+    - "matte-002_suffix.tif"
+    - "matte-003_suffix.tif"
   prefix: "matte"
   first_frame: 1
   last_frame: 3
-  extension: "exr"
+  extension: "tif"
   delimiter: "-"
   suffix: "_suffix"
   existing_frames: [1, 2, 3]
@@ -32,13 +32,13 @@
 
 - path: "/comp/roto/"
   files:
-    - "roto_0001_suffix.exr"
-    - "roto_0002_suffix.exr"
-    - "roto_0003_suffix.exr"
+    - "roto_0001_suffix.dpx"
+    - "roto_0002_suffix.dpx"
+    - "roto_0003_suffix.dpx"
   prefix: "roto"
   first_frame: 1
   last_frame: 3
-  extension: "exr"
+  extension: "dpx"
   delimiter: "_"
   suffix: "_suffix"
   existing_frames: [1, 2, 3]

@@ -1,8 +1,8 @@
 [tool.poetry]
 name = "pysequitur"
-version = "0.1.0"
+version = "0.1.1"
 description = "parsing and manipulation tool for file sequences"
-authors = ["arcadeperfect <alexharding.ooo>"]
+authors = ["arcadeperfect <alexander.harding@gmail.com>"]
 readme = "README.md"
 packages = [{include = "pysequitur", from = "src"}]
 license = "MIT"
@@ -18,14 +18,18 @@ classifiers = [
 ]
 
 [tool.poetry.dependencies]
-python = "^3.12"
-ruff = "^0.9.1"
-mypy = "^1.14.1"
+python = ">=3.12"
+
+
+
+
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.3"
 pytest-cov = "^4.1.0"
 pyyaml = "^6.0.2"
+ruff = "^0.9.1"
+mypy = "^1.14.1"
 
 [build-system]
 requires = ["poetry-core"]

@@ -4,6 +4,8 @@ from typing import List
 
 from pysequitur import FileSequence
 
+from abc import ABC, abstractmethod
+
 # @dataclass
 # class Node:
 
@@ -20,6 +22,14 @@ from pysequitur import FileSequence
 
 
 #     return Node(path, seqs, loose_files, sub_nodes)
+
+
+class Asset(ABC):
+    
+    
+
+
+
 
 
 class Node:
