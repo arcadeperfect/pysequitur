@@ -17,8 +17,9 @@ Classes:
 
 __version__ = "0.1.0"
 
-from .file_sequence import Components, FileSequence, Item, ItemParser  # type: ignore
-from . import integrations  # Add this line
+from .file_sequence import Components, FileSequence, Item, ItemParser, SequenceParser
+
+# from . import integrations  # Add this line
 
 # Type definitions for better IDE support
 ItemType = type[Item]
@@ -30,5 +31,5 @@ __all__: list[str] = [
     "FileSequence",
     "Components",
     "ItemParser",
-    "integrations"  # Add this to __all__
+    "SequenceParser"
 ]

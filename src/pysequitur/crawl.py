@@ -1,45 +1,72 @@
-# from dataclasses import dataclass
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
-from pysequitur import FileSequence
+from pysequitur import FileSequence, SequenceParser
 
-from abc import ABC, abstractmethod
-
-# @dataclass
-# class Node:
-
-#     path: Path
-#     sequences: List[FileSequence]
-#     # loose_files: List[Path]
-#     sub_nodes: List['Node']
-
-
-# def crawl(path: Path, allowed_file_types: List[str]) -> Node:
-
-#     seqs = FileSequence.find_sequences_in_path(path)
-#     dirs = [f for f in path.iterdir() if f.is_dir()]
-
-
-#     return Node(path, seqs, loose_files, sub_nodes)
-
-
-class Asset(ABC):
-    
-    
-
-
-
+MOVIE_FILE_TYPES = {
+    "webm",
+    "mkv",
+    "flv",
+    "vob",
+    "ogv",
+    "ogg",
+    "rrc",
+    "gif",
+    "vmn",
+    "gmov",
+    "avi",
+    "qtw",
+    "mv",
+    "yuv",
+    "rma",
+    "sfa",
+    "mp4",
+    "m4p",
+    "m4v",
+    "mpg",
+    "mp2",
+    "mpeg",
+    "mpe",
+    "mpv",
+    "svi",
+    "3gp",
+    "3g2",
+    "mxf",
+    "roq",
+    "nsv",
+    "f4v",
+    "f4p",
+    "f4a",
+    "f4b",
+    "mod",
+}
 
 
 class Node:
-    def __init__(self, path: Path):
+    def __init__(self, path: Path, allowed_extensions: set[str]):
         self.path = path
 
-        self.sequences = FileSequence.find_sequences_in_path(path)
+        allowed_extensions = {ext.lower().lstrip(".") for ext in allowed_extensions}
+
+        allowed_movies = {ext for ext in allowed_extensions if ext in MOVIE_FILE_TYPES}
+
+        allowed_extensions = {
+            ext for ext in allowed_extensions if ext not in MOVIE_FILE_TYPES
+        }
+
+        results = SequenceParser.from_directory(path, 1, allowed_extensions)
+        self.sequences = results.sequences
+        self.rogues = results.rogues
+        self.movies = {
+            file
+            for file in set(path.iterdir())
+            if file.suffix.lower().lstrip(".") in allowed_movies
+        }
+
+        # self.sequences = FileSequence.find_sequences_in_path(path)
         self.dirs = [d for d in path.iterdir() if d.is_dir()]
 
-        self.nodes = [Node(d) for d in self.dirs]
+        self.nodes = [Node(d, allowed_extensions) for d in self.dirs]
 
 
 def visualize_tree(node: Node, level=0):

@@ -505,7 +505,9 @@ class FileSequence:
             if not isinstance(directory, Path):
                 raise TypeError("directory must be a Path object")
 
-        return SequenceParser.from_file_list(filename_list, min_frames, directory)
+        return SequenceParser.from_file_list(
+            filename_list, min_frames, directory
+        ).sequences
 
     @staticmethod
     def find_sequences_in_path(
@@ -520,7 +522,7 @@ class FileSequence:
         Returns:
             FileSequence: A list of FileSequence objects representing the detected file sequences.
         """
-        return SequenceParser.from_directory(directory, min_frames)
+        return SequenceParser.from_directory(directory, min_frames).sequences
 
     @staticmethod
     def match_components_in_filename_list(
@@ -1424,6 +1426,11 @@ class ItemParser:
 
 
 class SequenceParser:
+    @dataclass
+    class ParseResult:
+        sequences: list[FileSequence]
+        rogues: list[str]
+
     class SequenceDictItem(TypedDict):
         """TypedDict for storing sequence dictionary items."""
 
@@ -1439,8 +1446,9 @@ class SequenceParser:
         filename_list: List[str],
         min_frames: int,
         directory: Optional[Path] = None,
-        allowed_extensions: Optional[List[str]] = None,
-    ) -> List[FileSequence]:
+        allowed_extensions: Optional[set[str]] = None,
+        # return_rogues = False
+    ) -> ParseResult:
         """
         Creates a list of detected FileSequence objects from a list of filenames.
 
@@ -1455,8 +1463,10 @@ class SequenceParser:
             Tuple[str, str, str, str], SequenceParser.SequenceDictItem
         ] = {}
 
+        rogues = []
+
         if allowed_extensions:
-            allowed_extensions = [ext.lower().lstrip(".") for ext in allowed_extensions]
+            allowed_extensions = {ext.lower().lstrip(".") for ext in allowed_extensions}
 
         for file in filename_list:
             # TODO config file for this
@@ -1470,6 +1480,8 @@ class SequenceParser:
 
             parsed_item = ItemParser.item_from_filename(file, directory)
             if not parsed_item:
+                # if return_rogues:
+                rogues.append(file)
                 continue
 
             # Include suffix in the key to separate sequences with different suffixes
@@ -1548,7 +1560,7 @@ class SequenceParser:
 
         logger.info(f"Parsed {len(sequence_list)} sequences in {directory}")
 
-        return sequence_list
+        return __class__.ParseResult(sequence_list, rogues)
 
     @staticmethod
     def filesequences_from_components_in_directory(
@@ -1568,7 +1580,7 @@ class SequenceParser:
 
         """
 
-        sequences = SequenceParser.from_directory(directory, min_frames)
+        sequences = SequenceParser.from_directory(directory, min_frames).sequences
 
         matches = []
 
@@ -1640,7 +1652,9 @@ class SequenceParser:
         sequence_string = ItemParser.convert_padding_to_hashes(sequence_string)
         # print(f"post padding conversion: {sequence_string}")
 
-        sequences = SequenceParser.from_file_list(filename_list, min_frames, directory)
+        sequences = SequenceParser.from_file_list(
+            filename_list, min_frames, directory
+        ).sequences
 
         matched = []
 
@@ -1711,7 +1725,11 @@ class SequenceParser:
         )
 
     @staticmethod
-    def from_directory(directory: Path, min_frames: int) -> List[FileSequence]:
+    def from_directory(
+        directory: Path,
+        min_frames: int,
+        allowed_extensions: Optional[set[str]] = None,
+    ) -> ParseResult:
         """Scans a directory and call Parser.detect_file_sequences to return a
         list of detected sequences as FileSequence objects.
 
@@ -1783,7 +1801,9 @@ class SequenceParser:
 
         # return None
 
-        return SequenceParser.from_file_list(files, min_frames, directory)
+        return SequenceParser.from_file_list(
+            files, min_frames, directory, allowed_extensions
+        )
 
     @staticmethod
     def match_components_in_filename_list(
@@ -1808,8 +1828,9 @@ class SequenceParser:
 
         """
 
-        sequences = SequenceParser.from_file_list(filename_list, min_frames, directory)
-
+        sequences = SequenceParser.from_file_list(
+            filename_list, min_frames, directory
+        ).sequences
         matches = []
 
         for sequence in sequences:
