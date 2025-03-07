@@ -17,7 +17,17 @@ Classes:
 
 __version__ = "0.1.0"
 
-from .file_sequence import Components, FileSequence, Item, ItemParser, SequenceParser
+# from .crawl import Node, visualize_tree
+from . import crawl
+from .file_sequence import (
+    Components,
+    FileSequence,
+    Item,
+    ItemParser,
+    SequenceFactory,
+    SequenceParser,
+)
+from .file_types import MOVIE_FILE_TYPES
 
 # from . import integrations  # Add this line
 
@@ -31,5 +41,8 @@ __all__: list[str] = [
     "FileSequence",
     "Components",
     "ItemParser",
-    "SequenceParser"
+    "SequenceParser",
+    "crawl",
+    "SequenceFactory",
+    "MOVIE_FILE_TYPES",
 ]

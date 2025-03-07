@@ -1,0 +1,78 @@
+files:
+  # Root directory files
+  - "/sequences/readme.txt"
+  - "/sequences/config.json"
+  - "/sequences/single_image.jpg"
+  
+  # Level 1 directory - Complete sequences
+  - "/sequences/renders/shot01/comp.v001.0001.exr"
+  - "/sequences/renders/shot01/comp.v001.0002.exr"
+  - "/sequences/renders/shot01/comp.v001.0003.exr"
+  - "/sequences/renders/shot01/comp.v001.0004.exr"
+  - "/sequences/renders/shot01/comp.v001.0005.exr"
+  
+  # Another sequence in same directory
+  - "/sequences/renders/shot01/matte_001_beauty.tif"
+  - "/sequences/renders/shot01/matte_002_beauty.tif"
+  - "/sequences/renders/shot01/matte_003_beauty.tif"
+  
+  # Level 1 directory - Single frame "sequence"
+  - "/sequences/renders/shot02/comp.v001.0001.exr"
+  
+  # Non-image files in level 1
+  - "/sequences/renders/shot02/notes.txt"
+  - "/sequences/renders/shot02/metadata.json"
+  
+  # Level 2 directory - Sequence with missing frames
+  - "/sequences/renders/shot03/passes/beauty/render-0001.dpx"
+  - "/sequences/renders/shot03/passes/beauty/render-0002.dpx"
+  - "/sequences/renders/shot03/passes/beauty/render-0004.dpx"
+  - "/sequences/renders/shot03/passes/beauty/render-0005.dpx"
+  
+  # Another level 2 directory - Mixed paddings
+  - "/sequences/renders/shot03/passes/diffuse/render.001.exr"
+  - "/sequences/renders/shot03/passes/diffuse/render.002.exr"
+  - "/sequences/renders/shot03/passes/diffuse/render.003.exr"
+  - "/sequences/renders/shot03/passes/diffuse/render.0004.exr"
+  - "/sequences/renders/shot03/passes/diffuse/render.0005.exr"
+  
+  # Level 3 directory - Different extension
+  - "/sequences/archives/2023/january/project/sequence.0001.mov"
+  - "/sequences/archives/2023/january/project/sequence.0002.mov"
+  - "/sequences/archives/2023/january/project/sequence.0003.mov"
+  
+  # Mixed file types in level 3
+  - "/sequences/archives/2023/january/project/thumbnail.jpg"
+  - "/sequences/archives/2023/january/project/preview.mp4"
+  - "/sequences/archives/2023/january/project/notes.pdf"
+  
+  # Single images that are not part of sequences
+  - "/sequences/reference/img1.jpg"
+  - "/sequences/reference/img2.png"
+  - "/sequences/reference/texture.tif"
+  
+  # Files with numbers but not in sequence format
+  - "/sequences/misc/file1.txt"
+  - "/sequences/misc/file2.txt"
+  - "/sequences/misc/image10.jpg"
+  
+  # Very deep nesting
+  - "/sequences/client/2023/q1/january/revision3/shot04/comp/v002/final/comp.0001.exr"
+  - "/sequences/client/2023/q1/january/revision3/shot04/comp/v002/final/comp.0002.exr"
+  - "/sequences/client/2023/q1/january/revision3/shot04/comp/v002/final/comp.0003.exr"
+  
+  # Non-standard sequence formats with larger frame steps
+  - "/sequences/special/frame_0010_overlay.exr"
+  - "/sequences/special/frame_0020_overlay.exr"
+  - "/sequences/special/frame_0030_overlay.exr"
+  
+  # Unusual file extensions
+  - "/sequences/special/frame.0001.iff"
+  - "/sequences/special/frame.0002.iff"
+  - "/sequences/special/frame.0003.iff"
+  
+  # Various non-image file types
+  - "/sequences/project/script.py"
+  - "/sequences/project/data.csv"
+  - "/sequences/project/report.docx"
+  - "/sequences/project/presentation.pptx"

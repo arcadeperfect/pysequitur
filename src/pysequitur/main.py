@@ -1,18 +1,16 @@
-from pysequitur import crawl
+from pysequitur.file_sequence import FileSequence, Item, ItemParser, Components
+from pysequitur.crawl import Node
 from pathlib import Path
 
 
-print("hello")
-
-p = Path("/Volumes/porb/test_seqs")
 
 
-n = crawl.Node(p)
 
 
-crawl.visualize_tree(n)
 
-sqs = crawl.collect_sequences(n)
+f = "file_00100.exr"
 
-for s in sqs:
-    print(s.frame_count)
+item = Item.from_file_name(f)
+
+print(item)
+print(item.move_to(Path("test"), virtual=True))

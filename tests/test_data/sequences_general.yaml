@@ -14,94 +14,94 @@
   frames_count: 3
   padding: 3
 
-# - path: "/path/to/2/"
-#   files:
-#     - "img2_002.exr"
-#     - "img2_003.exr"
-#     - "img2_004.exr"
-#     - "img2_005.exr"
-#     - "img2_006.exr"
-#   prefix: "img2"
-#   first_frame: 2
-#   last_frame: 6
-#   extension: "exr"
-#   delimiter: "_"
-#   suffix: ""
-#   existing_frames: [2, 3, 4, 5, 6]
-#   missing_frames: []
-#   frames_count: 5
-#   padding: 3
+- path: "/path/to/2/"
+  files:
+    - "img2_002.exr"
+    - "img2_003.exr"
+    - "img2_004.exr"
+    - "img2_005.exr"
+    - "img2_006.exr"
+  prefix: "img2"
+  first_frame: 2
+  last_frame: 6
+  extension: "exr"
+  delimiter: "_"
+  suffix: ""
+  existing_frames: [2, 3, 4, 5, 6]
+  missing_frames: []
+  frames_count: 5
+  padding: 3
 
-# - path: "/path/to/3/"
-#   files:
-#     - "img3_002.jpg"
-#     - "img3_003.jpg"
-#     - "img3_004.jpg"
-#     - "img3_005.jpg"
-#     - "img3_006.jpg"
-#   prefix: "img3"
-#   first_frame: 2
-#   last_frame: 6
-#   extension: "jpg"
-#   delimiter: "_"
-#   suffix: ""
-#   existing_frames: [2, 3, 4, 5, 6]
-#   missing_frames: []
-#   frames_count: 5
-#   padding: 3
+- path: "/path/to/3/"
+  files:
+    - "img3_002.jpg"
+    - "img3_003.jpg"
+    - "img3_004.jpg"
+    - "img3_005.jpg"
+    - "img3_006.jpg"
+  prefix: "img3"
+  first_frame: 2
+  last_frame: 6
+  extension: "jpg"
+  delimiter: "_"
+  suffix: ""
+  existing_frames: [2, 3, 4, 5, 6]
+  missing_frames: []
+  frames_count: 5
+  padding: 3
 
-# - path: "/path/to/4/"
-#   files:
-#     - "img4_002.jpg"
-#     - "img4_003.jpg"
-#     - "img4_005.jpg"
-#     - "img4_006.jpg"
-#   prefix: "img4"
-#   first_frame: 2
-#   last_frame: 6
-#   extension: "jpg"
-#   delimiter: "_"
-#   suffix: ""
-#   existing_frames: [2, 3, 5, 6]
-#   missing_frames: [4]
-#   frames_count: 5
-#   padding: 3
+- path: "/path/to/4/"
+  files:
+    - "img4_002.jpg"
+    - "img4_003.jpg"
+    - "img4_005.jpg"
+    - "img4_006.jpg"
+  prefix: "img4"
+  first_frame: 2
+  last_frame: 6
+  extension: "jpg"
+  delimiter: "_"
+  suffix: ""
+  existing_frames: [2, 3, 5, 6]
+  missing_frames: [4]
+  frames_count: 5
+  padding: 3
 
-# - path: "/path/to/5/"
-#   files:
-#     - "img5_02.jpg"
-#     - "img5_003.jpg"
-#     - "img5_004.jpg"
-#     - "img5_05.jpg"
-#     - "img5_006.jpg"
-#   prefix: "img5"
-#   first_frame: 2
-#   last_frame: 6
-#   extension: "jpg"
-#   delimiter: "_"
-#   suffix: ""
-#   existing_frames: [2, 3, 4, 5, 6]
-#   missing_frames: []
-#   frames_count: 5
-#   padding: 3
+- path: "/path/to/5/"
+  files:
+    - "img5_02.jpg"
+    - "img5_003.jpg"
+    - "img5_004.jpg"
+    - "img5_05.jpg"
+    - "img5_006.jpg"
+  prefix: "img5"
+  first_frame: 2
+  last_frame: 6
+  extension: "jpg"
+  delimiter: "_"
+  suffix: ""
+  existing_frames: [2, 3, 4, 5, 6]
+  missing_frames: []
+  frames_count: 5
+  padding: 3
 
-# - path: "/path/to/6/"
-#   files:
-#     - "img6_0002.jpg"
-#     - "img6_0003.jpg"
-#     - "img6_0004.jpg"
-#     - "img6_0005.jpg"
-#     - "img6_0006.jpg"
-#     - "img6_0007.jpg"
-#     - "img6_0007.jpeg"
-#     - "img6.0008.jpg"
-#   prefix: "img6"
-#   first_frame: 2
-#   last_frame: 7
-#   extension: "jpg"
-#   delimiter: "_"
-#   suffix: ""
-#   existing_frames: [2, 3, 4, 5, 6, 7]
-#   missing_frames: []
-#   frames_count: 6
-#   padding: 4
+- path: "/path/to/6/"
+  files:
+    - "img6_0002.jpg"
+    - "img6_0003.jpg"
+    - "img6_0004.jpg"
+    - "img6_0005.jpg"
+    - "img6_0006.jpg"
+    - "img6_0007.jpg"
+    - "img6_0007.jpeg"
+    - "img6.0008.jpg"
+  prefix: "img6"
+  first_frame: 2
+  last_frame: 7
+  extension: "jpg"
+  delimiter: "_"
+  suffix: ""
+  existing_frames: [2, 3, 4, 5, 6, 7]
+  missing_frames: []
+  frames_count: 6
+  padding: 4
