@@ -161,7 +161,10 @@ class Item:
         return int(self.frame_string)
 
     def update_frame_number(
-        self, new_frame_number: int, padding: Optional[int] = None, virtual: bool = False
+        self,
+        new_frame_number: int,
+        padding: Optional[int] = None,
+        virtual: bool = False,
     ) -> "Item":
         """Sets the frame number of the item.
 
@@ -186,16 +189,19 @@ class Item:
         new_padding = max(padding, len(str(new_frame_number)))
 
         if virtual:
-            return dataclasses.replace(self, frame_string=f"{new_frame_number:0{new_padding}d}")
+            return dataclasses.replace(
+                self, frame_string=f"{new_frame_number:0{new_padding}d}"
+            )
 
         self.rename_to(Components(frame_number=new_frame_number, padding=new_padding))
 
         return self
 
     def set_padding_to(self, padding: int, virtual: bool = False) -> "Item":
-        
         if virtual:
-            return dataclasses.replace(self, frame_string=f"{self.frame_number:0{padding}d}")
+            return dataclasses.replace(
+                self, frame_string=f"{self.frame_number:0{padding}d}"
+            )
 
         self.padding = padding
 
@@ -919,7 +925,7 @@ class FileSequence:
         return [item.check_rename(new_name) for item in self.items]
 
     def move_to(
-        self, new_directory: Path, create_directory: bool = False
+        self, new_directory: Path, create_directory: bool = False, virtual: bool = False
     ) -> "FileSequence":
         """Moves all items in the sequence to a new directory.
 
@@ -931,6 +937,13 @@ class FileSequence:
 
         if new_directory == self.directory:  # TODO test this
             return self
+
+        if virtual:
+            virtual_items = [
+                item.move_to(new_directory, create_directory, virtual=True)
+                for item in self.items
+            ]
+            return FileSequence(virtual_items)
 
         conflicts = []
 
@@ -975,7 +988,11 @@ class FileSequence:
         return self
 
     def copy_to(
-        self, new_name: Optional[Components], new_directory: Optional[Path] = None
+        self,
+        new_name: Optional[Components] = None,
+        new_directory: Optional[Path] = None,
+        create_directory: bool = False,
+        virtual: bool = False,
     ) -> "FileSequence":
         """Creates a copy of the sequence with a new name and optional new
         directory.
@@ -997,9 +1014,12 @@ class FileSequence:
         if isinstance(new_directory, str):
             raise TypeError("new_directory must be a Path object, not a string")
 
+        if new_directory is not None and create_directory:
+            new_directory.mkdir(parents=True, exist_ok=True)
+
         new_items = []
         for item in self.items:
-            new_item = item.copy_to(new_name, new_directory)
+            new_item = item.copy_to(new_name, new_directory, virtual)
             new_items.append(new_item)
 
         new_sequence = FileSequence(new_items)
@@ -1011,7 +1031,7 @@ class FileSequence:
         raise NotImplementedError
 
     def offset_frames(
-        self, offset: int, padding: Optional[int] = None
+        self, offset: int, padding: Optional[int] = None, virtual: bool = False
     ) -> Union["FileSequence", None]:
         """Offsets all frames in the sequence by a given offset.
 
@@ -1029,8 +1049,9 @@ class FileSequence:
         # TODO check if any of the new filesnames collide with existing files before proceeding
 
         if offset == 0:
-            return
+            return self
 
+        # Check for negative frame numbers in both virtual and non-virtual modes
         if self.first_frame + offset < 0:
             raise ValueError("offset would yield negative frame numbers")
 
@@ -1038,6 +1059,15 @@ class FileSequence:
             padding = self.padding
 
         padding = max(padding, len(str(self.last_frame + offset)))
+
+        if virtual:
+            virtual_items = [
+                item.update_frame_number(
+                    item.frame_number + offset, padding=padding, virtual=True
+                )
+                for item in self.items
+            ]
+            return FileSequence(virtual_items)
 
         for item in sorted(
             self.items, key=attrgetter("frame_number"), reverse=offset > 0
@@ -1049,9 +1079,9 @@ class FileSequence:
 
             item.update_frame_number(item.frame_number + offset, padding)
 
-        return self  # TODO test chaining
+        return self
 
-    def set_padding(self, padding: int = 0) -> "FileSequence":
+    def set_padding_to(self, padding: int = 0, virtual: bool = False) -> "FileSequence":
         """Sets the padding for all frames in the sequence.
 
         Defaults to minimum required padding to represent the last frame if a value
@@ -1062,6 +1092,12 @@ class FileSequence:
 
         """
         padding = max(padding, len(str(self.last_frame)))
+
+        if virtual:
+            virtual_items = [
+                item.set_padding_to(padding, virtual=True) for item in self.items
+            ]
+            return FileSequence(virtual_items)
 
         for item in self.items:
             item.padding = padding
@@ -1113,18 +1149,50 @@ class FileSequence:
 
         return result
 
-    def folderize(self, folder_name: str) -> str:
+    # def folderize(self, folder_name: str) -> str:
+    #     """Moves all items in the sequence to a new directory.
+
+    #     Args:
+    #         folder_name (str): The directory to move the sequence to.
+
+    #     """
+    #     new_directory = self.directory / folder_name
+    #     new_directory.mkdir(parents=True, exist_ok=True)
+
+    #     for item in self.items:
+    #         item.move_to(new_directory)  # TODO test this
+
+    #     return self.sequence_string
+    def folderize(
+        self, folder_name: str, virtual: bool = False
+    ) -> Union["FileSequence", str]:
         """Moves all items in the sequence to a new directory.
 
         Args:
             folder_name (str): The directory to move the sequence to.
+            virtual (bool, optional): If True, returns a new FileSequence with updated paths
+                                without performing actual file operations. Defaults to False.
 
+        Returns:
+            Union[FileSequence, str]: If virtual=True, returns a new FileSequence object.
+                                    If virtual=False, returns the sequence string.
         """
         new_directory = self.directory / folder_name
+
+        if virtual:
+            # Create virtual items with the new directory without moving files
+            virtual_items = [
+                item.move_to(new_directory, create_directory=False, virtual=True)
+                for item in self.items
+            ]
+            # Return a new FileSequence with the virtual items
+            return FileSequence(virtual_items)
+
+        # Original implementation for non-virtual mode
         new_directory.mkdir(parents=True, exist_ok=True)
 
         for item in self.items:
-            item.move_to(new_directory)  # TODO test this
+            item.move_to(new_directory)
 
         return self.sequence_string
 
