@@ -15,7 +15,7 @@ Classes:
 
 # from typing import List, type
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 # from .crawl import Node, visualize_tree
 from . import crawl
