@@ -2,6 +2,8 @@
 # This file is part of PySequitur which is released under MIT license.
 # See file LICENSE for full license details.
 
+from __future__ import annotations
+
 import dataclasses
 import importlib.util
 import logging
@@ -13,14 +15,183 @@ from dataclasses import dataclass
 from enum import Enum, Flag, auto
 from operator import attrgetter
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, TypedDict, Union
-
-logging.basicConfig(
-    level=logging.INFO,  # Set default level to INFO
-    format="%(levelname)s: %(message)s",  # Simple format
-)
+from typing import Any, Dict, List, Optional, Tuple, TypedDict
 
 logger = logging.getLogger("pysequitur")
+logger.addHandler(logging.NullHandler())
+
+
+# =============================================================================
+# Operation Infrastructure
+# =============================================================================
+
+
+class OperationType(Enum):
+    """Types of filesystem operations."""
+
+    RENAME = auto()
+    MOVE = auto()
+    COPY = auto()
+    DELETE = auto()
+
+
+@dataclass(frozen=True)
+class FileOperation:
+    """An immutable description of a single file operation.
+
+    Attributes:
+        operation: The type of operation (RENAME, MOVE, COPY, DELETE)
+        source: The source file path
+        destination: The destination file path (None for DELETE operations)
+    """
+
+    operation: OperationType
+    source: Path
+    destination: Optional[Path]
+
+    @property
+    def would_overwrite(self) -> bool:
+        """Check if destination already exists."""
+        return self.destination is not None and self.destination.exists()
+
+    def execute(self) -> None:
+        """Actually perform the operation on the filesystem."""
+        if self.operation == OperationType.RENAME:
+            if self.destination is None:
+                raise ValueError("Rename requires destination")
+            self.source.rename(self.destination)
+        elif self.operation == OperationType.MOVE:
+            if self.destination is None:
+                raise ValueError("Move requires destination")
+            shutil.move(str(self.source), str(self.destination))
+        elif self.operation == OperationType.COPY:
+            if self.destination is None:
+                raise ValueError("Copy requires destination")
+            shutil.copy2(self.source, self.destination)
+        elif self.operation == OperationType.DELETE:
+            self.source.unlink()
+        else:
+            raise ValueError(f"Unknown operation: {self.operation}")
+
+    def __repr__(self) -> str:
+        op_name = self.operation.name
+        if self.operation == OperationType.DELETE:
+            return f"FileOperation({op_name}: {self.source})"
+        return f"FileOperation({op_name}: {self.source} -> {self.destination})"
+
+
+@dataclass(frozen=True)
+class ExecutionResult:
+    """Result of executing an OperationPlan."""
+
+    executed: Tuple[FileOperation, ...]
+    failed: Tuple[Tuple[FileOperation, Exception], ...] = ()  # noqa: E501
+
+    @property
+    def success(self) -> bool:
+        """Returns True if all operations succeeded."""
+        return len(self.failed) == 0
+
+    @property
+    def count(self) -> int:
+        """Returns total number of executed operations."""
+        return len(self.executed)
+
+
+@dataclass(frozen=True)
+class OperationPlan:
+    """A batch of operations that can be previewed and executed.
+
+    OperationPlan represents a set of filesystem operations that have been
+    planned but not yet executed. This allows inspection of what will happen
+    before committing to the changes.
+
+    Example:
+        new_item, plan = item.rename(Components(prefix="new"))
+        print(plan)  # See what will happen
+        if not plan.has_conflicts:
+            result = plan.execute()
+    """
+
+    operations: Tuple[FileOperation, ...]
+
+    @property
+    def conflicts(self) -> List[FileOperation]:
+        """Operations that would overwrite existing files."""
+        return [op for op in self.operations if op.would_overwrite]
+
+    @property
+    def has_conflicts(self) -> bool:
+        """Returns True if any operation would overwrite an existing file."""
+        return len(self.conflicts) > 0
+
+    @property
+    def sources(self) -> List[Path]:
+        """List of all source paths in this plan."""
+        return [op.source for op in self.operations]
+
+    @property
+    def destinations(self) -> List[Path]:
+        """List of all destination paths in this plan."""
+        return [op.destination for op in self.operations if op.destination is not None]
+
+    def execute(self, *, force: bool = False) -> ExecutionResult:
+        """
+        Execute all operations in the plan.
+
+        Args:
+            force: If True, overwrite existing files. If False, raise on conflict.
+
+        Returns:
+            ExecutionResult with success/failure details.
+
+        Raises:
+            FileExistsError: If conflicts exist and force=False.
+        """
+        if self.has_conflicts and not force:
+            conflict_paths = [op.destination for op in self.conflicts]
+            raise FileExistsError(f"Conflicts detected: {conflict_paths}")
+
+        executed: List[FileOperation] = []
+        failed: List[Tuple[FileOperation, Exception]] = []
+
+        for op in self.operations:
+            try:
+                op.execute()
+                executed.append(op)
+            except Exception as e:
+                failed.append((op, e))
+
+        return ExecutionResult(executed=tuple(executed), failed=tuple(failed))
+
+    @classmethod
+    def empty(cls) -> OperationPlan:
+        """Return an empty plan (no-op)."""
+        return cls(operations=())
+
+    def __add__(self, other: OperationPlan) -> OperationPlan:
+        """Combine two plans into one."""
+        return OperationPlan(operations=self.operations + other.operations)
+
+    def __repr__(self) -> str:
+        if not self.operations:
+            return "OperationPlan(empty)"
+        lines = [f"OperationPlan ({len(self.operations)} operations):"]
+        for op in self.operations[:10]:
+            if op.operation == OperationType.DELETE:
+                lines.append(f"  {op.operation.name}: {op.source}")
+            else:
+                lines.append(f"  {op.operation.name}: {op.source} -> {op.destination}")
+        if len(self.operations) > 10:
+            lines.append(f"  ... and {len(self.operations) - 10} more")
+        if self.has_conflicts:
+            lines.append(f"  WARNING: {len(self.conflicts)} conflicts detected")
+        return "\n".join(lines)
+
+
+# =============================================================================
+# Core Data Types
+# =============================================================================
 
 
 class SequenceExistence(Enum):
@@ -29,14 +200,14 @@ class SequenceExistence(Enum):
     TRUE = auto()
 
 
-@dataclass
+@dataclass(frozen=True)
 class Components:
     """Configuration class for naming operations on Items and FileSequences.
 
     Provides a flexible way to specify components of a filename during renaming
-    or parsing operations.
+    or parsing operations. Components is immutable (frozen).
 
-    Any component left as None will retain its original value.
+    Any component left as None will retain its original value when merged.
 
     Attributes:
         prefix (str, optional): New base name
@@ -44,9 +215,10 @@ class Components:
         padding (int, optional): New frame number padding length
         suffix (str, optional): New suffix after frame number
         extension (str, optional): New file extension
+        frame_number (int, optional): New frame number
 
     Example:
-        Renamer(prefix="new_name", padding=4) would change:
+        Components(prefix="new_name", padding=4) when applied would change:
         "old_001.exr" to "new_name_0001.exr"
 
     """
@@ -58,19 +230,75 @@ class Components:
     extension: Optional[str] = None
     frame_number: Optional[int] = None
 
-    def with_frame_number(self, frame_number: int) -> "Components":
+    def with_frame_number(self, frame_number: int) -> Components:
+        """Return a new Components with the given frame number.
+
+        Adjusts padding if necessary to accommodate the frame number.
+        """
+        new_padding = self.padding
+        if new_padding is not None:
+            new_padding = max(new_padding, len(str(frame_number)))
+        else:
+            new_padding = len(str(frame_number))
+
         return Components(
             prefix=self.prefix,
             delimiter=self.delimiter,
-            padding=max(self.padding or 0, len(str(frame_number))),
+            padding=new_padding,
             suffix=self.suffix,
             extension=self.extension,
             frame_number=frame_number,
         )
 
+    def merge_with_defaults(
+        self,
+        prefix: str,
+        delimiter: Optional[str],
+        padding: int,
+        suffix: Optional[str],
+        extension: str,
+        frame_number: int,
+    ) -> Components:
+        """Return a new Components with None values filled from defaults.
 
-@dataclass
+        This is a pure function that doesn't mutate self.
+        """
+        return Components(
+            prefix=self.prefix if self.prefix is not None else prefix,
+            delimiter=self.delimiter if self.delimiter is not None else delimiter,
+            padding=self.padding if self.padding is not None else padding,
+            suffix=self.suffix if self.suffix is not None else suffix,
+            extension=self.extension if self.extension is not None else extension,
+            frame_number=(
+                self.frame_number if self.frame_number is not None else frame_number
+            ),
+        )
+
+
+def _validate_suffix(suffix: Optional[str]) -> None:
+    """Validate that suffix contains no digits."""
+    if suffix is not None and any(char.isdigit() for char in suffix):
+        raise ValueError("suffix cannot contain digits")
+
+
+@dataclass(frozen=True)
 class Item:
+    """Represents a single file in an image sequence.
+
+    Item is immutable (frozen). All operations that would modify an Item
+    return a tuple of (new_item, operation_plan) where new_item is the
+    proposed new state and operation_plan contains the filesystem operations
+    needed to realize that state.
+
+    Attributes:
+        prefix: The base name of the file
+        frame_string: The frame number as a string (preserves padding)
+        extension: The file extension
+        delimiter: Optional delimiter between prefix and frame
+        suffix: Optional suffix after frame number
+        directory: Optional directory path
+    """
+
     prefix: str
     frame_string: str
     extension: str
@@ -79,41 +307,37 @@ class Item:
     directory: Optional[Path] = None
 
     def __post_init__(self) -> None:
-        if self.suffix is not None and any(char.isdigit() for char in self.suffix):
-            raise ValueError("suffix cannot contain digits")
+        _validate_suffix(self.suffix)
 
     @staticmethod
-    def from_path(
-        path: Path,
-    ) -> Union["Item", None]:
-        """
-        Creates an Item object from a Path object
+    def from_path(path: Path) -> Optional[Item]:
+        """Creates an Item object from a Path object.
 
         Args:
-            path (Path): Path object or string representing the file name
-            directory (Path): Directory to use if path is a string (optional)
+            path: Path object representing the file
         """
-
-        if path.name is None:
+        if not path.name:
             raise ValueError("Path object must have a name")
-
         return ItemParser.item_from_filename(path.name, path.parent)
 
     @staticmethod
     def from_file_name(
         file_name: str, directory: Optional[Path] = None
-    ) -> Union["Item", None]:
+    ) -> Optional[Item]:
+        """Creates an Item object from a filename string."""
         return ItemParser.item_from_filename(file_name, directory)
 
     @staticmethod
     def from_components(
         components: Components, frame: int, directory: Optional[Path] = None
-    ) -> "Item":
+    ) -> Item:
+        """Creates an Item object from Components and a frame number."""
         return ItemParser.item_from_components(components, frame, directory)
 
     @property
     def path(self) -> Path:
-        return Path(self.absolute_path)
+        """Returns the path of the item."""
+        return self.absolute_path
 
     @property
     def filename(self) -> str:
@@ -121,34 +345,19 @@ class Item:
         s = self.delimiter if self.delimiter else ""
         p = self.suffix if self.suffix else ""
         e = f".{self.extension}" if self.extension else ""
-
         return f"{self.prefix}{s}{self.frame_string}{p}{e}"
 
     @property
     def absolute_path(self) -> Path:
         """Returns the absolute path of the item as a Path object."""
-
         if self.directory is None:
             return Path(self.filename)
-
         return Path(self.directory) / self.filename
 
     @property
     def padding(self) -> int:
         """Returns the padding of the frame number as an integer."""
         return len(self.frame_string)
-
-    @padding.setter
-    def padding(self, value: int) -> None:
-        """Sets the padding of the frame number.
-
-        Args:
-            value (int): New padding
-        """
-
-        padding = max(value, len(str(self.frame_number)))
-        # self.frame_string = f"{self.frame_number:0{padding}d}"
-        self.rename_to(Components(padding=padding))
 
     @property
     def stem(self) -> str:
@@ -160,26 +369,148 @@ class Item:
         """Returns the frame number as an integer."""
         return int(self.frame_string)
 
-    def update_frame_number(
-        self,
-        new_frame_number: int,
-        padding: Optional[int] = None,
-        virtual: bool = False,
-    ) -> "Item":
-        """Sets the frame number of the item.
+    @property
+    def exists(self) -> bool:
+        """Checks if the item exists on the filesystem."""
+        return self.path.exists()
+
+    @property
+    def _min_padding(self) -> int:
+        """Computes the minimum padding required to represent the frame number."""
+        return len(str(int(self.frame_string)))
+
+    # -------------------------------------------------------------------------
+    # Operations - all return (new_state, OperationPlan)
+    # -------------------------------------------------------------------------
+
+    def rename(self, new_name: Components) -> Tuple[Item, OperationPlan]:
+        """Prepare a rename operation.
 
         Args:
-            new_frame_number (int): New frame number
-            padding (int, optional): New frame number padding
+            new_name: Components specifying the new name. None values are
+                     filled from current item values.
+
+        Returns:
+            Tuple of (new_item, plan) where new_item is the proposed new state
+            and plan contains the filesystem operations to execute.
+        """
+        if isinstance(new_name, str):
+            raise TypeError("new_name must be a Components object, not a string")
+
+        new_item = self._with_components(new_name)
+
+        # No filesystem change needed if paths are identical
+        if new_item.absolute_path == self.absolute_path:
+            return new_item, OperationPlan.empty()
+
+        operation = FileOperation(
+            operation=OperationType.RENAME,
+            source=self.absolute_path,
+            destination=new_item.absolute_path,
+        )
+
+        return new_item, OperationPlan(operations=(operation,))
+
+    def move(
+        self, new_directory: Path, create_directory: bool = False
+    ) -> Tuple[Item, OperationPlan]:
+        """Prepare a move operation.
+
+        Args:
+            new_directory: The target directory
+            create_directory: If True, create the directory if it doesn't exist
+
+        Returns:
+            Tuple of (new_item, plan)
+        """
+        logger.debug("Preparing move of %s to %s", self.filename, new_directory)
+
+        new_item = dataclasses.replace(self, directory=new_directory)
+
+        # No filesystem change needed if paths are identical
+        if new_item.absolute_path == self.absolute_path:
+            return new_item, OperationPlan.empty()
+
+        # Create directory if requested (this is a side effect, happens immediately)
+        if create_directory and not new_directory.exists():
+            new_directory.mkdir(parents=True, exist_ok=True)
+
+        operation = FileOperation(
+            operation=OperationType.MOVE,
+            source=self.absolute_path,
+            destination=new_item.absolute_path,
+        )
+
+        return new_item, OperationPlan(operations=(operation,))
+
+    def copy(
+        self,
+        new_name: Optional[Components] = None,
+        new_directory: Optional[Path] = None,
+    ) -> Tuple[Item, OperationPlan]:
+        """Prepare a copy operation.
+
+        Args:
+            new_name: Optional Components for the new name
+            new_directory: Optional new directory for the copy
+
+        Returns:
+            Tuple of (new_item, plan)
+        """
+        if isinstance(new_name, str):
+            raise TypeError("new_name must be a Components object")
+
+        target_dir = new_directory if new_directory is not None else self.directory
+
+        if new_name is not None:
+            new_item = self._with_components(new_name)
+            new_item = dataclasses.replace(new_item, directory=target_dir)
+        else:
+            new_item = dataclasses.replace(self, directory=target_dir)
+
+        # Avoid copying to self - add "_copy" suffix
+        if new_item.absolute_path == self.absolute_path:
+            new_item = dataclasses.replace(new_item, prefix=self.prefix + "_copy")
+
+        operation = FileOperation(
+            operation=OperationType.COPY,
+            source=self.absolute_path,
+            destination=new_item.absolute_path,
+        )
+
+        return new_item, OperationPlan(operations=(operation,))
+
+    def delete(self) -> OperationPlan:
+        """Prepare a delete operation.
+
+        Returns:
+            OperationPlan containing the delete operation
+        """
+        logger.debug("Preparing delete of %s", self.filename)
+
+        operation = FileOperation(
+            operation=OperationType.DELETE,
+            source=self.absolute_path,
+            destination=None,
+        )
+
+        return OperationPlan(operations=(operation,))
+
+    def with_frame_number(
+        self, new_frame_number: int, padding: Optional[int] = None
+    ) -> Tuple[Item, OperationPlan]:
+        """Prepare an operation to change the frame number.
+
+        Args:
+            new_frame_number: The new frame number
+            padding: Optional new padding (defaults to current or minimum required)
+
+        Returns:
+            Tuple of (new_item, plan)
 
         Raises:
             ValueError: If new_frame_number is negative
-
         """
-
-        if new_frame_number == self.frame_number and padding == self.padding:
-            return self
-
         if new_frame_number < 0:
             raise ValueError("new_frame_number cannot be negative")
 
@@ -187,342 +518,86 @@ class Item:
             padding = self.padding
 
         new_padding = max(padding, len(str(new_frame_number)))
+        new_frame_string = f"{new_frame_number:0{new_padding}d}"
 
-        if virtual:
-            return dataclasses.replace(
-                self, frame_string=f"{new_frame_number:0{new_padding}d}"
-            )
+        new_item = dataclasses.replace(self, frame_string=new_frame_string)
 
-        self.rename_to(Components(frame_number=new_frame_number, padding=new_padding))
+        # No filesystem change needed if paths are identical
+        if new_item.absolute_path == self.absolute_path:
+            return new_item, OperationPlan.empty()
 
-        return self
-
-    def set_padding_to(self, padding: int, virtual: bool = False) -> "Item":
-        if virtual:
-            return dataclasses.replace(
-                self, frame_string=f"{self.frame_number:0{padding}d}"
-            )
-
-        self.padding = padding
-
-        return self
-
-    def move_to(
-        self,
-        new_directory: Path,
-        create_directory: bool = False,
-        virtual: bool = False,
-    ) -> "Item":
-        """Moves the item to a new directory.
-
-        # Args:
-        #     new_directory (str): New directory
-
-        #"""
-
-        logger.info("Moving %s to %s", self.filename, new_directory)
-
-        if virtual:
-            new_path = Path(new_directory) / self.filename
-            return dataclasses.replace(self, directory=new_directory)
-
-        if self.check_move(new_directory)[2]:
-            raise FileExistsError(
-                f"File {self.filename} already exists in {new_directory}"
-            )
-
-        if create_directory:
-            if not new_directory.exists():
-                new_directory.mkdir(parents=True)
-
-        if self.path.exists():
-            new_path = Path(new_directory) / self.filename
-            self.path.rename(new_path)
-            self.directory = new_directory
-
-        else:
-            raise FileNotFoundError()
-
-        return self
-
-    # def move_to(
-    #     self, new_directory: Union[str, Path], virtual: bool = False
-    # ) -> "Item":
-    #     """
-    #     Moves the item to a new directory.
-
-    #     Args:
-    #         new_directory (Union[str, Path]): The new directory path.
-    #         virtual (bool, optional): If True, returns a new item with updated path
-    #                                without performing actual file operations.
-    #                                Defaults to False.
-
-    #     Returns:
-    #         Item: The moved item (or virtual item if virtual=True).
-    #     """
-    #     new_directory = Path(new_directory)
-    #     if not virtual and not new_directory.exists():
-    #         new_directory.mkdir(parents=True, exist_ok=True)
-
-    #     new_item = Item(
-    #         self.prefix,
-    #         self.frame_string,
-    #         self.extension,
-    #         self.delimiter,
-    #         self.suffix,
-    #         new_directory,
-    #     )
-
-    #     if not virtual and self.exists:
-    #         self.absolute_path.rename(new_item.absolute_path)
-
-    #     return new_item
-
-    def check_move(self, new_directory: Path) -> Tuple[Path, Path, bool]:
-        """Checks if the item can be moved to the given directory.
-
-        Args:
-            new_directory: The directory to check
-
-        Returns:
-            A tuple containing:
-                - The current absolute path
-                - The path that the item would be moved to
-                - A boolean indicating whether the path already exists.
-        """
-        new_path = Path(new_directory) / self.filename
-        return (self.absolute_path, new_path, new_path.exists())  # TODO test this
-
-    def rename_to(self, new_name: Components, virtual: bool = False) -> "Item":
-        """Renames the item.
-
-        Any component that is None will not be changed.
-
-        Empty Components forces renaming to match the current computed filename.
-
-        # Args:
-        #     new_name (str | Components, optional): New name
-
-        #"""
-
-        logger.info("Renaming %s to %s", self.filename, new_name)
-
-        old_path = Path(str(self.path))
-
-        if new_name is None:
-            new_name = Components()
-
-        if isinstance(new_name, str):
-            raise TypeError("strings are not supported in rename operatiosn")
-
-        new_name = self._complete_components(new_name)
-
-        if virtual:
-            return Item.from_components(new_name, self.frame_number, self.directory)
-
-        # Update internal state
-        self.prefix = new_name.prefix or ""
-        self.delimiter = new_name.delimiter
-        self.suffix = new_name.suffix
-        self.extension = new_name.extension or ""
-        new_padding = max(new_name.padding or 0, len(str(new_name.frame_number)))
-        self.frame_string = f"{new_name.frame_number:0{new_padding}d}"
-
-        if old_path.exists():
-            old_path.rename(old_path.with_name(self.filename))
-        else:
-            logger.warning("Renaming %s which does not exist", self.filename)
-
-        return self
-
-    def check_rename(self, new_name: Components) -> Tuple[Path, Path, bool]:
-        """
-        Checks if renaming the item to the new name would cause any conflicts.
-
-        Args:
-            new_name (Components): The new name to check for conflicts.
-
-        Returns:
-            Tuple[Path, Path, bool]: A tuple containing the current absolute path,
-            the potential new absolute path, and a boolean indicating if the
-            new name already exists.
-        """
-
-        new_name = self._complete_components(new_name)
-        potential_item = Item.from_components(
-            new_name, self.frame_number, self.directory
+        operation = FileOperation(
+            operation=OperationType.RENAME,
+            source=self.absolute_path,
+            destination=new_item.absolute_path,
         )
 
-        return (self.absolute_path, potential_item.absolute_path, potential_item.exists)
+        return new_item, OperationPlan(operations=(operation,))
 
-    def _complete_components(self, components: Components) -> Components:
-        if components.prefix is None:
-            components.prefix = self.prefix
-
-        if components.delimiter is None:
-            components.delimiter = self.delimiter
-
-        if components.padding is None:
-            components.padding = self.padding
-
-        if components.suffix is None:
-            components.suffix = self.suffix
-
-        if components.extension is None:
-            components.extension = self.extension
-
-        if components.frame_number is None:
-            components.frame_number = self.frame_number
-
-        return components
-
-    def copy_to(
-        self,
-        new_name: Optional[Components] = None,
-        new_directory: Optional[Path] = None,
-        virtual: bool = False,
-    ) -> "Item":
-        """Copies the item.
+    def with_padding(self, padding: int) -> Tuple[Item, OperationPlan]:
+        """Prepare an operation to change the padding.
 
         Args:
-            new_name (str): New name
-            new_directory (str, optional): New directory
-
-        # Returns:
-        #     Item: New item
-        #"""
-
-        logger.info("Copying %s to %s", self.filename, new_name)
-
-        if isinstance(new_name, str):
-            raise TypeError("new_name must be a Components object")
-
-        if new_name is None:
-            new_name = Components()
-
-        new_name = self._complete_components(new_name)
-
-        if isinstance(new_name, str):
-            raise TypeError("new_name must be a Components object")
-
-        if new_directory is None:
-            new_directory = self.directory
-
-        new_item = Item.from_components(new_name, self.frame_number, new_directory)
-
-        if new_item.absolute_path == self.absolute_path:
-            new_item.prefix = (new_name.prefix or "") + "_copy"
-
-        if virtual:
-            return new_item
-
-        if new_item.exists:
-            raise FileExistsError()
-
-        if self.exists:
-            shutil.copy2(self.absolute_path, new_item.absolute_path)
-
-        else:
-            logger.warning("Copying %s which does not exist", self.filename)
-
-        return new_item
-
-    def check_copy(
-        self,
-        new_name: Optional[Components] = None,
-        new_directory: Optional[Path] = None,
-    ) -> Tuple[Path, Path, bool]:
-        """
-        Checks if copying the item to a new name and/or directory would cause any
-        conflicts.
-
-        Args:
-            new_name (Optional[Components]): The new name to check for conflicts.
-            new_directory (Optional[Path]): The new directory to check for conflicts.
+            padding: The new padding (minimum is determined by frame number)
 
         Returns:
-            Tuple[Path, Path, bool]: A tuple containing the current absolute path,
-            the potential new absolute path, and a boolean indicating if the
-            new name already exists.
+            Tuple of (new_item, plan)
         """
+        actual_padding = max(padding, len(str(self.frame_number)))
+        new_frame_string = f"{self.frame_number:0{actual_padding}d}"
 
-        if isinstance(new_name, str):
-            raise TypeError("new_name must be a Components object")
+        new_item = dataclasses.replace(self, frame_string=new_frame_string)
 
-        if new_name is None:
-            new_name = Components(prefix=self.prefix)
+        # No filesystem change needed if paths are identical
+        if new_item.absolute_path == self.absolute_path:
+            return new_item, OperationPlan.empty()
 
-        if new_directory is None:
-            new_directory = self.directory
-
-        new_components = self._complete_components(new_name)
-
-        new_item = Item.from_components(
-            new_components, self.frame_number, new_directory
+        operation = FileOperation(
+            operation=OperationType.RENAME,
+            source=self.absolute_path,
+            destination=new_item.absolute_path,
         )
 
-        if new_item.absolute_path == self.absolute_path:
-            new_components = self._complete_components(
-                Components(prefix=(new_name.prefix or "") + "_copy")
-            )
-            new_item = Item.from_components(
-                new_components, self.frame_number, new_directory
-            )
+        return new_item, OperationPlan(operations=(operation,))
 
-        return (self.absolute_path, new_item.absolute_path, new_item.exists)
+    # -------------------------------------------------------------------------
+    # Private helpers
+    # -------------------------------------------------------------------------
 
-    def delete(self) -> "Item":
-        """Deletes the associated file."""
+    def _with_components(self, components: Components) -> Item:
+        """Return a new Item with components applied (pure, no side effects)."""
+        filled = components.merge_with_defaults(
+            prefix=self.prefix,
+            delimiter=self.delimiter,
+            padding=self.padding,
+            suffix=self.suffix,
+            extension=self.extension,
+            frame_number=self.frame_number,
+        )
 
-        logger.info("Deleting %s", self.filename)
+        new_padding = max(filled.padding or 1, len(str(filled.frame_number or 0)))
+        new_frame_string = f"{filled.frame_number:0{new_padding}d}"
 
-        if self.path.exists():
-            self.path.unlink()
-        else:
-            raise FileNotFoundError()
-
-        return self
-
-    @property
-    def exists(self) -> bool:
-        """Checks if the item exists.
-
-        Returns:
-            bool: True if the item exists
-
-        """
-
-        return self.path.exists()
-
-    @property
-    def _min_padding(self) -> int:
-        """Computes the minimum padding required to represent the frame
-        number."""
-        return len(str(int(self.frame_string)))
-
-    def _check_path(self) -> bool:
-        """Checks if the path computed from the components matches the path
-        object."""
-
-        if not self.path.exists():
-            raise FileNotFoundError()
-
-        if not self.absolute_path == str(self.path):
-            return False
-
-        return True
+        return Item(
+            prefix=filled.prefix or "",
+            frame_string=new_frame_string,
+            extension=filled.extension or "",
+            delimiter=filled.delimiter,
+            suffix=filled.suffix,
+            directory=self.directory,
+        )
 
 
-@dataclass
+@dataclass(frozen=True)
 class FileSequence:
     """Manages a collection of related Items that form an image sequence.
 
-    FileSequence provides methods for manipulating multiple related files as a single
-    unit, including operations like renaming, moving, and frame number manipulation.
-    It also provides validation and analysis of the sequence's health and consistency.
+    FileSequence is immutable (frozen). All operations return a tuple of
+    (new_sequence, operation_plan) where new_sequence is the proposed new
+    state and operation_plan contains the filesystem operations to execute.
 
     Attributes:
-        items (list[Item]): List of Item objects that make up the sequence
+        items: Tuple of Item objects that make up the sequence
 
     Properties:
         existing_frames: List of frame numbers present in the sequence
@@ -539,142 +614,101 @@ class FileSequence:
         - render_001.exr
         - render_002.exr
         - render_003.exr
-
     """
 
-    items: list[Item]
+    items: Tuple[Item, ...]
 
     def __repr__(self) -> str:
-        # return "no"
-
-        # def __str__(self) -> str:
-        #     # result = ""
-        #     # for item in self.items:
-        #     #     result += str(item) + "\n"
-
-        result = f"{self.sequence_string} {self.first_frame}-{self.last_frame}"
-
-        return result
+        return f"{self.sequence_string} {self.first_frame}-{self.last_frame}"
 
     @property
     def actual_frame_count(self) -> int:
-        """Returns the total number of frames in the sequence, taking missing
-        frames into account."""
+        """Returns the total number of frames in the sequence."""
         return len(self.items)
 
     @property
     def first_frame(self) -> int:
         """Returns the lowest frame number in the sequence."""
-        return min(self.items, key=lambda item: item.frame_number).frame_number
+        return min(item.frame_number for item in self.items)
 
     @property
     def last_frame(self) -> int:
         """Returns the highest frame number in the sequence."""
-        return max(self.items, key=lambda item: item.frame_number).frame_number
+        return max(item.frame_number for item in self.items)
 
     @property
     def prefix(self) -> str:
-        """Returns the prefix Performs a check to ensure that prefix is
-        consistent across all items."""
-
+        """Returns the prefix. Validates consistency across all items."""
         return str(self._validate_property_consistency(prop_name="prefix"))
 
     @property
     def extension(self) -> str:
-        """Returns the extension Performs a check to ensure that extension is
-        consistent across all items."""
+        """Returns the extension. Validates consistency across all items."""
         return str(self._validate_property_consistency(prop_name="extension"))
 
     @property
     def delimiter(self) -> str:
-        """Returns the delimiter Performs a check to ensure that delimiter is
-        consistent across all items."""
+        """Returns the delimiter. Validates consistency across all items."""
         return str(self._validate_property_consistency(prop_name="delimiter"))
 
     @property
-    def suffix(self) -> Union[str, None]:
-        """Returns the suffix Performs a check to ensure that suffix is
-        consistent across all items."""
+    def suffix(self) -> Optional[str]:
+        """Returns the suffix. Validates consistency across all items."""
         return str(self._validate_property_consistency(prop_name="suffix"))
 
     @property
     def directory(self) -> Path:
-        """Returns the directory Performs a check to ensure that directory is
-        consistent across all items."""
-
+        """Returns the directory. Validates consistency across all items."""
         directory = self._validate_property_consistency(prop_name="directory")
-
         if not isinstance(directory, Path):
             raise TypeError(f"{self.__class__.__name__} directory must be a Path")
-
         return directory
 
     @property
-    def existing_frames(self) -> list[int]:
-        """Returns a list of frame numbers which are present in the sequence.
-
-        Frames are determined by parsing the filename of each item in the
-        sequence.
-
-        """
+    def existing_frames(self) -> List[int]:
+        """Returns a list of frame numbers present in the sequence."""
         return [item.frame_number for item in self.items]
 
     @property
     def missing_frames(self) -> List[int]:
-        """Returns a set of frame numbers which are not present in the sequence.
-
-        Frames are determined to be missing if they fall within the range of the
-        first and last frame of the sequence (inclusive), but are not present in
-        the sequence.
-
-        """
-
-        missing_frames = sorted(
+        """Returns frame numbers missing from the sequence range."""
+        missing = sorted(
             set(range(self.first_frame, self.last_frame + 1))
             - set(self.existing_frames)
         )
-
-        if missing_frames:
-            logger.warning("Missing frames: %s", missing_frames)
-
-        return missing_frames
+        if missing:
+            logger.debug("Missing frames: %s", missing)
+        return missing
 
     @property
     def frame_count(self) -> int:
-        """Returns the number of frames in the sequence."""
+        """Returns the total frame count (including missing frames)."""
         return self.last_frame + 1 - self.first_frame
 
     @property
     def padding(self) -> int:
-        """Returns the padding.
-
-        If padding is inconsistent, the most common padding is returned
-
-        """
-
+        """Returns the most common padding in the sequence."""
         if not self.items:
             raise ValueError("No items in sequence")
         padding_counts = Counter(item.padding for item in self.items)
-
         return padding_counts.most_common(1)[0][0]
 
     @property
     def sequence_string(self) -> str:
-        """Returns the file name, computed from the components."""
+        """Returns the sequence string pattern (e.g., 'render_####.exr')."""
         padding = "#" * self.padding
         suffix = self.suffix if self.suffix is not None else ""
         return f"{self.prefix}{self.delimiter}{padding}{suffix}.{self.extension}"
 
     @property
     def absolute_file_name(self) -> str:
-        """Returns the absolute file name."""
+        """Returns the absolute path with sequence string pattern."""
         return os.path.join(self.directory, self.sequence_string)
 
     @property
     def exists(self) -> SequenceExistence:
-        """Returns True if the sequence exists on disk."""
+        """Returns the existence state of the sequence on disk."""
         existing_count = sum(1 for item in self.items if item.exists)
-
         if existing_count == 0:
             return SequenceExistence.FALSE
         elif existing_count == len(self.items):
@@ -683,149 +717,91 @@ class FileSequence:
             return SequenceExistence.PARTIAL
 
     @property
-    def problems(self) -> "Problems":
+    def problems(self) -> Problems:
         """Returns a flag containing all detected problems."""
-
-        # TODO write tests for this
-
         problems = Problems.check_sequence(self)
-
         if problems is not Problems.NONE:
-            logger.warning("Problems found: %s", problems)
-
+            logger.debug("Problems found: %s", problems)
         return problems
 
-    def rename_to(self, new_name: Components, virtual=False) -> "FileSequence":
-        """Renames all items in the sequence.
+    # -------------------------------------------------------------------------
+    # Operations - all return (new_state, OperationPlan)
+    # -------------------------------------------------------------------------
+
+    def rename(self, new_name: Components) -> Tuple[FileSequence, OperationPlan]:
+        """Prepare a rename operation for all items in the sequence.
 
         Args:
-            new_name (str): The new name
+            new_name: Components specifying the new name
 
+        Returns:
+            Tuple of (new_sequence, plan)
         """
-
-        # TODO: add test for virtual
-
         if isinstance(new_name, str):
             raise ValueError("new_name must be a Components object, not a string")
 
-        if virtual:
-            new_items = [item.rename_to(new_name, True) for item in self.items]
-            return FileSequence(new_items)
-
-        new_name.frame_number = None
-
-        conflicts = []
-
-        for found in self.check_rename(new_name) or []:
-            if found[2]:
-                conflicts.append(found[1])
-
-        if len(conflicts) > 0:
-            raise ValueError(f"Conflicts detected: {str(conflicts)}")
+        new_items: List[Item] = []
+        all_operations: List[FileOperation] = []
 
         for item in self.items:
-            item.rename_to(new_name.with_frame_number(item.frame_number))
+            item_components = new_name.with_frame_number(item.frame_number)
+            new_item, plan = item.rename(item_components)
+            new_items.append(new_item)
+            all_operations.extend(plan.operations)
 
-        return self
+        return (
+            FileSequence(items=tuple(new_items)),
+            OperationPlan(operations=tuple(all_operations)),
+        )
 
-    def check_rename(self, new_name: Components) -> List[Tuple[Path, Path, bool]]:
-        """
-        Checks if renaming the sequence to the new name would cause any conflicts.
+    def move(
+        self, new_directory: Path, create_directory: bool = False
+    ) -> Tuple[FileSequence, OperationPlan]:
+        """Prepare a move operation for all items in the sequence.
 
         Args:
-            new_name (Components): The new name to check for conflicts.
+            new_directory: The target directory
+            create_directory: If True, create the directory if it doesn't exist
 
         Returns:
-            List[Tuple[Path, Path, bool]]: List of tuples containing:
-                - Original path
-                - New path that would be created
-                - Whether a conflict exists at the new path
+            Tuple of (new_sequence, plan)
         """
+        if new_directory == self.directory:
+            return self, OperationPlan.empty()
 
-        return [item.check_rename(new_name) for item in self.items]
+        # Create directory if requested
+        if create_directory and not new_directory.exists():
+            new_directory.mkdir(parents=True, exist_ok=True)
 
-    def move_to(
-        self, new_directory: Path, create_directory: bool = False, virtual: bool = False
-    ) -> "FileSequence":
-        """Moves all items in the sequence to a new directory.
-
-        Args:
-            new_directory (str): The directory to move the sequence to.
-            create_directory (bool, optional): Whether to create the directory if it
-                doesn't exist. Defaults to False.
-        """
-
-        if new_directory == self.directory:  # TODO test this
-            return self
-
-        if virtual:
-            virtual_items = [
-                item.move_to(new_directory, create_directory, virtual=True)
-                for item in self.items
-            ]
-            return FileSequence(virtual_items)
-
-        conflicts = []
-
-        for found in self.check_move(new_directory) or []:
-            if found[2]:
-                conflicts.append(found[1])
-
-        if len(conflicts) > 0:
-            raise FileExistsError(
-                f"Conflicts detected: {str(conflicts)}"
-            )  # TODO test this
+        new_items: List[Item] = []
+        all_operations: List[FileOperation] = []
 
         for item in self.items:
-            item.move_to(new_directory, create_directory)
+            new_item, plan = item.move(new_directory, create_directory=False)
+            new_items.append(new_item)
+            all_operations.extend(plan.operations)
 
-        return self
+        return (
+            FileSequence(items=tuple(new_items)),
+            OperationPlan(operations=tuple(all_operations)),
+        )
 
-    def check_move(self, new_directory: Path) -> List[Tuple[Path, Path, bool]]:
-        """
-        Checks if moving the sequence to the new directory would cause any conflicts.
-
-        Args:
-            new_directory (Path): The directory to check for conflicts.
-
-        Returns:
-            List[Tuple[Path, Path, bool]]: List of tuples containing:
-                - Original path
-                - New path that would be created
-                - Whether a conflict exists at the new path
-        """
-
-        # TODO test this
-
-        return [item.check_move(new_directory) for item in self.items]
-
-    def delete_files(self) -> "FileSequence":
-        """Deletes all files in the sequence."""
-
-        for item in self.items:
-            item.delete()
-
-        return self
-
-    def copy_to(
+    def copy(
         self,
         new_name: Optional[Components] = None,
         new_directory: Optional[Path] = None,
         create_directory: bool = False,
-        virtual: bool = False,
-    ) -> "FileSequence":
-        """Creates a copy of the sequence with a new name and optional new
-        directory.
+    ) -> Tuple[FileSequence, OperationPlan]:
+        """Prepare a copy operation for all items in the sequence.
 
         Args:
-            new_name (str): The new name
-            new_directory (str, optional): The new directory. Defaults to None.
+            new_name: Optional Components for the new name
+            new_directory: Optional new directory for the copies
+            create_directory: If True, create the directory if it doesn't exist
 
         Returns:
-            FileSequence: A new FileSequence object representing the copied sequence
-
+            Tuple of (new_sequence, plan)
         """
-
         self.validate()
 
         if isinstance(new_name, str):
@@ -837,56 +813,51 @@ class FileSequence:
         if new_directory is not None and create_directory:
             new_directory.mkdir(parents=True, exist_ok=True)
 
-        new_items = []
+        new_items: List[Item] = []
+        all_operations: List[FileOperation] = []
+
         for item in self.items:
-            new_item = item.copy_to(new_name, new_directory, virtual)
+            new_item, plan = item.copy(new_name, new_directory)
             new_items.append(new_item)
+            all_operations.extend(plan.operations)
 
-        new_sequence = FileSequence(new_items)
+        return (
+            FileSequence(items=tuple(new_items)),
+            OperationPlan(operations=tuple(all_operations)),
+        )
 
-        return new_sequence
-
-    def check_copy(
-        self,
-        new_name: Optional[Components] = None,
-        new_directory: Optional[Path] = None,
-    ) -> List[Tuple[Path, Path, bool]]:
-        """
-        Checks if copying the sequence with a new name and/or directory would cause
-        any conflicts.
-
-        Args:
-            new_name (Optional[Components]): The new name to check for conflicts.
-            new_directory (Optional[Path]): The new directory to check for conflicts.
+    def delete(self) -> OperationPlan:
+        """Prepare a delete operation for all items in the sequence.
 
         Returns:
-            List[Tuple[Path, Path, bool]]: List of tuples containing:
-                - Original path
-                - New path that would be created
-                - Whether a conflict exists at the new path
+            OperationPlan containing all delete operations
         """
-        return [item.check_copy(new_name, new_directory) for item in self.items]
+        all_operations: List[FileOperation] = []
+
+        for item in self.items:
+            plan = item.delete()
+            all_operations.extend(plan.operations)
+
+        return OperationPlan(operations=tuple(all_operations))
 
     def offset_frames(
-        self, offset: int, padding: Optional[int] = None, virtual: bool = False
-    ) -> Union["FileSequence", None]:
-        """Offsets all frames in the sequence by a given offset.
-
-        If padding is not provided, the sequence's standard padding is used.
-
-        Raises:
-            ValueError: If the offset would result in a frame number below 0
+        self, offset: int, padding: Optional[int] = None
+    ) -> Tuple[FileSequence, OperationPlan]:
+        """Prepare an operation to offset all frame numbers.
 
         Args:
-            offset (int): The offset to apply
-            padding (int, optional): The padding to use. Defaults to None.
+            offset: The offset to apply to all frame numbers
+            padding: Optional new padding
 
+        Returns:
+            Tuple of (new_sequence, plan)
+
+        Raises:
+            ValueError: If offset would result in negative frame numbers
         """
-
         if offset == 0:
-            return self
+            return self, OperationPlan.empty()
 
-        # Check for negative frame numbers in both virtual and non-virtual modes
         if self.first_frame + offset < 0:
             raise ValueError("offset would yield negative frame numbers")
 
@@ -895,105 +866,93 @@ class FileSequence:
 
         padding = max(padding, len(str(self.last_frame + offset)))
 
-        if virtual:
-            virtual_items = [
-                item.update_frame_number(
-                    item.frame_number + offset, padding=padding, virtual=True
-                )
-                for item in self.items
-            ]
-            return FileSequence(virtual_items)
+        # Sort items: if offset > 0, process high frames first to avoid collisions
+        sorted_items = sorted(
+            self.items,
+            key=attrgetter("frame_number"),
+            reverse=(offset > 0),
+        )
 
-        # Check for collisions with existing files before proceeding
-        conflicts = []
-        for item in self.items:
-            target_frame = item.frame_number + offset
-            target_item = item.update_frame_number(target_frame, padding, virtual=True)
+        new_items: List[Item] = []
+        all_operations: List[FileOperation] = []
 
-            # Check if target path already exists (and it's not one of our own files)
-            if (
-                target_item.exists
-                and target_item.frame_number not in self.existing_frames
-            ):
-                conflicts.append(target_item.absolute_path)
+        for item in sorted_items:
+            new_item, plan = item.with_frame_number(item.frame_number + offset, padding)
+            new_items.append(new_item)
+            all_operations.extend(plan.operations)
 
-        if conflicts:
-            raise FileExistsError(
-                f"Offset would create conflicts with existing files: {conflicts}"
-            )
+        # Re-sort by frame number for consistent ordering
+        new_items.sort(key=attrgetter("frame_number"))
 
-        for item in sorted(
-            self.items, key=attrgetter("frame_number"), reverse=offset > 0
-        ):
-            target = item.frame_number + offset
+        return (
+            FileSequence(items=tuple(new_items)),
+            OperationPlan(operations=tuple(all_operations)),
+        )
 
-            if any(item.frame_number == target for item in self.items):
-                raise ValueError(f"Frame {target} already exists")
-
-            item.update_frame_number(item.frame_number + offset, padding)
-
-        return self
-
-    def set_padding_to(self, padding: int = 0, virtual: bool = False) -> "FileSequence":
-        """Sets the padding for all frames in the sequence.
-
-        Defaults to minimum required padding to represent the last frame if a value
-        below that is provided
+    def with_padding(self, padding: int) -> Tuple[FileSequence, OperationPlan]:
+        """Prepare an operation to change padding for all items.
 
         Args:
-            padding (int, optional): The padding to set. Defaults to 0.
+            padding: The new padding (minimum is determined by highest frame)
 
+        Returns:
+            Tuple of (new_sequence, plan)
         """
         padding = max(padding, len(str(self.last_frame)))
 
-        if virtual:
-            virtual_items = [
-                item.set_padding_to(padding, virtual=True) for item in self.items
-            ]
-            return FileSequence(virtual_items)
+        new_items: List[Item] = []
+        all_operations: List[FileOperation] = []
 
         for item in self.items:
-            item.padding = padding
+            new_item, plan = item.with_padding(padding)
+            new_items.append(new_item)
+            all_operations.extend(plan.operations)
 
-        return self
+        return (
+            FileSequence(items=tuple(new_items)),
+            OperationPlan(operations=tuple(all_operations)),
+        )
+
+    def folderize(self, folder_name: str) -> Tuple[FileSequence, OperationPlan]:
+        """Prepare an operation to move all items to a subfolder.
+
+        Args:
+            folder_name: Name of the subfolder to create and move items to
+
+        Returns:
+            Tuple of (new_sequence, plan)
+        """
+        new_directory = self.directory / folder_name
+        return self.move(new_directory, create_directory=True)
+
+    # -------------------------------------------------------------------------
+    # Validation and analysis
+    # -------------------------------------------------------------------------
 
     def find_duplicate_frames(self) -> Dict[int, Tuple[Item, ...]]:
         """Identifies frames that appear multiple times with different padding.
-        For each set of duplicates, the first item in the tuple will be the one
-        whose padding matches the sequence's standard padding.
 
         Returns:
-            Dict[int, Tuple[Item, ...]]: Dictionary mapping frame numbers to tuples
-            of Items representing duplicate frames. The first Item in each tuple
-            has padding matching the sequence's standard padding.
-
-        Example:
-            If a sequence contains frame 1 as "001.ext", "01.ext", and "1.ext",
-            and the sequence's padding is 3, the result would be:
-            {1: (Item("001.ext"), Item("01.ext"), Item("1.ext"))}
-
+            Dictionary mapping frame numbers to tuples of duplicate Items.
+            The first Item in each tuple has padding matching the sequence's
+            standard padding.
         """
-        # Group items by frame number
-        frame_groups = defaultdict(list)
+        frame_groups: Dict[int, List[Item]] = defaultdict(list)
         for item in self.items:
             frame_groups[item.frame_number].append(item)
 
-        # Filter for only the frame numbers that have duplicates
         duplicates = {
             frame: items for frame, items in frame_groups.items() if len(items) > 1
         }
 
-        # Sort each group of duplicates
         sequence_padding = self.padding
-        result = {}
+        result: Dict[int, Tuple[Item, ...]] = {}
 
         for frame_number, items in duplicates.items():
-            # Sort items so that those matching sequence padding come first,
-            # then by padding length, then by string representation for stability
             sorted_items = sorted(
                 items,
                 key=lambda x: (
-                    x.padding != sequence_padding,  # False sorts before True
+                    x.padding != sequence_padding,
                     x.padding,
                     str(x),
                 ),
@@ -1002,147 +961,68 @@ class FileSequence:
 
         return result
 
-    # def folderize(self, folder_name: str) -> str:
-    #     """Moves all items in the sequence to a new directory.
-
-    #     Args:
-    #         folder_name (str): The directory to move the sequence to.
-
-    #     """
-    #     new_directory = self.directory / folder_name
-    #     new_directory.mkdir(parents=True, exist_ok=True)
-
-    #     for item in self.items:
-    #         item.move_to(new_directory)  # TODO test this
-
-    #     return self.sequence_string
-    def folderize(
-        self, folder_name: str, virtual: bool = False
-    ) -> Union["FileSequence", str]:
-        """Moves all items in the sequence to a new directory.
-
-        Args:
-            folder_name (str): The directory to move the sequence to.
-            virtual (bool, optional): If True, returns a new FileSequence with updated
-                                paths without performing actual file operations.
-                                Defaults to False.
-
-        Returns:
-            Union[FileSequence, str]: If virtual=True, returns a new FileSequence
-                                object.
-                                If virtual=False, returns the sequence string.
-        """
-        new_directory = self.directory / folder_name
-
-        if virtual:
-            # Create virtual items with the new directory without moving files
-            virtual_items = [
-                item.move_to(new_directory, create_directory=False, virtual=True)
-                for item in self.items
-            ]
-            # Return a new FileSequence with the virtual items
-            return FileSequence(virtual_items)
-
-        # Original implementation for non-virtual mode
-        new_directory.mkdir(parents=True, exist_ok=True)
-
-        for item in self.items:
-            item.move_to(new_directory)
-
-        return self.sequence_string
-
     def _validate_property_consistency(self, prop_name: str) -> Any:
-        """Checks if all items in the sequence have the same value for a given
-        property.
-
-        Args:
-            prop_name (str): The name of the property to check.
-
-        Returns:
-            Any: The value of the property on the first item in the sequence.
-
-        Raises:
-            ValueError: If the sequence is empty.
-            AnomalousItemDataError: If the values of the property are not consistent.
-
-        """
+        """Validates that all items have the same value for a property."""
         if not self.items:
             raise ValueError("Empty sequence")
 
         values = [getattr(item, prop_name) for item in self.items]
-
         first = values[0]
         if not all(v == first for v in values):
             raise AnomalousItemDataError(f"Inconsistent {prop_name} values")
         return first
 
     def validate(self) -> bool:
-        """Checks that all items in the sequence have consistent values for the
-        prefix, extension, delimiter, suffix, and directory properties.
+        """Validates that all items have consistent properties.
 
         Raises:
-            AnomalousItemDataError: If any of the properties have inconsistent
-                values.
-
+            AnomalousItemDataError: If any properties are inconsistent
         """
         self._validate_property_consistency(prop_name="prefix")
         self._validate_property_consistency(prop_name="extension")
         self._validate_property_consistency(prop_name="delimiter")
         self._validate_property_consistency(prop_name="suffix")
         self._validate_property_consistency(prop_name="directory")
-
         return True
 
     def _check_padding(self) -> bool:
-        """Checks that all items in the sequence have the same padding.
-
-        # Returns:
-        #     bool: True if padding is consistent, False otherwise.
-
-        #"""
+        """Checks that all items have the same padding."""
         if not all(item.padding == self.padding for item in self.items):
-            logger.warning("Inconsistent padding in sequence")
+            logger.debug("Inconsistent padding in sequence")
             return False
         return True
+
+
+# =============================================================================
+# Parsing Classes (unchanged from original)
+# =============================================================================
 
 
 class ItemParser:
     """Static utility class for parsing filenames and discovering sequences.
 
-    Most functionality is available through convenience methods in the Parser class.
-
-    Parser provides methods to analyze filenames, extract components, and group related
-    files into sequences. It handles complex filename patterns and supports various
-    file naming conventions commonly used in visual effects and animation pipelines.
+    Parser provides methods to analyze filenames, extract components, and
+    group related files into sequences. It handles complex filename patterns
+    and supports various file naming conventions commonly used in visual
+    effects and animation pipelines.
 
     Class Attributes:
         pattern (str): Regex pattern for parsing frame-based filenames
         known_extensions (set): Set of compound file extensions (e.g., 'tar.gz')
-
-    Methods:
-        parse_filename: Parse a single filename into components
-        find_sequences: Group multiple files into sequences
-        scan_directory: Scan a directory for frame sequences
 
     Example:
         Parser can handle filenames like:
         - "render_001.exr"
         - "comp.001.exr"
         - "anim-0100.png"
-
     """
 
     pattern = (
         r"^"
-        # Name up to last frame number
         r"(?P<name>.*?(?=[^a-zA-Z\d]*\d+(?!.*\d+)))"
-        # Separator before frame (optional)
         r"(?P<delimiter>[^a-zA-Z\d]*)"
-        # Frame number (1 or more digits)
         r"(?P<frame>\d+)"
-        # Negative lookahead for more digits
         r"(?!.*\d+)"
-        # Non-greedy match up to end
         r"(?P<suffix>.*?)$"
     )
 
@@ -1153,11 +1033,8 @@ class ItemParser:
         filename: str,
         directory: Optional[Path] = None,
         pattern: Optional[str] = None,
-    ) -> Union[Item, None]:
+    ) -> Optional[Item]:
         """Parse a filename into an Item object.
-
-        First identifies the extension using known compound extensions or the last dot,
-        then parses the remainder for sequence components.
 
         Args:
             filename: The filename to parse
@@ -1166,19 +1043,15 @@ class ItemParser:
 
         Returns:
             Item object if parsing succeeds, None if the filename doesn't match
-            the pattern
         """
-
         if len(Path(filename).parts) > 1:
             raise ValueError("first argument must be a name, not a path")
 
-        # First split on dots and determine the extension
         parts = filename.split(".")
-        if len(parts) <= 1:  # No extension
+        if len(parts) <= 1:
             name_part = filename
             extension = ""
         else:
-            # Check for known compound extensions
             for i in range(len(parts) - 1):
                 possible_ext = ".".join(parts[-(i + 1) :])
                 if possible_ext in ItemParser.known_extensions:
@@ -1186,11 +1059,9 @@ class ItemParser:
                     extension = possible_ext
                     break
             else:
-                # If no compound extension found, use the last part
                 name_part = ".".join(parts[:-1])
                 extension = parts[-1]
 
-        # Now parse the name part with the regex
         if not pattern:
             pattern = ItemParser.pattern
 
@@ -1199,8 +1070,6 @@ class ItemParser:
             return None
 
         parsed_dict = match.groupdict()
-
-        # Set default values if keys are missing
         parsed_dict.setdefault("frame", "")
         parsed_dict.setdefault("name", "")
         parsed_dict.setdefault("delimiter", "")
@@ -1216,11 +1085,6 @@ class ItemParser:
         if directory is None:
             directory = Path("")
 
-        path = Path(directory) / filename
-
-        if not path:
-            raise ValueError("invalid filepath")
-
         return Item(
             prefix=name,
             frame_string=parsed_dict["frame"],
@@ -1231,33 +1095,15 @@ class ItemParser:
         )
 
     @staticmethod
-    def item_from_path(path: Path) -> Union[Item, None]:
-        """Creates an Item object from a Path object.
-
-        Args:
-            path (Path): Path object representing the file.
-
-        Returns:
-            Item: Item object created from the Path.
-        """
+    def item_from_path(path: Path) -> Optional[Item]:
+        """Creates an Item object from a Path object."""
         return ItemParser.item_from_filename(path.name, path.parent)
 
     @staticmethod
     def item_from_components(
         components: Components, frame: int, directory: Optional[Path] = None
     ) -> Item:
-        """Converts a Components object into an Item object.
-
-        Args:
-            components (Components): Components object
-
-        Returns:
-            Item: Item object
-
-        """
-
-        # TODO write a test for this
-
+        """Converts a Components object into an Item object."""
         if isinstance(components, str):
             raise TypeError("components must be a Components object")
 
@@ -1267,12 +1113,13 @@ class ItemParser:
         if components.extension is None:
             raise ValueError("components must have an extension")
 
-        if components.padding is None:
-            components.padding = len(str(frame))
+        if components.padding is not None:
+            padding = components.padding
+        else:
+            padding = len(str(frame))
+        frame_string = str(frame).zfill(padding)
 
-        frame_string = str(frame).zfill(components.padding)
-
-        item = Item(
+        return Item(
             prefix=components.prefix,
             frame_string=frame_string,
             extension=components.extension,
@@ -1281,44 +1128,17 @@ class ItemParser:
             directory=directory,
         )
 
-        return item
-
     @staticmethod
     def convert_padding_to_hashes(sequence_str: str) -> str:
-        """Converts printf-style frame number patterns (%04d) to hash notation (####).
-
-        Args:
-            sequence_str (str): String containing printf-style pattern
-
-        Returns:
-            str: String with hash notation
-
-        Example:
-            >>> convert_printf_pattern("render_%04d.exr")
-            'render_####.exr'
-            >>> convert_printf_pattern("shot_%d.jpg")  # No padding specified
-            'shot_#.jpg'
-        """
-
-        # TODO test this
-
-        # Match %[0][padding]d pattern
-        # Groups:
-        # 1 - Optional 0 flag
-        # 2 - Optional padding number
-        # Followed by mandatory 'd'
-
+        """Converts printf-style patterns (%04d) to hash notation (####)."""
         logger.debug("Converting printf pattern to hash notation")
-
         printf_pattern = r"%(?:(0)?(\d+))?d"
 
-        def replace_match(match):
+        def replace_match(match: re.Match) -> str:
             padding = match.group(2)
             if padding:
-                # If padding specified, use that many #'s
                 return "#" * int(padding)
             else:
-                # If no padding specified, use single #
                 return "#"
 
         return re.sub(printf_pattern, replace_match, sequence_str)
@@ -1327,12 +1147,10 @@ class ItemParser:
 class SequenceParser:
     @dataclass
     class ParseResult:
-        sequences: list[FileSequence]
-        rogues: list[Path]
+        sequences: List[FileSequence]
+        rogues: List[Path]
 
     class SequenceDictItem(TypedDict):
-        """TypedDict for storing sequence dictionary items."""
-
         name: str
         delimiter: str
         suffix: str
@@ -1345,31 +1163,19 @@ class SequenceParser:
         filename_list: List[str],
         min_frames: int,
         directory: Optional[Path] = None,
-        allowed_extensions: Optional[set[str]] = None,
-        # return_rogues = False
+        allowed_extensions: Optional[set] = None,
     ) -> ParseResult:
-        """
-        Creates a list of detected FileSequence objects from a list of filenames.
-
-        Args:
-            filename_list (List[str]): A list of filenames to be analyzed for sequences.
-            directory (str, optional): The directory in which filenames are located.
-
-        Returns:
-            List[FileSequence]: A list of FileSequence objects representing the detected
-            file sequences.
-        """
+        """Creates FileSequence objects from a list of filenames."""
         sequence_dict: Dict[
             Tuple[str, str, str, str], SequenceParser.SequenceDictItem
         ] = {}
 
-        rogues: list[Path] = []
+        rogues: List[Path] = []
 
         if allowed_extensions:
             allowed_extensions = {ext.lower().lstrip(".") for ext in allowed_extensions}
 
         for file in filename_list:
-            # TODO config file for this
             if file[0] == ".":
                 continue
 
@@ -1380,18 +1186,15 @@ class SequenceParser:
 
             parsed_item = ItemParser.item_from_filename(file, directory)
             if not parsed_item:
-                # if return_rogues:
-
                 if directory is None:
                     directory = Path("")
                 rogues.append(directory / file)
                 continue
 
-            # Include suffix in the key to separate sequences with different suffixes
             key = (
                 parsed_item.prefix,
                 parsed_item.delimiter or "",
-                parsed_item.suffix or "",  # Add suffix to key
+                parsed_item.suffix or "",
                 parsed_item.extension or "",
             )
 
@@ -1408,15 +1211,14 @@ class SequenceParser:
             sequence_dict[key]["items"].append(parsed_item)
             sequence_dict[key]["frames"].append(parsed_item.frame_string)
 
-        sequence_list = []
+        sequence_list: List[FileSequence] = []
 
         for seq in sequence_dict.values():
             if len(seq["items"]) < min_frames:
                 continue
 
-            temp_sequence = FileSequence(
-                sorted(seq["items"], key=lambda i: i.frame_number)
-            )
+            sorted_items = tuple(sorted(seq["items"], key=lambda i: i.frame_number))
+            temp_sequence = FileSequence(items=sorted_items)
 
             duplicates = temp_sequence.find_duplicate_frames()
 
@@ -1425,12 +1227,11 @@ class SequenceParser:
                 continue
 
             padding_counts = Counter(item.padding for item in temp_sequence.items)
-
             nominal_padding = padding_counts.most_common(1)[0][0]
 
-            main_sequence_items = []
-            anomalous_items = defaultdict(list)
-            processed_frames = set()
+            main_sequence_items: List[Item] = []
+            anomalous_items: Dict[int, List[Item]] = defaultdict(list)
+            processed_frames: set = set()
 
             for item in temp_sequence.items:
                 if item.frame_number in processed_frames:
@@ -1449,76 +1250,35 @@ class SequenceParser:
                 processed_frames.add(item.frame_number)
 
             if len(main_sequence_items) >= 2:
-                main_sequence = FileSequence(
-                    sorted(main_sequence_items, key=lambda i: i.frame_number)
-                )
+                sorted_main = sorted(main_sequence_items, key=lambda i: i.frame_number)
+                main_sequence = FileSequence(items=tuple(sorted_main))
                 sequence_list.append(main_sequence)
 
             for _padding, items_list in anomalous_items.items():
                 if len(items_list) >= 2:
                     anomalous_sequence = FileSequence(
-                        sorted(items_list, key=lambda i: i.frame_number)
+                        items=tuple(sorted(items_list, key=lambda i: i.frame_number))
                     )
                     sequence_list.append(anomalous_sequence)
 
         logger.info(f"Parsed {len(sequence_list)} sequences in {directory}")
 
-        return __class__.ParseResult(sequence_list, rogues)
+        return SequenceParser.ParseResult(sequence_list, rogues)
 
     @staticmethod
     def filesequences_from_components_in_directory(
-        components: Components, min_frames, directory: Path
+        components: Components, min_frames: int, directory: Path
     ) -> List[FileSequence]:
-        """Matches components against a directory and returns a list of detected
-        sequences as FileSequence objects. If no components are specified, all
-        sequences are returned. Otherwise only sequences that match the
-        specified components are returned.
-
-        Args:
-            components (Components): Components to match
-            directory (str): Directory that contains the files
-
-        Returns:
-            list[FileSequence]: List of Sequence objects
-
-        """
-
+        """Matches components against a directory and returns matching sequences."""
         sequences = SequenceParser.from_directory(directory, min_frames).sequences
 
-        matches = []
+        matches: List[FileSequence] = []
 
         for sequence in sequences:
-            match = True
-
-            if components.prefix is not None and components.prefix != sequence.prefix:
-                match = False
-
-            if (
-                components.delimiter is not None
-                and components.delimiter != sequence.delimiter
-            ):
-                match = False
-
-            if (
-                components.padding is not None
-                and components.padding != sequence.padding
-            ):
-                match = False
-
-            if components.suffix is not None and components.suffix != sequence.suffix:
-                match = False
-
-            if (
-                components.extension is not None
-                and components.extension != sequence.extension
-            ):
-                match = False
-
-            if match:
+            if _sequence_matches_components(sequence, components):
                 matches.append(sequence)
 
         logger.info("Found %d sequences matching %s", len(matches), str(components))
-
         return matches
 
     @staticmethod
@@ -1527,30 +1287,8 @@ class SequenceParser:
         filename_list: List[str],
         min_frames: int,
         directory: Optional[Path] = None,
-    ) -> Union[FileSequence, None]:
-        """
-        Matches a sequence string against a list of filenames and returns
-        a detected sequence as a FileSequence object.
-
-        Sequence strings take the form: prefix.####.suffix.extension where the
-        number of # symbols determines the padding
-
-        Examples:
-
-        image.####.exr
-        render_###_revision.jpg
-        plate_v1-#####.png
-
-        Args:
-            filename (str): Sequence file name
-            filename_list (list): List of filenames
-            directory (str): Directory that contains the files (optional)
-            pattern (str): Regex pattern for parsing frame-based filenames (optional)
-
-        Returns:
-            FileSequence: Sequence object
-
-        """
+    ) -> Optional[FileSequence]:
+        """Matches a sequence string against a list of filenames."""
         logger.debug("Pre padding conversion: %s", sequence_string)
         sequence_string = ItemParser.convert_padding_to_hashes(sequence_string)
         logger.debug("Post padding conversion: %s", sequence_string)
@@ -1559,7 +1297,7 @@ class SequenceParser:
             filename_list, min_frames, directory
         ).sequences
 
-        matched = []
+        matched: List[FileSequence] = []
 
         for sequence in sequences:
             if sequence.sequence_string == sequence_string:
@@ -1567,25 +1305,22 @@ class SequenceParser:
 
         if len(matched) > 1:
             raise ValueError(
-                f"Multiple sequences match {sequence_string!r}: {matched!r}, should be only one"  # noqa: E501
+                f"Multiple sequences match {sequence_string!r}: "
+                f"{matched!r}, should be only one"
             )
 
         if len(matched) == 0:
             return None
 
         logger.info("Found sequences matching %s", sequence_string)
-
         return matched[0]
 
     @staticmethod
     def match_sequence_string_absolute(
         path: str, min_frames: int
-    ) -> Union[FileSequence, None]:
-        """Matches a sequence path against a list of filenames and returns
-        a detected sequence as a FileSequence object.
-        """
+    ) -> Optional[FileSequence]:
+        """Matches a sequence path and returns a FileSequence object."""
         path_ = Path(path)
-
         return SequenceParser.match_sequence_string_in_directory(
             path_.name, min_frames, path_.parent
         )
@@ -1595,34 +1330,10 @@ class SequenceParser:
         filename: str,
         min_frames: int,
         directory: Path,
-    ) -> Union[FileSequence, None]:
-        """Matches a sequence string name against a directory and returns
-        a detected sequence as a FileSequence object.
-
-        Sequence filenames take the form: prefix.####.suffix.extension where the
-        number of # symbols determines the padding
-
-        Examples:
-
-        image.####.exr
-        render_###_revision.jpg
-        plate_v1-#####.png
-
-        Args:
-            filename (str): Sequence file name
-            filename_list (list): List of filenames
-            directory (str): Directory that contains the files (optional)
-            pattern (str): Regex pattern for parsing frame-based filenames (optional)
-
-        Returns:
-            FileSequence: Sequence object
-
-        """
-
+    ) -> Optional[FileSequence]:
+        """Matches a sequence string against a directory's contents."""
         logger.debug("Matching sequence string in directory: %s", filename)
-
         files = os.listdir(str(directory))
-
         return SequenceParser.match_sequence_string_in_filename_list(
             filename, files, min_frames, directory
         )
@@ -1631,72 +1342,9 @@ class SequenceParser:
     def from_directory(
         directory: Path,
         min_frames: int,
-        allowed_extensions: Optional[set[str]] = None,
+        allowed_extensions: Optional[set] = None,
     ) -> ParseResult:
-        """Scans a directory and call Parser.detect_file_sequences to return a
-        list of detected sequences as FileSequence objects.
-
-        Sequence file names are parsed into the following component form:
-
-        <prefix><delimiter><frame><suffix><extension>
-
-        For example:
-        render.0001.grade.exr will yield:
-
-        prefix: render
-        delimiter: .
-        frame: 0001
-        suffix: grade
-        extension: exr
-
-        If there are missing frames, the sequence will still be parsed.
-
-        If a sequence is detected with inconsistent frame padding, the sequence will
-        still be returned with the inconsistent padding accurately represented at the
-        Item level, however the FileSequence object will return this as a Problem and
-        attempt to guess the optimum padding value when queried at the FileSequence
-        level.
-
-        This can happen if a sequence exceeded expected duration during generation:
-
-        frame_998.png
-        frame_999.png
-        frame_1000.png
-
-        If duplicate frames exist with different padding, the sequence will consume the
-        one that has the most appropriate padding, and any files with anomalous padding
-        will be returned in a separate sequence:
-
-        frame_001.png
-        frame_002.png
-        frame_02.png
-        frame_003.png
-        frame_004.png
-        frame_04.png
-        frame_005.png
-
-        will yield two sequences:
-
-        [frame_001.png
-        frame_002.png
-        frame_003.png
-        frame_004.png
-        frame_005.png]
-
-        [frame_02.png
-        frame_04.png]
-
-        Args:
-            directory (str): Directory to scan
-            pattern (str): Regex pattern for parsing frame-based filenames
-
-        Returns:
-            list[FileSequence]: List of Sequence objects
-
-        """
-
-        # files = os.listdir(str(directory))
-
+        """Scans a directory and returns detected sequences."""
         files = [str(f.name) for f in directory.iterdir() if f.is_file()]
 
         if not isinstance(files, list):
@@ -1704,8 +1352,6 @@ class SequenceParser:
 
         if not isinstance(directory, Path):
             raise TypeError("directory must be a Path object")
-
-        # return None
 
         return SequenceParser.from_file_list(
             files, min_frames, directory, allowed_extensions
@@ -1718,124 +1364,79 @@ class SequenceParser:
         min_frames: int,
         directory: Optional[Path] = None,
     ) -> List[FileSequence]:
-        """Matches components against a list of filenames and returns a list of
-        detected sequences as FileSequence objects. If no components are
-        specified, all sequences are returned. Otherwise only sequences that
-        match the specified components are returned.
-
-        Args:
-            components (Components): Components to match
-            filename_list (list): List of filenames
-            directory (str): Directory that contains the files (optional)
-            pattern (str): Regex pattern for parsing frame-based filenames (optional)
-
-        Returns:
-            list[FileSequence]: List of Sequence objects
-
-        """
-
+        """Matches components against a list of filenames."""
         sequences = SequenceParser.from_file_list(
             filename_list, min_frames, directory
         ).sequences
-        matches = []
+
+        matches: List[FileSequence] = []
 
         for sequence in sequences:
-            match = True
-
-            if components.prefix is not None and components.prefix != sequence.prefix:
-                match = False
-
-            if (
-                components.delimiter is not None
-                and components.delimiter != sequence.delimiter
-            ):
-                match = False
-
-            if (
-                components.padding is not None
-                and components.padding != sequence.padding
-            ):
-                match = False
-
-            if components.suffix is not None and components.suffix != sequence.suffix:
-                match = False
-
-            if (
-                components.extension is not None
-                and components.extension != sequence.extension
-            ):
-                match = False
-
-            if match:
+            if _sequence_matches_components(sequence, components):
                 matches.append(sequence)
 
         logger.info("Found %d sequences matching %s", len(matches), str(components))
-
         return matches
 
 
-class Problems(Flag):
-    """Enumeration of potential issues in frame sequences using Flag for bitwise
-    operations.
+def _sequence_matches_components(sequence: FileSequence, comp: Components) -> bool:
+    """Check if a sequence matches the given components specification."""
+    if comp.prefix is not None and comp.prefix != sequence.prefix:
+        return False
+    if comp.delimiter is not None and comp.delimiter != sequence.delimiter:
+        return False
+    if comp.padding is not None and comp.padding != sequence.padding:
+        return False
+    if comp.suffix is not None and comp.suffix != sequence.suffix:
+        return False
+    if comp.extension is not None and comp.extension != sequence.extension:
+        return False
+    return True
 
-    Provides a way to track and combine multiple issues that might exist in a sequence,
-    such as missing frames or inconsistent padding. Uses Python's Flag class to allow
-    multiple problems to be represented in a single value.
+
+# =============================================================================
+# Problems and Exceptions
+# =============================================================================
+
+
+class Problems(Flag):
+    """Enumeration of potential issues in frame sequences.
+
+    Uses Flag for bitwise operations to track multiple issues.
 
     Flags:
         NONE: No problems detected
         MISSING_FRAMES: Sequence has gaps between frame numbers
         INCONSISTENT_PADDING: Frame numbers have different padding lengths
         FILE_NAME_INCLUDES_SPACES: Filenames contain spaces
-        DUPLICATE_FRAME_NUMBERS_WITH_INCONSISTENT_PADDING: Same frame appears with different padding
-
-    Methods:
-        check_sequence: Analyze a FileSequence and return all detected problems
+        DUPLICATE_FRAME_NUMBERS_WITH_INCONSISTENT_PADDING: Same frame, different padding
 
     Example:
         problems = Problems.check_sequence(sequence)
         if problems & Problems.MISSING_FRAMES:
             print("Sequence has missing frames")
-
-    """  # noqa: E501
+    """
 
     NONE = 0
-    # Sequence has gaps between frame numbers
     MISSING_FRAMES = auto()
-    # Frame numbers have different amounts of padding
     INCONSISTENT_PADDING = auto()
-    # File names contain spaces
     FILE_NAME_INCLUDES_SPACES = auto()
-    # Same frame number appears with different padding
     DUPLICATE_FRAME_NUMBERS_WITH_INCONSISTENT_PADDING = auto()
 
     @classmethod
-    def check_sequence(cls, sequence: FileSequence) -> "Problems":
-        """Analyze a FileSequence and return a Problems flag with all detected
-        issues.
-
-        Args:
-            sequence (FileSequence): The sequence to check
-
-        Returns:
-            Problems: A flag containing all detected problems
-
-        """
+    def check_sequence(cls, sequence: FileSequence) -> Problems:
+        """Analyze a FileSequence and return a Problems flag."""
         problems = cls.NONE
 
-        # Check for missing frames
         if sequence.missing_frames:
             problems |= cls.MISSING_FRAMES
 
-        # Check for inconsistent padding
         if not sequence._check_padding():
             problems |= cls.INCONSISTENT_PADDING
 
-        # Check for spaces in filenames
         if any(" " in item.filename for item in sequence.items):
             problems |= cls.FILE_NAME_INCLUDES_SPACES
 
-        # Check for duplicate frames with different padding
         if sequence.find_duplicate_frames():
             problems |= cls.DUPLICATE_FRAME_NUMBERS_WITH_INCONSISTENT_PADDING
 
@@ -1846,28 +1447,23 @@ class AnomalousItemDataError(Exception):
     """Raised when unacceptable inconsistent data is found in a FileSequence."""
 
 
+# =============================================================================
+# Factory Class
+# =============================================================================
+
+
 class SequenceFactory:
+    """Factory for creating FileSequence objects from various sources."""
+
     @staticmethod
-    def from_directory(directory: Path, min_frames: int = 2) -> list[FileSequence]:
+    def from_directory(directory: Path, min_frames: int = 2) -> List[FileSequence]:
         return SequenceParser.from_directory(directory, min_frames).sequences
 
     @staticmethod
     def from_filenames(
         filenames: List[str], min_frames: int = 2, directory: Optional[Path] = None
-    ) -> list[FileSequence]:
-        """
-        Creates a list of detected FileSequence objects from files
-        found in a given directory.
-
-        Args:
-            filenames (List[str]): A list of file names to search for sequences.
-            min_frames (int): The minimum number of frames required for a sequence.
-            directory (str | Path): The directory in which to search for sequences.
-
-        Returns:
-            List[FileSequence]: A list of FileSequence objects representing
-            the detected file sequences.
-        """
+    ) -> List[FileSequence]:
+        """Creates FileSequence objects from a list of filenames."""
         return SequenceParser.from_file_list(filenames, min_frames, directory).sequences
 
     @staticmethod
@@ -1876,7 +1472,7 @@ class SequenceFactory:
         filename_list: List[str],
         directory: Optional[Path] = None,
         min_frames: int = 2,
-    ) -> list[FileSequence]:
+    ) -> List[FileSequence]:
         return SequenceParser.match_components_in_filename_list(
             components, filename_list, min_frames, directory
         )
@@ -1884,30 +1480,8 @@ class SequenceFactory:
     @staticmethod
     def from_directory_with_components(
         components: Components, directory: Path, min_frames: int = 2
-    ) -> List["FileSequence"]:
-        """
-        Matches components against the contents of a directory and returns a list
-        of detected sequences as FileSequence objects. If no components are specified,
-        all possible sequences are returned. Otherwise only sequences that match the
-        specified components are returned.
-
-
-        Examples:
-
-        >>> FileSequence.from_components_in_filename_list(Components(prefix = "image), filename_list)
-            Returns all sequences with prefix "image"
-
-        >>> FileSequence.from_components_in_filename_list(Components(prefix = "image", extension = "exr"), filename_list)
-            Returns all sequences with prefix "image" and extension "exr"
-
-        Args:
-            components (Components): Components to match
-            directory (str): Directory that contains the files
-
-        Returns:
-            list[FileSequence]: List of Sequence objects
-
-        """  # noqa: E501
+    ) -> List[FileSequence]:
+        """Matches components against a directory's contents."""
         return SequenceParser.filesequences_from_components_in_directory(
             components, min_frames, directory
         )
@@ -1918,32 +1492,8 @@ class SequenceFactory:
         filename_list: List[str],
         directory: Optional[Path] = None,
         min_frames: int = 2,
-    ) -> Union["FileSequence", None]:
-        """
-        Matches a sequence string against a list of filenames and returns
-        a detected sequence as a FileSequence object.
-
-        Sequence strings take the form: <prefix><delimiter><####><suffix>.<extension>
-        where the number of # symbols determines the padding.
-
-        Supported Examples:
-
-        image.####.exr
-        render_###_revision.jpg
-        plate_v1-#####.png
-
-        Digits in the suffix are not supported.
-
-        Args:
-            sequencestring (str): Sequence String Pattern ie "image.####.exr"
-            filename_list (list): List of filenames
-            directory (str): Directory that contains the files (optional)
-            pattern (str): Regex pattern for parsing frame-based filenames (optional)
-
-        Returns:
-            FileSequence: Sequence object
-
-        """
+    ) -> Optional[FileSequence]:
+        """Matches a sequence string against a list of filenames."""
         return SequenceParser.match_sequence_string_in_filename_list(
             sequence_string, filename_list, min_frames, directory
         )
@@ -1951,64 +1501,28 @@ class SequenceFactory:
     @staticmethod
     def from_sequence_string_absolute(
         path: str, min_frames: int = 2
-    ) -> Union["FileSequence", None]:
-        """
-        Parses a combined directory and sequence string as a single argument.
-
-        Sequence strings take the form: <prefix><delimiter><####><suffix>.<extension>
-        where the number of # symbols determines the padding.
-
-        Returns:
-            FileSequence | None
-        """
-
+    ) -> Optional[FileSequence]:
+        """Parses a combined directory and sequence string."""
         return SequenceParser.match_sequence_string_absolute(path, min_frames)
 
     @staticmethod
     def from_directory_with_sequence_string(
         filename: str, directory: Path, min_frames: int = 2
-    ) -> Union["FileSequence", None]:
-        """
-        Matches a sequence string string against the contents of a given directory
-        and returns a detected sequence as a FileSequence object.
-
-        Sequence strings take the form: <prefix><delimiter><####><suffix>.<extension>
-        where the number of # symbols determines the padding.
-
-        Supported Examples:
-
-        image.####.exr
-        render_###_revision.jpg
-        plate_v1-#####.png
-
-        Digits in the suffix are not supported.
-
-        Args:
-            filename (str): Sequence file name
-            directory (str): Directory that contains the files (optional)
-
-        Returns:
-            FileSequence | None
-
-        """
-
+    ) -> Optional[FileSequence]:
+        """Matches a sequence string against a directory's contents."""
         return SequenceParser.match_sequence_string_in_directory(
             filename, min_frames, directory
         )
 
     @staticmethod
-    def from_nuke_node(node) -> Union["FileSequence", None]:
-        """
-        Creates a FileSequence object from a Nuke node
-        Can only be called from a Nuke environment
+    def from_nuke_node(node: Any) -> Optional[FileSequence]:
+        """Creates a FileSequence from a Nuke node.
+
+        Can only be called from a Nuke environment.
 
         Raises:
-            ImportError: Nuke is not available
-
-        Returns:
-            FileSequence | None
+            ImportError: If Nuke is not available
         """
         if not importlib.util.find_spec("nuke"):
             raise ImportError("This method can only be called from a Nuke environment")
-
         return SequenceFactory.from_sequence_string_absolute(node["file"].getValue())

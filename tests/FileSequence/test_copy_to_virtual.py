@@ -4,7 +4,8 @@ from pysequitur import Item, FileSequence
 from pysequitur.file_sequence import Components
 
 
-def test_file_sequence_copy_to_virtual(tmp_path):
+def test_file_sequence_copy_without_execute(tmp_path):
+    """Test that copy returns proposed state without executing."""
     # Setup
     original_dir = tmp_path / "original"
     original_dir.mkdir()
@@ -16,47 +17,49 @@ def test_file_sequence_copy_to_virtual(tmp_path):
         test_file.touch()
         files.append(test_file)
 
-    # Create sequence
-    items = [Item.from_path(f) for f in files]
+    # Create sequence (now uses tuple)
+    items = tuple(Item.from_path(f) for f in files)
     sequence = FileSequence(items)
 
     new_dir = tmp_path / "new"
 
-    # Test virtual copy with new directory
-    virtual_sequence = sequence.copy_to(new_directory=new_dir, virtual=True)
+    # Test copy without execute - with new directory
+    new_sequence, plan = sequence.copy(new_directory=new_dir)
 
-    # Assert virtual_sequence is a new instance
-    assert virtual_sequence is not sequence
+    # Assert new_sequence is a new instance
+    assert new_sequence is not sequence
 
-    # Assert virtual_sequence has correct parameters
-    assert all(item.directory == new_dir for item in virtual_sequence.items)
-    assert len(virtual_sequence.items) == len(sequence.items)
-    assert all(item.prefix == "test" for item in virtual_sequence.items)
+    # Assert new_sequence has correct parameters
+    assert all(item.directory == new_dir for item in new_sequence.items)
+    assert len(new_sequence.items) == len(sequence.items)
+    assert all(item.prefix == "test" for item in new_sequence.items)
 
-    # Test virtual copy with default settings (should add '_copy' to prefix)
-    virtual_sequence = sequence.copy_to(virtual=True)
-    assert all(item.prefix == "test_copy" for item in virtual_sequence.items)
-    assert all(item.directory == original_dir for item in virtual_sequence.items)
+    # Test copy without execute - default settings (should add '_copy' to prefix)
+    new_sequence, plan = sequence.copy()
+    assert all(item.prefix == "test_copy" for item in new_sequence.items)
+    assert all(item.directory == original_dir for item in new_sequence.items)
 
-    # Test virtual copy with new Components
-    virtual_sequence = sequence.copy_to(Components(prefix="new_prefix"), virtual=True)
-    assert all(item.prefix == "new_prefix" for item in virtual_sequence.items)
-    assert all(item.directory == original_dir for item in virtual_sequence.items)
+    # Test copy without execute - with new Components
+    new_sequence, plan = sequence.copy(Components(prefix="new_prefix"))
+    assert all(item.prefix == "new_prefix" for item in new_sequence.items)
+    assert all(item.directory == original_dir for item in new_sequence.items)
 
-    # Test virtual copy with both new directory and Components
-    virtual_sequence = sequence.copy_to(
-        Components(prefix="new_prefix"), new_directory=new_dir, virtual=True
+    # Test copy without execute - both new directory and Components
+    new_sequence, plan = sequence.copy(
+        Components(prefix="new_prefix"), new_directory=new_dir
     )
-    assert all(item.prefix == "new_prefix" for item in virtual_sequence.items)
-    assert all(item.directory == new_dir for item in virtual_sequence.items)
+    assert all(item.prefix == "new_prefix" for item in new_sequence.items)
+    assert all(item.directory == new_dir for item in new_sequence.items)
 
-    # Assert original sequence hasn't changed
+    # Assert original sequence hasn't changed (frozen)
     assert all(item.directory == original_dir for item in sequence.items)
     assert all(item.prefix == "test" for item in sequence.items)
 
     # Assert original files still exist and no new files created
     assert all(f.exists() for f in files)
-    assert not new_dir.exists() or not any((new_dir / f.name).exists() for f in files)
+    assert not new_dir.exists() or not any(
+        (new_dir / f.name).exists() for f in files
+    )
     assert not any(
         (original_dir / f"test_copy.{i:04d}.exr").exists() for i in range(1001, 1004)
     )
@@ -65,7 +68,7 @@ def test_file_sequence_copy_to_virtual(tmp_path):
     )
 
     # Test that frame numbers and other properties are preserved
-    for orig_item, virtual_item in zip(sequence.items, virtual_sequence.items):
-        assert virtual_item.frame_number == orig_item.frame_number
-        assert virtual_item.extension == orig_item.extension
-        assert virtual_item.padding == orig_item.padding
+    for orig_item, new_item in zip(sequence.items, new_sequence.items):
+        assert new_item.frame_number == orig_item.frame_number
+        assert new_item.extension == orig_item.extension
+        assert new_item.padding == orig_item.padding

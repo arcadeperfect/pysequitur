@@ -3,7 +3,8 @@ from pathlib import Path
 from pysequitur import Item
 
 
-def test_item_update_frame_number_virtual(tmp_path):
+def test_item_with_frame_number_without_execute(tmp_path):
+    """Test that with_frame_number returns proposed state without executing."""
     # Setup
     original_dir = tmp_path / "original"
     original_dir.mkdir()
@@ -18,28 +19,28 @@ def test_item_update_frame_number_virtual(tmp_path):
     original_frame = item.frame_number
     original_padding = item.padding
 
-    # Test virtual frame number update
-    virtual_item = item.update_frame_number(2000, virtual=True)
+    # Test frame number update without execute
+    new_item, plan = item.with_frame_number(2000)
 
-    # Assert virtual_item is a new instance (not the same object)
-    assert virtual_item is not item
+    # Assert new_item is a new instance (not the same object)
+    assert new_item is not item
 
-    # Assert virtual_item has correct parameters
-    assert virtual_item.frame_number == 2000
-    assert virtual_item.frame_string == "2000"
-    assert virtual_item.filename == "test.2000.exr"
+    # Assert new_item has correct parameters
+    assert new_item.frame_number == 2000
+    assert new_item.frame_string == "2000"
+    assert new_item.filename == "test.2000.exr"
 
-    # Assert original item hasn't changed
+    # Assert original item hasn't changed (frozen)
     assert item.frame_number == original_frame
     assert item.padding == original_padding
     assert item.path == original_path
 
-    # Test virtual frame number update with padding
-    virtual_item = item.update_frame_number(2000, padding=5, virtual=True)
+    # Test frame number update with padding
+    new_item, plan = item.with_frame_number(2000, padding=5)
 
     # Assert padding is respected
-    assert virtual_item.frame_string == "02000"
-    assert virtual_item.filename == "test.02000.exr"
+    assert new_item.frame_string == "02000"
+    assert new_item.filename == "test.02000.exr"
 
     # Assert original file hasn't been modified
     assert original_path.exists()

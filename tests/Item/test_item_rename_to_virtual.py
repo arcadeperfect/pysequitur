@@ -4,7 +4,8 @@ from pysequitur import Item
 from pysequitur.file_sequence import Components
 
 
-def test_item_rename_virtual(parse_item_yaml):
+def test_item_rename_without_execute(parse_item_yaml):
+    """Test that rename returns proposed state without executing."""
     test_env_list = parse_item_yaml()
 
     # Test linked items (with real file associated)
@@ -16,35 +17,33 @@ def test_item_rename_virtual(parse_item_yaml):
         assert item.exists is True
         original_path = Path(item.absolute_path)
 
-        # Test virtual prefix rename
-        virtual_item = item.rename_to(Components(prefix="new_prefix"), virtual=True)
-        assert virtual_item.prefix == "new_prefix"
-        assert item.prefix == data["prefix"]  # Original item unchanged
+        # Test rename without executing - should not change filesystem
+        new_item, plan = item.rename(Components(prefix="new_prefix"))
+        assert new_item.prefix == "new_prefix"
+        assert item.prefix == data["prefix"]  # Original item unchanged (frozen)
         assert original_path.exists()  # Original file still exists
 
-        # Test virtual delimiter rename
-        virtual_item = item.rename_to(Components(delimiter="-"), virtual=True)
-        assert virtual_item.delimiter == "-"
+        # Test delimiter rename without execute
+        new_item, plan = item.rename(Components(delimiter="-"))
+        assert new_item.delimiter == "-"
         assert item.delimiter == data["delimiter"]  # Original item unchanged
         assert original_path.exists()  # Original file still exists
 
-        # Test virtual padding rename
+        # Test padding rename without execute
         new_padding = 5
-        virtual_item = item.rename_to(Components(padding=new_padding), virtual=True)
-        assert virtual_item.padding == max(new_padding, len(str(data["frame_number"])))
+        new_item, plan = item.rename(Components(padding=new_padding))
+        assert new_item.padding == max(new_padding, len(str(data["frame_number"])))
         assert item.padding == data["padding"]  # Original item unchanged
         assert original_path.exists()  # Original file still exists
 
-        # Test virtual suffix rename
-        virtual_item = item.rename_to(Components(suffix="new_suffix"), virtual=True)
-        assert virtual_item.suffix == "new_suffix"
+        # Test suffix rename without execute
+        new_item, plan = item.rename(Components(suffix="new_suffix"))
+        assert new_item.suffix == "new_suffix"
         assert item.suffix == data["suffix"]  # Original item unchanged
         assert original_path.exists()  # Original file still exists
 
-        # Test virtual extension rename
-        virtual_item = item.rename_to(
-            Components(extension="new_extension"), virtual=True
-        )
-        assert virtual_item.extension == "new_extension"
+        # Test extension rename without execute
+        new_item, plan = item.rename(Components(extension="new_extension"))
+        assert new_item.extension == "new_extension"
         assert item.extension == data["extension"]  # Original item unchanged
         assert original_path.exists()  # Original file still exists

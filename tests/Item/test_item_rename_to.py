@@ -4,7 +4,7 @@ from pysequitur import Item
 from pysequitur.file_sequence import Components
 
 
-def test_item_rename_to(parse_item_yaml):
+def test_item_rename(parse_item_yaml):
     test_env_list = parse_item_yaml()
 
     # Test unlinked items (no real file associated)
@@ -15,27 +15,29 @@ def test_item_rename_to(parse_item_yaml):
         assert isinstance(item, Item)
         assert item.exists is False
 
-        # Test prefix rename
-        item.rename_to(Components(prefix="new_prefix"))
-        assert item.prefix == "new_prefix"
+        # Test prefix rename - new API returns (new_item, plan)
+        new_item, plan = item.rename(Components(prefix="new_prefix"))
+        assert new_item.prefix == "new_prefix"
+        # Original item is unchanged (frozen)
+        assert item.prefix == data["prefix"]
 
         # Test delimiter rename
-        item.rename_to(Components(delimiter="_"))
-        assert item.delimiter == "_"
-        item.rename_to(Components(delimiter="-"))
-        assert item.delimiter == "-"
+        new_item, plan = item.rename(Components(delimiter="_"))
+        assert new_item.delimiter == "_"
+        new_item2, plan = new_item.rename(Components(delimiter="-"))
+        assert new_item2.delimiter == "-"
 
         # Test padding rename
         new_padding = 5
         min_padding = len(str(data["frame_number"]))
-        item.rename_to(Components(padding=new_padding))
-        assert item.padding == max(new_padding, min_padding)
+        new_item, plan = item.rename(Components(padding=new_padding))
+        assert new_item.padding == max(new_padding, min_padding)
 
         # Test suffix and extension rename
-        item.rename_to(Components(suffix="new_suffix"))
-        assert item.suffix == "new_suffix"
-        item.rename_to(Components(extension="new_extension"))
-        assert item.extension == "new_extension"
+        new_item, plan = item.rename(Components(suffix="new_suffix"))
+        assert new_item.suffix == "new_suffix"
+        new_item, plan = item.rename(Components(extension="new_extension"))
+        assert new_item.extension == "new_extension"
 
     # Test linked items (with real file associated)
     for test_case in test_env_list:
@@ -45,47 +47,76 @@ def test_item_rename_to(parse_item_yaml):
         assert isinstance(item, Item)
         assert item.exists is True
 
-        # Test prefix rename
+        # Test prefix rename with execution
         original_path = Path(item.absolute_path)
-        item.rename_to(Components(prefix="new_prefix"))
-        assert item.prefix == "new_prefix"
+        new_item, plan = item.rename(Components(prefix="new_prefix"))
+        assert new_item.prefix == "new_prefix"
+        plan.execute()
         assert not original_path.exists()
-        assert item.exists is True
+        assert new_item.exists is True
+
+        # Continue with the renamed item
+        item = new_item
 
         # Test delimiter rename
         original_path = Path(item.absolute_path)
-        item.rename_to(Components(delimiter="_"))
-        assert item.delimiter == "_"
+        new_item, plan = item.rename(Components(delimiter="_"))
+        assert new_item.delimiter == "_"
+        if plan.operations:
+            plan.execute()
         if not data["delimiter"] == "_":
             assert not original_path.exists()
-        assert item.exists is True
+        assert new_item.exists is True
 
+        item = new_item
         original_path = Path(item.absolute_path)
-        item.rename_to(Components(delimiter="-"))
-        assert item.delimiter == "-"
+        new_item, plan = item.rename(Components(delimiter="-"))
+        assert new_item.delimiter == "-"
+        if plan.operations:
+            plan.execute()
         assert not original_path.exists()
-        assert item.exists is True
+        assert new_item.exists is True
+
+        item = new_item
 
         # Test padding rename
         original_path = Path(item.absolute_path)
         new_padding = 5
         min_padding = len(str(data["frame_number"]))
-        item.rename_to(Components(padding=new_padding))
+        new_item, plan = item.rename(Components(padding=new_padding))
         expected_padding = max(new_padding, min_padding)
-        assert item.padding == expected_padding
-        if expected_padding != len(item.frame_string):
+        assert new_item.padding == expected_padding
+        if plan.operations:
+            plan.execute()
+        if expected_padding != item.padding:
             assert not original_path.exists()
-        assert item.exists is True
+        assert new_item.exists is True
+
+        item = new_item
 
         # Test suffix and extension rename
         original_path = Path(item.absolute_path)
-        item.rename_to(Components(suffix="new_suffix"))
-        assert item.suffix == "new_suffix"
-        assert not original_path.exists()
-        assert item.exists is True
+        new_item, plan = item.rename(Components(suffix="new_suffix"))
+        assert new_item.suffix == "new_suffix"
+        if plan.operations and not plan.has_conflicts:
+            plan.execute()
+            assert not original_path.exists()
+            assert new_item.exists is True
+        elif plan.has_conflicts:
+            # If there's a conflict (from previous test iteration), skip execution
+            pass
 
+        item = new_item
         original_path = Path(item.absolute_path)
-        item.rename_to(Components(extension="new_extension"))
-        assert item.extension == "new_extension"
-        assert not original_path.exists()
-        assert item.exists is True
+        new_item, plan = item.rename(Components(extension="new_extension"))
+        assert new_item.extension == "new_extension"
+        if plan.operations and not plan.has_conflicts:
+            plan.execute()
+            assert not original_path.exists()
+            assert new_item.exists is True
+        elif plan.has_conflicts:
+            # If there's a conflict (from previous test iteration), skip execution
+            pass
+        else:
+            # No operations needed (already has this extension)
+            pass

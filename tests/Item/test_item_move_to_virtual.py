@@ -1,35 +1,39 @@
 import pytest
 from pathlib import Path
+import shutil
 from pysequitur import Item
 
 
-def test_item_move_to_virtual(tmp_path):
-    # Setup
-    original_dir = tmp_path / "original"
-    original_dir.mkdir()
-    test_file = original_dir / "test.1001.exr"
-    test_file.touch()
+def test_item_move_without_execute(parse_item_yaml):
+    """Test that move returns proposed state without executing."""
+    test_env_list = parse_item_yaml()
 
-    new_dir = tmp_path / "new"
+    # Test linked items (with real file associated)
+    for test_case in test_env_list:
+        move_to_dir = Path(test_case["tmp_dir"] / "move_to")
+        move_to_dir.mkdir(parents=True, exist_ok=True)
 
-    # Create original item
-    item = Item.from_path(test_file)
-    if item is None:
-        raise ValueError("Item is None")
-    original_path = item.path
+        data = test_case["data"]
+        item = Item.from_file_name(data["file_name"], test_case["real_file"].parent)
 
-    # Test virtual move
-    virtual_item = item.move_to(new_dir, virtual=True)
+        assert isinstance(item, Item)
+        original_path = Path(item.absolute_path)
+        assert original_path.exists()
+        assert item.exists
 
-    # Assert virtual_item is a new instance (not the same object)
-    assert virtual_item is not item
+        # Move without executing - should not change filesystem
+        new_item, plan = item.move(move_to_dir)
 
-    # Assert virtual_item has correct parameters
-    assert virtual_item.directory == new_dir
-    assert virtual_item.filename == "test.1001.exr"
-    assert virtual_item.path == new_dir / "test.1001.exr"
+        # New item has the proposed new state
+        assert new_item.directory == move_to_dir
 
-    # Assert original file hasn't moved
-    assert original_path.exists()
-    assert item.path == original_path
-    assert not (new_dir / "test.1001.exr").exists()
+        # Original item is unchanged (frozen)
+        assert item.directory == test_case["real_file"].parent
+
+        # Original file still exists
+        assert original_path.exists()
+
+        # New path doesn't exist yet
+        assert not new_item.exists
+
+        shutil.rmtree(move_to_dir)

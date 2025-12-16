@@ -15,29 +15,37 @@ def test_file_sequence_offset_frames(tmp_path):
         test_file.touch()
         files.append(test_file)
 
-    # Create sequence
-    items = [Item.from_path(f) for f in files]
+    # Create sequence (now uses tuple)
+    items = tuple(Item.from_path(f) for f in files)
     sequence = FileSequence(items)
 
     # Test positive offset
-    offset_sequence = sequence.offset_frames(10)
+    offset_sequence, plan = sequence.offset_frames(10)
+    plan.execute()
 
-    # Assert sequence is modified in place
-    assert offset_sequence is sequence
+    # Assert offset_sequence is a new instance (frozen)
+    assert offset_sequence is not sequence
 
     # Assert files are renamed with new frame numbers
-    assert all((original_dir / f"test.{i:04d}.exr").exists() for i in range(1011, 1014))
+    assert all(
+        (original_dir / f"test.{i:04d}.exr").exists() for i in range(1011, 1014)
+    )
     assert not any(
         (original_dir / f"test.{i:04d}.exr").exists() for i in range(1001, 1004)
     )
 
     # Assert frame numbers are updated
     assert all(
-        item.frame_number == i for item, i in zip(sequence.items, range(1011, 1014))
+        item.frame_number == i
+        for item, i in zip(offset_sequence.items, range(1011, 1014))
     )
 
+    # Continue with offset sequence
+    sequence = offset_sequence
+
     # Test negative offset
-    offset_sequence = sequence.offset_frames(-15)
+    offset_sequence, plan = sequence.offset_frames(-15)
+    plan.execute()
 
     # Assert files are renamed with new frame numbers
     assert all((original_dir / f"test.{i:04d}.exr").exists() for i in range(996, 999))
@@ -47,8 +55,11 @@ def test_file_sequence_offset_frames(tmp_path):
 
     # Assert frame numbers are updated
     assert all(
-        item.frame_number == i for item, i in zip(sequence.items, range(996, 999))
+        item.frame_number == i
+        for item, i in zip(offset_sequence.items, range(996, 999))
     )
+
+    sequence = offset_sequence
 
     # Test error on negative frames
     with pytest.raises(ValueError):
