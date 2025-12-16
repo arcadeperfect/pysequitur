@@ -15,7 +15,16 @@ from dataclasses import dataclass
 from enum import Enum, Flag, auto
 from operator import attrgetter
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, TypedDict
+from typing import (
+    Any,
+    Dict,
+    Iterator,
+    List,
+    Optional,
+    Tuple,
+    TypedDict,
+    Union,
+)
 
 logger = logging.getLogger("pysequitur")
 logger.addHandler(logging.NullHandler())
@@ -190,6 +199,99 @@ class OperationPlan:
 
 
 # =============================================================================
+# Result Types - Named tuples with .apply() convenience
+# =============================================================================
+
+
+@dataclass(frozen=True)
+class ItemResult:
+    """Result of an Item operation containing the proposed new state and plan.
+
+    Provides a convenient `.apply()` method to execute the plan and return
+    the new Item in one call.
+
+    Attributes:
+        item: The proposed new Item state
+        plan: The OperationPlan to execute
+
+    Example:
+        # Traditional usage
+        result = item.rename(Components(prefix="new"))
+        result.plan.execute()
+        new_item = result.item
+
+        # Convenient usage
+        new_item = item.rename(Components(prefix="new")).apply()
+    """
+
+    item: Item
+    plan: OperationPlan
+
+    def apply(self, *, force: bool = False) -> Item:
+        """Execute the plan and return the new Item.
+
+        Args:
+            force: If True, overwrite existing files on conflict.
+
+        Returns:
+            The new Item after execution.
+
+        Raises:
+            FileExistsError: If conflicts exist and force=False.
+        """
+        self.plan.execute(force=force)
+        return self.item
+
+    def __iter__(self) -> Iterator:
+        """Allow tuple unpacking: item, plan = result"""
+        return iter((self.item, self.plan))
+
+
+@dataclass(frozen=True)
+class SequenceResult:
+    """Result of a FileSequence operation containing proposed new state and plan.
+
+    Provides a convenient `.apply()` method to execute the plan and return
+    the new FileSequence in one call.
+
+    Attributes:
+        sequence: The proposed new FileSequence state
+        plan: The OperationPlan to execute
+
+    Example:
+        # Traditional usage
+        result = sequence.rename(Components(prefix="new"))
+        result.plan.execute()
+        new_seq = result.sequence
+
+        # Convenient usage
+        new_seq = sequence.rename(Components(prefix="new")).apply()
+    """
+
+    sequence: FileSequence
+    plan: OperationPlan
+
+    def apply(self, *, force: bool = False) -> FileSequence:
+        """Execute the plan and return the new FileSequence.
+
+        Args:
+            force: If True, overwrite existing files on conflict.
+
+        Returns:
+            The new FileSequence after execution.
+
+        Raises:
+            FileExistsError: If conflicts exist and force=False.
+        """
+        self.plan.execute(force=force)
+        return self.sequence
+
+    def __iter__(self) -> Iterator:
+        """Allow tuple unpacking: sequence, plan = result"""
+        return iter((self.sequence, self.plan))
+
+
+# =============================================================================
 # Core Data Types
 # =============================================================================
 
@@ -272,6 +374,52 @@ class Components:
             frame_number=(
                 self.frame_number if self.frame_number is not None else frame_number
             ),
+        )
+
+    # -------------------------------------------------------------------------
+    # Builder pattern methods for fluent API
+    # -------------------------------------------------------------------------
+
+    def with_prefix(self, prefix: str) -> Components:
+        """Return a new Components with the given prefix."""
+        return dataclasses.replace(self, prefix=prefix)
+
+    def with_delimiter(self, delimiter: str) -> Components:
+        """Return a new Components with the given delimiter."""
+        return dataclasses.replace(self, delimiter=delimiter)
+
+    def with_padding(self, padding: int) -> Components:
+        """Return a new Components with the given padding."""
+        return dataclasses.replace(self, padding=padding)
+
+    def with_suffix(self, suffix: str) -> Components:
+        """Return a new Components with the given suffix."""
+        return dataclasses.replace(self, suffix=suffix)
+
+    def with_extension(self, extension: str) -> Components:
+        """Return a new Components with the given extension."""
+        return dataclasses.replace(self, extension=extension)
+
+    @classmethod
+    def build(
+        cls,
+        prefix: Optional[str] = None,
+        delimiter: Optional[str] = None,
+        padding: Optional[int] = None,
+        suffix: Optional[str] = None,
+        extension: Optional[str] = None,
+    ) -> Components:
+        """Factory method to create Components with a fluent API.
+
+        Example:
+            Components.build().with_prefix("new").with_extension("exr")
+        """
+        return cls(
+            prefix=prefix,
+            delimiter=delimiter,
+            padding=padding,
+            suffix=suffix,
+            extension=extension,
         )
 
 
@@ -380,10 +528,10 @@ class Item:
         return len(str(int(self.frame_string)))
 
     # -------------------------------------------------------------------------
-    # Operations - all return (new_state, OperationPlan)
+    # Operations - all return ItemResult (supports tuple unpacking and .apply())
     # -------------------------------------------------------------------------
 
-    def rename(self, new_name: Components) -> Tuple[Item, OperationPlan]:
+    def rename(self, new_name: Components) -> ItemResult:
         """Prepare a rename operation.
 
         Args:
@@ -391,8 +539,19 @@ class Item:
                      filled from current item values.
 
         Returns:
-            Tuple of (new_item, plan) where new_item is the proposed new state
-            and plan contains the filesystem operations to execute.
+            ItemResult containing (new_item, plan). Supports tuple unpacking
+            or use .apply() for convenience.
+
+        Example:
+            # Tuple unpacking
+            new_item, plan = item.rename(Components(prefix="new"))
+            plan.execute()
+
+            # Fluent API
+            new_item = item.rename(Components(prefix="new")).apply()
+
+            # Builder pattern
+            new_item = item.rename(Components.build().with_prefix("new")).apply()
         """
         if isinstance(new_name, str):
             raise TypeError("new_name must be a Components object, not a string")
@@ -401,7 +560,7 @@ class Item:
 
         # No filesystem change needed if paths are identical
         if new_item.absolute_path == self.absolute_path:
-            return new_item, OperationPlan.empty()
+            return ItemResult(new_item, OperationPlan.empty())
 
         operation = FileOperation(
             operation=OperationType.RENAME,
@@ -409,11 +568,9 @@ class Item:
             destination=new_item.absolute_path,
         )
 
-        return new_item, OperationPlan(operations=(operation,))
+        return ItemResult(new_item, OperationPlan(operations=(operation,)))
 
-    def move(
-        self, new_directory: Path, create_directory: bool = False
-    ) -> Tuple[Item, OperationPlan]:
+    def move(self, new_directory: Path, create_directory: bool = False) -> ItemResult:
         """Prepare a move operation.
 
         Args:
@@ -421,7 +578,7 @@ class Item:
             create_directory: If True, create the directory if it doesn't exist
 
         Returns:
-            Tuple of (new_item, plan)
+            ItemResult containing (new_item, plan)
         """
         logger.debug("Preparing move of %s to %s", self.filename, new_directory)
 
@@ -429,7 +586,7 @@ class Item:
 
         # No filesystem change needed if paths are identical
         if new_item.absolute_path == self.absolute_path:
-            return new_item, OperationPlan.empty()
+            return ItemResult(new_item, OperationPlan.empty())
 
         # Create directory if requested (this is a side effect, happens immediately)
         if create_directory and not new_directory.exists():
@@ -441,13 +598,13 @@ class Item:
             destination=new_item.absolute_path,
         )
 
-        return new_item, OperationPlan(operations=(operation,))
+        return ItemResult(new_item, OperationPlan(operations=(operation,)))
 
     def copy(
         self,
         new_name: Optional[Components] = None,
         new_directory: Optional[Path] = None,
-    ) -> Tuple[Item, OperationPlan]:
+    ) -> ItemResult:
         """Prepare a copy operation.
 
         Args:
@@ -455,7 +612,7 @@ class Item:
             new_directory: Optional new directory for the copy
 
         Returns:
-            Tuple of (new_item, plan)
+            ItemResult containing (new_item, plan)
         """
         if isinstance(new_name, str):
             raise TypeError("new_name must be a Components object")
@@ -478,7 +635,7 @@ class Item:
             destination=new_item.absolute_path,
         )
 
-        return new_item, OperationPlan(operations=(operation,))
+        return ItemResult(new_item, OperationPlan(operations=(operation,)))
 
     def delete(self) -> OperationPlan:
         """Prepare a delete operation.
@@ -498,7 +655,7 @@ class Item:
 
     def with_frame_number(
         self, new_frame_number: int, padding: Optional[int] = None
-    ) -> Tuple[Item, OperationPlan]:
+    ) -> ItemResult:
         """Prepare an operation to change the frame number.
 
         Args:
@@ -506,7 +663,7 @@ class Item:
             padding: Optional new padding (defaults to current or minimum required)
 
         Returns:
-            Tuple of (new_item, plan)
+            ItemResult containing (new_item, plan)
 
         Raises:
             ValueError: If new_frame_number is negative
@@ -524,7 +681,7 @@ class Item:
 
         # No filesystem change needed if paths are identical
         if new_item.absolute_path == self.absolute_path:
-            return new_item, OperationPlan.empty()
+            return ItemResult(new_item, OperationPlan.empty())
 
         operation = FileOperation(
             operation=OperationType.RENAME,
@@ -532,16 +689,16 @@ class Item:
             destination=new_item.absolute_path,
         )
 
-        return new_item, OperationPlan(operations=(operation,))
+        return ItemResult(new_item, OperationPlan(operations=(operation,)))
 
-    def with_padding(self, padding: int) -> Tuple[Item, OperationPlan]:
+    def with_padding(self, padding: int) -> ItemResult:
         """Prepare an operation to change the padding.
 
         Args:
             padding: The new padding (minimum is determined by frame number)
 
         Returns:
-            Tuple of (new_item, plan)
+            ItemResult containing (new_item, plan)
         """
         actual_padding = max(padding, len(str(self.frame_number)))
         new_frame_string = f"{self.frame_number:0{actual_padding}d}"
@@ -550,7 +707,7 @@ class Item:
 
         # No filesystem change needed if paths are identical
         if new_item.absolute_path == self.absolute_path:
-            return new_item, OperationPlan.empty()
+            return ItemResult(new_item, OperationPlan.empty())
 
         operation = FileOperation(
             operation=OperationType.RENAME,
@@ -558,7 +715,7 @@ class Item:
             destination=new_item.absolute_path,
         )
 
-        return new_item, OperationPlan(operations=(operation,))
+        return ItemResult(new_item, OperationPlan(operations=(operation,)))
 
     # -------------------------------------------------------------------------
     # Private helpers
@@ -620,6 +777,135 @@ class FileSequence:
 
     def __repr__(self) -> str:
         return f"{self.sequence_string} {self.first_frame}-{self.last_frame}"
+
+    def __getitem__(self, key: Union[int, slice]) -> Union[Item, FileSequence]:
+        """Access items by frame number or slice.
+
+        Args:
+            key: Either a frame number (int) or a slice of frame numbers.
+
+        Returns:
+            Item if key is int, FileSequence if key is slice.
+
+        Raises:
+            KeyError: If frame number is not in the sequence.
+            TypeError: If key is not int or slice.
+
+        Examples:
+            # Get single item by frame number
+            item = sequence[1001]
+
+            # Get subsequence by frame range
+            subsequence = sequence[1001:1010]  # frames 1001-1009
+            subsequence = sequence[1001:1010:2]  # every 2nd frame
+
+            # Get last 10 frames
+            last_10 = sequence[-10:]
+        """
+        if isinstance(key, int):
+            # Handle negative indexing
+            if key < 0:
+                # Convert to frame-based: -1 = last frame, -2 = second to last, etc.
+                sorted_items = sorted(self.items, key=lambda i: i.frame_number)
+                try:
+                    return sorted_items[key]
+                except IndexError:
+                    raise KeyError(f"Frame index {key} out of range") from None
+
+            # Positive int: treat as frame number
+            for item in self.items:
+                if item.frame_number == key:
+                    return item
+            raise KeyError(f"Frame {key} not found in sequence")
+
+        elif isinstance(key, slice):
+            return self._slice_by_frames(key)
+
+        else:
+            raise TypeError(
+                f"indices must be integers or slices, not {type(key).__name__}"
+            )
+
+    def _slice_by_frames(self, key: slice) -> FileSequence:
+        """Slice the sequence by frame numbers."""
+        sorted_items = sorted(self.items, key=lambda i: i.frame_number)
+        frame_numbers = [item.frame_number for item in sorted_items]
+
+        # Handle None values in slice
+        start = key.start
+        stop = key.stop
+        step = key.step or 1
+
+        # Handle negative start/stop (index from end)
+        if start is not None and start < 0:
+            start = (
+                frame_numbers[start]
+                if abs(start) <= len(frame_numbers)
+                else frame_numbers[0]
+            )
+        if stop is not None and stop < 0:
+            stop = (
+                frame_numbers[stop]
+                if abs(stop) <= len(frame_numbers)
+                else frame_numbers[0]
+            )
+
+        # Default start to first frame, stop to last frame + 1
+        if start is None:
+            start = frame_numbers[0] if frame_numbers else 0
+        if stop is None:
+            stop = frame_numbers[-1] + 1 if frame_numbers else 0
+
+        # Filter items by frame range
+        if step == 1:
+            selected = [
+                item for item in sorted_items if start <= item.frame_number < stop
+            ]
+        else:
+            # With step, we need to select every Nth frame starting from start
+            in_range = [
+                item for item in sorted_items if start <= item.frame_number < stop
+            ]
+            selected = in_range[::step]
+
+        return FileSequence(items=tuple(selected))
+
+    def frames(self, start: int, end: int) -> FileSequence:
+        """Return a new FileSequence containing only frames in the given range.
+
+        This is a more explicit alternative to slice notation.
+
+        Args:
+            start: First frame number (inclusive)
+            end: Last frame number (inclusive)
+
+        Returns:
+            New FileSequence with only the specified frames.
+
+        Example:
+            # Get frames 1001-1050 (inclusive)
+            subsequence = sequence.frames(1001, 1050)
+        """
+        selected = [item for item in self.items if start <= item.frame_number <= end]
+        selected.sort(key=lambda i: i.frame_number)
+        return FileSequence(items=tuple(selected))
+
+    def __len__(self) -> int:
+        """Return the number of items in the sequence."""
+        return len(self.items)
+
+    def __iter__(self) -> Iterator[Item]:
+        """Iterate over items in frame order."""
+        return iter(sorted(self.items, key=lambda i: i.frame_number))
+
+    def __contains__(self, frame: int) -> bool:
+        """Check if a frame number is in the sequence.
+
+        Example:
+            if 1001 in sequence:
+                print("Frame 1001 exists")
+        """
+        return any(item.frame_number == frame for item in self.items)
 
     @property
     def actual_frame_count(self) -> int:
@@ -725,17 +1011,26 @@ class FileSequence:
         return problems
 
     # -------------------------------------------------------------------------
-    # Operations - all return (new_state, OperationPlan)
+    # Operations - all return SequenceResult (supports tuple unpacking and .apply())
     # -------------------------------------------------------------------------
 
-    def rename(self, new_name: Components) -> Tuple[FileSequence, OperationPlan]:
+    def rename(self, new_name: Components) -> SequenceResult:
         """Prepare a rename operation for all items in the sequence.
 
         Args:
             new_name: Components specifying the new name
 
         Returns:
-            Tuple of (new_sequence, plan)
+            SequenceResult containing (new_sequence, plan). Supports tuple
+            unpacking or use .apply() for convenience.
+
+        Example:
+            # Tuple unpacking
+            new_seq, plan = sequence.rename(Components(prefix="new"))
+            plan.execute()
+
+            # Fluent API
+            new_seq = sequence.rename(Components(prefix="new")).apply()
         """
         if isinstance(new_name, str):
             raise ValueError("new_name must be a Components object, not a string")
@@ -745,18 +1040,18 @@ class FileSequence:
 
         for item in self.items:
             item_components = new_name.with_frame_number(item.frame_number)
-            new_item, plan = item.rename(item_components)
-            new_items.append(new_item)
-            all_operations.extend(plan.operations)
+            result = item.rename(item_components)
+            new_items.append(result.item)
+            all_operations.extend(result.plan.operations)
 
-        return (
+        return SequenceResult(
             FileSequence(items=tuple(new_items)),
             OperationPlan(operations=tuple(all_operations)),
         )
 
     def move(
         self, new_directory: Path, create_directory: bool = False
-    ) -> Tuple[FileSequence, OperationPlan]:
+    ) -> SequenceResult:
         """Prepare a move operation for all items in the sequence.
 
         Args:
@@ -764,10 +1059,10 @@ class FileSequence:
             create_directory: If True, create the directory if it doesn't exist
 
         Returns:
-            Tuple of (new_sequence, plan)
+            SequenceResult containing (new_sequence, plan)
         """
         if new_directory == self.directory:
-            return self, OperationPlan.empty()
+            return SequenceResult(self, OperationPlan.empty())
 
         # Create directory if requested
         if create_directory and not new_directory.exists():
@@ -777,11 +1072,11 @@ class FileSequence:
         all_operations: List[FileOperation] = []
 
         for item in self.items:
-            new_item, plan = item.move(new_directory, create_directory=False)
-            new_items.append(new_item)
-            all_operations.extend(plan.operations)
+            result = item.move(new_directory, create_directory=False)
+            new_items.append(result.item)
+            all_operations.extend(result.plan.operations)
 
-        return (
+        return SequenceResult(
             FileSequence(items=tuple(new_items)),
             OperationPlan(operations=tuple(all_operations)),
         )
@@ -791,7 +1086,7 @@ class FileSequence:
         new_name: Optional[Components] = None,
         new_directory: Optional[Path] = None,
         create_directory: bool = False,
-    ) -> Tuple[FileSequence, OperationPlan]:
+    ) -> SequenceResult:
         """Prepare a copy operation for all items in the sequence.
 
         Args:
@@ -800,7 +1095,7 @@ class FileSequence:
             create_directory: If True, create the directory if it doesn't exist
 
         Returns:
-            Tuple of (new_sequence, plan)
+            SequenceResult containing (new_sequence, plan)
         """
         self.validate()
 
@@ -817,11 +1112,11 @@ class FileSequence:
         all_operations: List[FileOperation] = []
 
         for item in self.items:
-            new_item, plan = item.copy(new_name, new_directory)
-            new_items.append(new_item)
-            all_operations.extend(plan.operations)
+            result = item.copy(new_name, new_directory)
+            new_items.append(result.item)
+            all_operations.extend(result.plan.operations)
 
-        return (
+        return SequenceResult(
             FileSequence(items=tuple(new_items)),
             OperationPlan(operations=tuple(all_operations)),
         )
@@ -842,7 +1137,7 @@ class FileSequence:
 
     def offset_frames(
         self, offset: int, padding: Optional[int] = None
-    ) -> Tuple[FileSequence, OperationPlan]:
+    ) -> SequenceResult:
         """Prepare an operation to offset all frame numbers.
 
         Args:
@@ -850,13 +1145,13 @@ class FileSequence:
             padding: Optional new padding
 
         Returns:
-            Tuple of (new_sequence, plan)
+            SequenceResult containing (new_sequence, plan)
 
         Raises:
             ValueError: If offset would result in negative frame numbers
         """
         if offset == 0:
-            return self, OperationPlan.empty()
+            return SequenceResult(self, OperationPlan.empty())
 
         if self.first_frame + offset < 0:
             raise ValueError("offset would yield negative frame numbers")
@@ -877,26 +1172,26 @@ class FileSequence:
         all_operations: List[FileOperation] = []
 
         for item in sorted_items:
-            new_item, plan = item.with_frame_number(item.frame_number + offset, padding)
-            new_items.append(new_item)
-            all_operations.extend(plan.operations)
+            result = item.with_frame_number(item.frame_number + offset, padding)
+            new_items.append(result.item)
+            all_operations.extend(result.plan.operations)
 
         # Re-sort by frame number for consistent ordering
         new_items.sort(key=attrgetter("frame_number"))
 
-        return (
+        return SequenceResult(
             FileSequence(items=tuple(new_items)),
             OperationPlan(operations=tuple(all_operations)),
         )
 
-    def with_padding(self, padding: int) -> Tuple[FileSequence, OperationPlan]:
+    def with_padding(self, padding: int) -> SequenceResult:
         """Prepare an operation to change padding for all items.
 
         Args:
             padding: The new padding (minimum is determined by highest frame)
 
         Returns:
-            Tuple of (new_sequence, plan)
+            SequenceResult containing (new_sequence, plan)
         """
         padding = max(padding, len(str(self.last_frame)))
 
@@ -904,23 +1199,23 @@ class FileSequence:
         all_operations: List[FileOperation] = []
 
         for item in self.items:
-            new_item, plan = item.with_padding(padding)
-            new_items.append(new_item)
-            all_operations.extend(plan.operations)
+            result = item.with_padding(padding)
+            new_items.append(result.item)
+            all_operations.extend(result.plan.operations)
 
-        return (
+        return SequenceResult(
             FileSequence(items=tuple(new_items)),
             OperationPlan(operations=tuple(all_operations)),
         )
 
-    def folderize(self, folder_name: str) -> Tuple[FileSequence, OperationPlan]:
+    def folderize(self, folder_name: str) -> SequenceResult:
         """Prepare an operation to move all items to a subfolder.
 
         Args:
             folder_name: Name of the subfolder to create and move items to
 
         Returns:
-            Tuple of (new_sequence, plan)
+            SequenceResult containing (new_sequence, plan)
         """
         new_directory = self.directory / folder_name
         return self.move(new_directory, create_directory=True)
@@ -1526,3 +1821,90 @@ class SequenceFactory:
         if not importlib.util.find_spec("nuke"):
             raise ImportError("This method can only be called from a Nuke environment")
         return SequenceFactory.from_sequence_string_absolute(node["file"].getValue())
+
+
+class SequenceBuilder:
+    """
+    A fluent wrapper for FileSequence that accumulates operations.
+    
+    Allows chaining multiple operations (rename -> move -> offset) 
+    into a single atomic Plan without executing them immediately.
+    """
+    def __init__(self, sequence: FileSequence):
+        self._current_sequence = sequence
+        self._accumulated_plan = OperationPlan.empty()
+
+    @property
+    def current_sequence(self) -> FileSequence:
+        """The state of the sequence as it would look after operations."""
+        return self._current_sequence
+
+    @property
+    def plan(self) -> OperationPlan:
+        """The total accumulated plan so far."""
+        return self._accumulated_plan
+
+    def rename(self, new_name: Components) -> "SequenceBuilder":
+        """Plan a rename and update internal state."""
+        # We rely on your existing SequenceResult class for the logic
+        result = self._current_sequence.rename(new_name)
+        self._update_state(result)
+        return self
+
+    def move(self, new_directory: Path, create_directory: bool = False) -> "SequenceBuilder":
+        """Plan a move and update internal state."""
+        result = self._current_sequence.move(new_directory, create_directory)
+        self._update_state(result)
+        return self
+
+    def copy(self, 
+             new_name: Optional[Components] = None, 
+             new_directory: Optional[Path] = None,
+             create_directory: bool = False) -> "SequenceBuilder":
+        """Plan a copy and update internal state."""
+        result = self._current_sequence.copy(new_name, new_directory, create_directory)
+        self._update_state(result)
+        return self
+
+    def offset_frames(self, offset: int, padding: Optional[int] = None) -> "SequenceBuilder":
+        """Plan a frame offset and update internal state."""
+        result = self._current_sequence.offset_frames(offset, padding)
+        self._update_state(result)
+        return self
+
+    def with_padding(self, padding: int) -> "SequenceBuilder":
+        """Plan a padding change and update internal state."""
+        result = self._current_sequence.with_padding(padding)
+        self._update_state(result)
+        return self
+    
+    def folderize(self, folder_name: str) -> "SequenceBuilder":
+        """Plan moving items into a subfolder."""
+        result = self._current_sequence.folderize(folder_name)
+        self._update_state(result)
+        return self
+
+    def delete(self) -> OperationPlan:
+        """
+        Plan a delete. 
+        
+        Note: This is a terminal operation for the builder chain 
+        because you cannot manipulate a sequence after it is deleted.
+        Returns the accumulated plan plus the delete operation.
+        """
+        delete_plan = self._current_sequence.delete()
+        return self._accumulated_plan + delete_plan
+
+    def build(self) -> SequenceResult:
+        """Return the final proposed state and the total plan."""
+        return SequenceResult(self._current_sequence, self._accumulated_plan)
+
+    def execute(self, force: bool = False) -> ExecutionResult:
+        """Execute all accumulated operations at once."""
+        return self._accumulated_plan.execute(force=force)
+
+    # --- Helper ---
+    def _update_state(self, result: SequenceResult) -> None:
+        """Update the internal sequence and add to the plan."""
+        self._current_sequence = result.sequence
+        self._accumulated_plan += result.plan
