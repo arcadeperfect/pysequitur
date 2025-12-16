@@ -35,9 +35,6 @@ mypy = "^1.14.1"
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
-[tool.poetry.scripts]
-pysequitur = "pysequitur.main:main"
-
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "--cov=pysequitur --cov-report=xml --cov-report=term-missing"

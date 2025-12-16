@@ -21,11 +21,16 @@ __version__ = "0.1.1"
 from . import crawl
 from .file_sequence import (
     Components,
+    ExecutionResult,
     FileSequence,
     Item,
     ItemParser,
+    OperationPlan,
+    SequenceBuilder,
     SequenceFactory,
     SequenceParser,
+    SequenceResult,
+    ItemResult,
 )
 from .file_types import MOVIE_FILE_TYPES
 
@@ -44,5 +49,10 @@ __all__: list[str] = [
     "SequenceParser",
     "crawl",
     "SequenceFactory",
+    "SequenceBuilder",
+    "SequenceResult",
+    "ItemResult",
+    "OperationPlan",
+    "ExecutionResult",
     "MOVIE_FILE_TYPES",
 ]
