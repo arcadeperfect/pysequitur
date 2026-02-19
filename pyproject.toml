@@ -18,7 +18,7 @@ classifiers = [  # Add this
 ]
 
 [tool.poetry.dependencies]
-python = "^3.12"
+python = "^3.9"
 docformatter = "^1.7.5"
 
 [tool.poetry.group.dev.dependencies]

@@ -1,6 +1,7 @@
 # Copyright (c) 2024 Alex Harding (alexharding.ooo)
 # This file is part of PySequitur which is released under MIT license.
 # See file LICENSE for full license details.
+from __future__ import annotations
 from enum import Enum, auto
 
 import re
@@ -13,6 +14,7 @@ from pathlib import Path
 from dataclasses import dataclass
 from collections import Counter, defaultdict
 from operator import attrgetter
+
 
 logging.basicConfig(
     level=logging.INFO,  # Set default level to INFO
