@@ -42,7 +42,7 @@ python_files = "test_*.py"
 
 [tool.ruff]
 line-length = 88
-target-version = "py38"
+target-version = "py312"
 
 # Linting rules
 select = [

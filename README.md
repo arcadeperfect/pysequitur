@@ -1,10 +1,8 @@
 # PySequitur
 
-Library for identifying and manipulating sequences of files. It is geared towards visual effects and animation related scenarios, although it can be used with any sequence of files. Emphasis on file system manipulation and flexible handing of anomalous sequences is the main differentiating feature from other similar libraries.
+Library for identifying and manipulating sequences of files. It is geared towards visual effects and animation related scenarios, although it can be used with any sequence of files. Emphasis on file system manipulation and flexible handling of anomalous sequences is the main differentiating feature from other similar libraries.
 
-CLI and integration for Nuke coming soon.
-
-No external dependencies, easy to use in VFX pipeline with no privileges.
+No external dependencies, easy to use in VFX pipelines with no privileges.
 
 ## Features
 
@@ -26,45 +24,116 @@ No external dependencies, easy to use in VFX pipeline with no privileges.
   - Offset frame numbers
   - Adjust or repair frame number padding
 
+- **Safe by Default**
+  - Operations return a plan that can be inspected before execution
+  - Conflict detection prevents accidental overwrites
+
 ## Installation
 
 ```bash
-# TODO: Add installation instructions once package is published
+pip install pysequitur
+```
+
+Or with Poetry:
+
+```bash
+poetry add pysequitur
 ```
 
 ## Quick Start
 
 ```python
 from pathlib import Path
-from pysequitur import FileSequence, Components
+from pysequitur import SequenceFactory, Components
 
 # Parse sequences from a directory
-sequences = FileSequence.find_sequences_in_path(Path("/path/to/files"))
+sequences = SequenceFactory.from_directory(Path("/path/to/files"))
 
-# Create a virtual sequence from a list of file names
+# Parse from a list of filenames
 file_list = ["render_001.exr", "render_002.exr", "render_003.exr"]
-sequence = FileSequence.find_sequences_in_filename_list(file_list)[0]
-
-# Basic sequence operations
-sequence.move_to(Path("/new/directory"))
-sequence.rename_to(Components(prefix="new_name"))
-sequence.offset_frames(100)  # Shift all frame numbers by 100
-sequence.delete_files()
-new_sequence = sequence.copy_to(Components(prefix="new_name"), Path("/new/directory"))
+sequences = SequenceFactory.from_filenames(file_list)
 
 # Match sequences by components
-components = Components(prefix="render", extension="exr")
-matches = FileSequence.match_components_in_path(components, Path("/path/to/files"))
+sequences = SequenceFactory.from_directory_with_components(
+    Components(prefix="render", extension="exr"),
+    Path("/path/to/files")
+)
 
-# Match sequence by pattern string
-sequence = FileSequence.match_sequence_string_in_directory("render_####.exr", Path("/path/to/files"))
+# Match by sequence string pattern
+sequence = SequenceFactory.from_directory_with_sequence_string(
+    "render_####.exr",
+    Path("/path/to/files")
+)
+```
+
+## Operations
+
+All operations return a result that can be inspected before execution:
+
+```python
+# Preview what will happen
+result = sequence.rename(Components(prefix="new_name"))
+print(result.plan)  # See the planned operations
+print(result.plan.has_conflicts)  # Check for conflicts
+
+# Execute when ready
+new_sequence = result.apply()
+
+# Or use tuple unpacking for more control
+new_sequence, plan = sequence.rename(Components(prefix="new_name"))
+if not plan.has_conflicts:
+    plan.execute()
+```
+
+### Available Operations
+
+```python
+# Rename
+new_seq = sequence.rename(Components(prefix="new_name")).apply()
+
+# Move to new directory
+new_seq = sequence.move(Path("/new/directory")).apply()
+
+# Copy (optionally with new name)
+new_seq = sequence.copy(new_directory=Path("/backup")).apply()
+
+# Offset frame numbers
+new_seq = sequence.offset_frames(100).apply()
+
+# Change padding
+new_seq = sequence.with_padding(4).apply()
+
+# Delete (returns plan directly, no new sequence)
+plan = sequence.delete()
+plan.execute()
+```
+
+### Chaining Operations with SequenceBuilder
+
+```python
+from pysequitur import SequenceBuilder
+
+# Chain multiple operations into a single plan
+result = (
+    SequenceBuilder(sequence)
+    .rename(Components(prefix="new_name"))
+    .offset_frames(1000)
+    .move(Path("/final/location"))
+    .build()
+)
+
+# Preview the combined plan
+print(result.plan)
+
+# Execute all at once
+result.apply()
 ```
 
 ## Core Classes
 
 ### Components
 
-Configuration class for specifying filename components during operations. Any parameter can be None.
+Configuration class for specifying filename components. Any parameter can be None to preserve the original value.
 
 ```python
 components = Components(
@@ -73,26 +142,48 @@ components = Components(
     padding=4,
     suffix="_final",
     extension="exr",
-    frame_number=None  # Optional frame number for specific frame operations
 )
+# Represents: "file_name.####_final.exr"
 ```
-Equals: "file_name.####_final.exr"
 
 ### FileSequence
-Main class.
-Manages collections of related Items as a single unit, where Items represent single files.
 
-Key Features:
-- Static methods for finding sequences in directories or filename lists
-- Match sequences against Components or sequence string patterns
-- Sequence manipulation operations (rename, move, copy, delete)
-- Frame operations (offset, padding adjustment)
-- Sequence analysis (missing frames, duplicates, problems detection)
-- Existence status checking (TRUE, FALSE, PARTIAL)
+Manages collections of related Items that form an image sequence.
+
+```python
+sequence = SequenceFactory.from_directory(Path("/renders"))[0]
+
+# Properties
+sequence.prefix          # "render"
+sequence.extension       # "exr"
+sequence.first_frame     # 1
+sequence.last_frame      # 100
+sequence.missing_frames  # [5, 6, 7] (if gaps exist)
+sequence.padding         # 4
+sequence.sequence_string # "render_####.exr"
+
+# Access frames
+item = sequence[1001]        # Get frame 1001
+subset = sequence[1001:1010] # Get frame range
+```
+
+### Item
+
+Represents a single file in a sequence.
+
+```python
+from pysequitur import Item
+
+item = Item.from_path(Path("/renders/render_0001.exr"))
+item.frame_number  # 1
+item.filename      # "render_0001.exr"
+item.exists        # True/False
+```
 
 ## File Naming Convention
 
 The library parses filenames into the following components:
+
 ```
 <prefix><delimiter><frame><suffix>.<extension>
 ```
@@ -104,6 +195,6 @@ Example: `render_001_final.exr`
 - suffix: "_final"
 - extension: "exr"
 
----
+## License
 
-See examples folder for more usage scenarios
+MIT License - see [LICENSE](LICENSE) for details.
