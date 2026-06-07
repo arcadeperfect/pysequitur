@@ -11,19 +11,14 @@ import os
 import re
 import shutil
 from collections import Counter, defaultdict
+from collections.abc import Iterator
 from dataclasses import dataclass
 from enum import Enum, Flag, auto
 from operator import attrgetter
 from pathlib import Path
 from typing import (
     Any,
-    Dict,
-    Iterator,
-    List,
-    Optional,
-    Tuple,
     TypedDict,
-    Union,
 )
 
 logger = logging.getLogger("pysequitur")
@@ -56,7 +51,7 @@ class FileOperation:
 
     operation: OperationType
     source: Path
-    destination: Optional[Path]
+    destination: Path | None
 
     @property
     def would_overwrite(self) -> bool:
@@ -93,8 +88,8 @@ class FileOperation:
 class ExecutionResult:
     """Result of executing an OperationPlan."""
 
-    executed: Tuple[FileOperation, ...]
-    failed: Tuple[Tuple[FileOperation, Exception], ...] = ()  # noqa: E501
+    executed: tuple[FileOperation, ...]
+    failed: tuple[tuple[FileOperation, Exception], ...] = ()  # noqa: E501
 
     @property
     def success(self) -> bool:
@@ -122,10 +117,10 @@ class OperationPlan:
             result = plan.execute()
     """
 
-    operations: Tuple[FileOperation, ...]
+    operations: tuple[FileOperation, ...]
 
     @property
-    def conflicts(self) -> List[FileOperation]:
+    def conflicts(self) -> list[FileOperation]:
         """Operations that would overwrite existing files."""
         return [op for op in self.operations if op.would_overwrite]
 
@@ -135,12 +130,12 @@ class OperationPlan:
         return len(self.conflicts) > 0
 
     @property
-    def sources(self) -> List[Path]:
+    def sources(self) -> list[Path]:
         """List of all source paths in this plan."""
         return [op.source for op in self.operations]
 
     @property
-    def destinations(self) -> List[Path]:
+    def destinations(self) -> list[Path]:
         """List of all destination paths in this plan."""
         return [op.destination for op in self.operations if op.destination is not None]
 
@@ -161,8 +156,8 @@ class OperationPlan:
             conflict_paths = [op.destination for op in self.conflicts]
             raise FileExistsError(f"Conflicts detected: {conflict_paths}")
 
-        executed: List[FileOperation] = []
-        failed: List[Tuple[FileOperation, Exception]] = []
+        executed: list[FileOperation] = []
+        failed: list[tuple[FileOperation, Exception]] = []
 
         for op in self.operations:
             try:
@@ -325,12 +320,12 @@ class Components:
 
     """
 
-    prefix: Optional[str] = None
-    delimiter: Optional[str] = None
-    padding: Optional[int] = None
-    suffix: Optional[str] = None
-    extension: Optional[str] = None
-    frame_number: Optional[int] = None
+    prefix: str | None = None
+    delimiter: str | None = None
+    padding: int | None = None
+    suffix: str | None = None
+    extension: str | None = None
+    frame_number: int | None = None
 
     def with_frame_number(self, frame_number: int) -> Components:
         """Return a new Components with the given frame number.
@@ -355,9 +350,9 @@ class Components:
     def merge_with_defaults(
         self,
         prefix: str,
-        delimiter: Optional[str],
+        delimiter: str | None,
         padding: int,
-        suffix: Optional[str],
+        suffix: str | None,
         extension: str,
         frame_number: int,
     ) -> Components:
@@ -403,11 +398,11 @@ class Components:
     @classmethod
     def build(
         cls,
-        prefix: Optional[str] = None,
-        delimiter: Optional[str] = None,
-        padding: Optional[int] = None,
-        suffix: Optional[str] = None,
-        extension: Optional[str] = None,
+        prefix: str | None = None,
+        delimiter: str | None = None,
+        padding: int | None = None,
+        suffix: str | None = None,
+        extension: str | None = None,
     ) -> Components:
         """Factory method to create Components with a fluent API.
 
@@ -423,7 +418,7 @@ class Components:
         )
 
 
-def _validate_suffix(suffix: Optional[str]) -> None:
+def _validate_suffix(suffix: str | None) -> None:
     """Validate that suffix contains no digits."""
     if suffix is not None and any(char.isdigit() for char in suffix):
         raise ValueError("suffix cannot contain digits")
@@ -450,15 +445,15 @@ class Item:
     prefix: str
     frame_string: str
     extension: str
-    delimiter: Optional[str] = None
-    suffix: Optional[str] = None
-    directory: Optional[Path] = None
+    delimiter: str | None = None
+    suffix: str | None = None
+    directory: Path | None = None
 
     def __post_init__(self) -> None:
         _validate_suffix(self.suffix)
 
     @staticmethod
-    def from_path(path: Path) -> Optional[Item]:
+    def from_path(path: Path) -> Item | None:
         """Creates an Item object from a Path object.
 
         Args:
@@ -470,14 +465,14 @@ class Item:
 
     @staticmethod
     def from_file_name(
-        file_name: str, directory: Optional[Path] = None
-    ) -> Optional[Item]:
+        file_name: str, directory: Path | None = None
+    ) -> Item | None:
         """Creates an Item object from a filename string."""
         return ItemParser.item_from_filename(file_name, directory)
 
     @staticmethod
     def from_components(
-        components: Components, frame: int, directory: Optional[Path] = None
+        components: Components, frame: int, directory: Path | None = None
     ) -> Item:
         """Creates an Item object from Components and a frame number."""
         return ItemParser.item_from_components(components, frame, directory)
@@ -602,8 +597,8 @@ class Item:
 
     def copy(
         self,
-        new_name: Optional[Components] = None,
-        new_directory: Optional[Path] = None,
+        new_name: Components | None = None,
+        new_directory: Path | None = None,
     ) -> ItemResult:
         """Prepare a copy operation.
 
@@ -654,7 +649,7 @@ class Item:
         return OperationPlan(operations=(operation,))
 
     def with_frame_number(
-        self, new_frame_number: int, padding: Optional[int] = None
+        self, new_frame_number: int, padding: int | None = None
     ) -> ItemResult:
         """Prepare an operation to change the frame number.
 
@@ -773,12 +768,12 @@ class FileSequence:
         - render_003.exr
     """
 
-    items: Tuple[Item, ...]
+    items: tuple[Item, ...]
 
     def __repr__(self) -> str:
         return f"{self.sequence_string} {self.first_frame}-{self.last_frame}"
 
-    def __getitem__(self, key: Union[int, slice]) -> Union[Item, FileSequence]:
+    def __getitem__(self, key: int | slice) -> Item | FileSequence:
         """Access items by frame number or slice.
 
         Args:
@@ -938,9 +933,10 @@ class FileSequence:
         return str(self._validate_property_consistency(prop_name="delimiter"))
 
     @property
-    def suffix(self) -> Optional[str]:
+    def suffix(self) -> str | None:
         """Returns the suffix. Validates consistency across all items."""
-        return str(self._validate_property_consistency(prop_name="suffix"))
+        value = self._validate_property_consistency(prop_name="suffix")
+        return value if value is None else str(value)
 
     @property
     def directory(self) -> Path:
@@ -951,12 +947,12 @@ class FileSequence:
         return directory
 
     @property
-    def existing_frames(self) -> List[int]:
+    def existing_frames(self) -> list[int]:
         """Returns a list of frame numbers present in the sequence."""
         return [item.frame_number for item in self.items]
 
     @property
-    def missing_frames(self) -> List[int]:
+    def missing_frames(self) -> list[int]:
         """Returns frame numbers missing from the sequence range."""
         missing = sorted(
             set(range(self.first_frame, self.last_frame + 1))
@@ -1035,8 +1031,8 @@ class FileSequence:
         if isinstance(new_name, str):
             raise ValueError("new_name must be a Components object, not a string")
 
-        new_items: List[Item] = []
-        all_operations: List[FileOperation] = []
+        new_items: list[Item] = []
+        all_operations: list[FileOperation] = []
 
         for item in self.items:
             item_components = new_name.with_frame_number(item.frame_number)
@@ -1068,8 +1064,8 @@ class FileSequence:
         if create_directory and not new_directory.exists():
             new_directory.mkdir(parents=True, exist_ok=True)
 
-        new_items: List[Item] = []
-        all_operations: List[FileOperation] = []
+        new_items: list[Item] = []
+        all_operations: list[FileOperation] = []
 
         for item in self.items:
             result = item.move(new_directory, create_directory=False)
@@ -1083,8 +1079,8 @@ class FileSequence:
 
     def copy(
         self,
-        new_name: Optional[Components] = None,
-        new_directory: Optional[Path] = None,
+        new_name: Components | None = None,
+        new_directory: Path | None = None,
         create_directory: bool = False,
     ) -> SequenceResult:
         """Prepare a copy operation for all items in the sequence.
@@ -1108,8 +1104,8 @@ class FileSequence:
         if new_directory is not None and create_directory:
             new_directory.mkdir(parents=True, exist_ok=True)
 
-        new_items: List[Item] = []
-        all_operations: List[FileOperation] = []
+        new_items: list[Item] = []
+        all_operations: list[FileOperation] = []
 
         for item in self.items:
             result = item.copy(new_name, new_directory)
@@ -1127,7 +1123,7 @@ class FileSequence:
         Returns:
             OperationPlan containing all delete operations
         """
-        all_operations: List[FileOperation] = []
+        all_operations: list[FileOperation] = []
 
         for item in self.items:
             plan = item.delete()
@@ -1136,7 +1132,7 @@ class FileSequence:
         return OperationPlan(operations=tuple(all_operations))
 
     def offset_frames(
-        self, offset: int, padding: Optional[int] = None
+        self, offset: int, padding: int | None = None
     ) -> SequenceResult:
         """Prepare an operation to offset all frame numbers.
 
@@ -1168,8 +1164,8 @@ class FileSequence:
             reverse=(offset > 0),
         )
 
-        new_items: List[Item] = []
-        all_operations: List[FileOperation] = []
+        new_items: list[Item] = []
+        all_operations: list[FileOperation] = []
 
         for item in sorted_items:
             result = item.with_frame_number(item.frame_number + offset, padding)
@@ -1195,8 +1191,8 @@ class FileSequence:
         """
         padding = max(padding, len(str(self.last_frame)))
 
-        new_items: List[Item] = []
-        all_operations: List[FileOperation] = []
+        new_items: list[Item] = []
+        all_operations: list[FileOperation] = []
 
         for item in self.items:
             result = item.with_padding(padding)
@@ -1224,7 +1220,7 @@ class FileSequence:
     # Validation and analysis
     # -------------------------------------------------------------------------
 
-    def find_duplicate_frames(self) -> Dict[int, Tuple[Item, ...]]:
+    def find_duplicate_frames(self) -> dict[int, tuple[Item, ...]]:
         """Identifies frames that appear multiple times with different padding.
 
         Returns:
@@ -1232,7 +1228,7 @@ class FileSequence:
             The first Item in each tuple has padding matching the sequence's
             standard padding.
         """
-        frame_groups: Dict[int, List[Item]] = defaultdict(list)
+        frame_groups: dict[int, list[Item]] = defaultdict(list)
         for item in self.items:
             frame_groups[item.frame_number].append(item)
 
@@ -1241,7 +1237,7 @@ class FileSequence:
         }
 
         sequence_padding = self.padding
-        result: Dict[int, Tuple[Item, ...]] = {}
+        result: dict[int, tuple[Item, ...]] = {}
 
         for frame_number, items in duplicates.items():
             sorted_items = sorted(
@@ -1326,9 +1322,9 @@ class ItemParser:
     @staticmethod
     def item_from_filename(
         filename: str,
-        directory: Optional[Path] = None,
-        pattern: Optional[str] = None,
-    ) -> Optional[Item]:
+        directory: Path | None = None,
+        pattern: str | None = None,
+    ) -> Item | None:
         """Parse a filename into an Item object.
 
         Args:
@@ -1390,13 +1386,13 @@ class ItemParser:
         )
 
     @staticmethod
-    def item_from_path(path: Path) -> Optional[Item]:
+    def item_from_path(path: Path) -> Item | None:
         """Creates an Item object from a Path object."""
         return ItemParser.item_from_filename(path.name, path.parent)
 
     @staticmethod
     def item_from_components(
-        components: Components, frame: int, directory: Optional[Path] = None
+        components: Components, frame: int, directory: Path | None = None
     ) -> Item:
         """Converts a Components object into an Item object."""
         if isinstance(components, str):
@@ -1442,33 +1438,36 @@ class ItemParser:
 class SequenceParser:
     @dataclass
     class ParseResult:
-        sequences: List[FileSequence]
-        rogues: List[Path]
+        sequences: list[FileSequence]
+        rogues: list[Path]
 
     class SequenceDictItem(TypedDict):
         name: str
         delimiter: str
         suffix: str
-        frames: List[str]
+        frames: list[str]
         extension: str
-        items: List[Item]
+        items: list[Item]
 
     @staticmethod
-    def from_file_list(
-        filename_list: List[str],
-        min_frames: int,
-        directory: Optional[Path] = None,
-        allowed_extensions: Optional[set] = None,
-    ) -> ParseResult:
-        """Creates FileSequence objects from a list of filenames."""
-        sequence_dict: Dict[
-            Tuple[str, str, str, str], SequenceParser.SequenceDictItem
+    def _group_by_sequence(
+        filename_list: list[str],
+        directory: Path | None,
+        allowed_extensions: set | None,
+    ) -> tuple[
+        dict[tuple[str, str, str, str], SequenceParser.SequenceDictItem],
+        list[Path],
+        Path | None,
+    ]:
+        """Parse filenames and group them by (prefix, delimiter, suffix, ext).
+
+        Returns the grouping dict, any unparseable paths (rogues), and the
+        directory (which may be defaulted to an empty Path along the way).
+        """
+        sequence_dict: dict[
+            tuple[str, str, str, str], SequenceParser.SequenceDictItem
         ] = {}
-
-        rogues: List[Path] = []
-
-        if allowed_extensions:
-            allowed_extensions = {ext.lower().lstrip(".") for ext in allowed_extensions}
+        rogues: list[Path] = []
 
         for file in filename_list:
             if file[0] == ".":
@@ -1506,7 +1505,24 @@ class SequenceParser:
             sequence_dict[key]["items"].append(parsed_item)
             sequence_dict[key]["frames"].append(parsed_item.frame_string)
 
-        sequence_list: List[FileSequence] = []
+        return sequence_dict, rogues, directory
+
+    @staticmethod
+    def from_file_list(
+        filename_list: list[str],
+        min_frames: int,
+        directory: Path | None = None,
+        allowed_extensions: set | None = None,
+    ) -> ParseResult:
+        """Creates FileSequence objects from a list of filenames."""
+        if allowed_extensions:
+            allowed_extensions = {ext.lower().lstrip(".") for ext in allowed_extensions}
+
+        sequence_dict, rogues, directory = SequenceParser._group_by_sequence(
+            filename_list, directory, allowed_extensions
+        )
+
+        sequence_list: list[FileSequence] = []
 
         for seq in sequence_dict.values():
             if len(seq["items"]) < min_frames:
@@ -1515,59 +1531,68 @@ class SequenceParser:
             sorted_items = tuple(sorted(seq["items"], key=lambda i: i.frame_number))
             temp_sequence = FileSequence(items=sorted_items)
 
-            duplicates = temp_sequence.find_duplicate_frames()
-
-            if not duplicates:
+            if not temp_sequence.find_duplicate_frames():
                 sequence_list.append(temp_sequence)
                 continue
 
-            padding_counts = Counter(item.padding for item in temp_sequence.items)
-            nominal_padding = padding_counts.most_common(1)[0][0]
-
-            main_sequence_items: List[Item] = []
-            anomalous_items: Dict[int, List[Item]] = defaultdict(list)
-            processed_frames: set = set()
-
-            for item in temp_sequence.items:
-                if item.frame_number in processed_frames:
-                    continue
-
-                if item.frame_number in duplicates:
-                    duplicate_items = duplicates[item.frame_number]
-                    for dup_item in duplicate_items:
-                        if dup_item.padding == nominal_padding:
-                            main_sequence_items.append(dup_item)
-                        else:
-                            anomalous_items[dup_item.padding].append(dup_item)
-                else:
-                    main_sequence_items.append(item)
-
-                processed_frames.add(item.frame_number)
-
-            if len(main_sequence_items) >= 2:
-                sorted_main = sorted(main_sequence_items, key=lambda i: i.frame_number)
-                main_sequence = FileSequence(items=tuple(sorted_main))
-                sequence_list.append(main_sequence)
-
-            for _padding, items_list in anomalous_items.items():
-                if len(items_list) >= 2:
-                    anomalous_sequence = FileSequence(
-                        items=tuple(sorted(items_list, key=lambda i: i.frame_number))
-                    )
-                    sequence_list.append(anomalous_sequence)
+            sequence_list.extend(SequenceParser._split_on_duplicates(temp_sequence))
 
         logger.info(f"Parsed {len(sequence_list)} sequences in {directory}")
 
         return SequenceParser.ParseResult(sequence_list, rogues)
 
     @staticmethod
+    def _split_on_duplicates(temp_sequence: FileSequence) -> list[FileSequence]:
+        """Split a sequence with duplicate frames into a main sequence plus
+        anomalous sub-sequences grouped by their padding."""
+        duplicates = temp_sequence.find_duplicate_frames()
+
+        padding_counts = Counter(item.padding for item in temp_sequence.items)
+        nominal_padding = padding_counts.most_common(1)[0][0]
+
+        main_sequence_items: list[Item] = []
+        anomalous_items: dict[int, list[Item]] = defaultdict(list)
+        processed_frames: set = set()
+
+        for item in temp_sequence.items:
+            if item.frame_number in processed_frames:
+                continue
+
+            if item.frame_number in duplicates:
+                for dup_item in duplicates[item.frame_number]:
+                    if dup_item.padding == nominal_padding:
+                        main_sequence_items.append(dup_item)
+                    else:
+                        anomalous_items[dup_item.padding].append(dup_item)
+            else:
+                main_sequence_items.append(item)
+
+            processed_frames.add(item.frame_number)
+
+        result: list[FileSequence] = []
+
+        if len(main_sequence_items) >= 2:
+            sorted_main = sorted(main_sequence_items, key=lambda i: i.frame_number)
+            result.append(FileSequence(items=tuple(sorted_main)))
+
+        for items_list in anomalous_items.values():
+            if len(items_list) >= 2:
+                result.append(
+                    FileSequence(
+                        items=tuple(sorted(items_list, key=lambda i: i.frame_number))
+                    )
+                )
+
+        return result
+
+    @staticmethod
     def filesequences_from_components_in_directory(
         components: Components, min_frames: int, directory: Path
-    ) -> List[FileSequence]:
+    ) -> list[FileSequence]:
         """Matches components against a directory and returns matching sequences."""
         sequences = SequenceParser.from_directory(directory, min_frames).sequences
 
-        matches: List[FileSequence] = []
+        matches: list[FileSequence] = []
 
         for sequence in sequences:
             if _sequence_matches_components(sequence, components):
@@ -1579,10 +1604,10 @@ class SequenceParser:
     @staticmethod
     def match_sequence_string_in_filename_list(
         sequence_string: str,
-        filename_list: List[str],
+        filename_list: list[str],
         min_frames: int,
-        directory: Optional[Path] = None,
-    ) -> Optional[FileSequence]:
+        directory: Path | None = None,
+    ) -> FileSequence | None:
         """Matches a sequence string against a list of filenames."""
         logger.debug("Pre padding conversion: %s", sequence_string)
         sequence_string = ItemParser.convert_padding_to_hashes(sequence_string)
@@ -1592,7 +1617,7 @@ class SequenceParser:
             filename_list, min_frames, directory
         ).sequences
 
-        matched: List[FileSequence] = []
+        matched: list[FileSequence] = []
 
         for sequence in sequences:
             if sequence.sequence_string == sequence_string:
@@ -1613,7 +1638,7 @@ class SequenceParser:
     @staticmethod
     def match_sequence_string_absolute(
         path: str, min_frames: int
-    ) -> Optional[FileSequence]:
+    ) -> FileSequence | None:
         """Matches a sequence path and returns a FileSequence object."""
         path_ = Path(path)
         return SequenceParser.match_sequence_string_in_directory(
@@ -1625,7 +1650,7 @@ class SequenceParser:
         filename: str,
         min_frames: int,
         directory: Path,
-    ) -> Optional[FileSequence]:
+    ) -> FileSequence | None:
         """Matches a sequence string against a directory's contents."""
         logger.debug("Matching sequence string in directory: %s", filename)
         files = os.listdir(str(directory))
@@ -1637,7 +1662,7 @@ class SequenceParser:
     def from_directory(
         directory: Path,
         min_frames: int,
-        allowed_extensions: Optional[set] = None,
+        allowed_extensions: set | None = None,
     ) -> ParseResult:
         """Scans a directory and returns detected sequences."""
         files = [str(f.name) for f in directory.iterdir() if f.is_file()]
@@ -1655,16 +1680,16 @@ class SequenceParser:
     @staticmethod
     def match_components_in_filename_list(
         components: Components,
-        filename_list: List[str],
+        filename_list: list[str],
         min_frames: int,
-        directory: Optional[Path] = None,
-    ) -> List[FileSequence]:
+        directory: Path | None = None,
+    ) -> list[FileSequence]:
         """Matches components against a list of filenames."""
         sequences = SequenceParser.from_file_list(
             filename_list, min_frames, directory
         ).sequences
 
-        matches: List[FileSequence] = []
+        matches: list[FileSequence] = []
 
         for sequence in sequences:
             if _sequence_matches_components(sequence, components):
@@ -1751,23 +1776,23 @@ class SequenceFactory:
     """Factory for creating FileSequence objects from various sources."""
 
     @staticmethod
-    def from_directory(directory: Path, min_frames: int = 2) -> List[FileSequence]:
+    def from_directory(directory: Path, min_frames: int = 2) -> list[FileSequence]:
         return SequenceParser.from_directory(directory, min_frames).sequences
 
     @staticmethod
     def from_filenames(
-        filenames: List[str], min_frames: int = 2, directory: Optional[Path] = None
-    ) -> List[FileSequence]:
+        filenames: list[str], min_frames: int = 2, directory: Path | None = None
+    ) -> list[FileSequence]:
         """Creates FileSequence objects from a list of filenames."""
         return SequenceParser.from_file_list(filenames, min_frames, directory).sequences
 
     @staticmethod
     def from_filenames_with_components(
         components: Components,
-        filename_list: List[str],
-        directory: Optional[Path] = None,
+        filename_list: list[str],
+        directory: Path | None = None,
         min_frames: int = 2,
-    ) -> List[FileSequence]:
+    ) -> list[FileSequence]:
         return SequenceParser.match_components_in_filename_list(
             components, filename_list, min_frames, directory
         )
@@ -1775,7 +1800,7 @@ class SequenceFactory:
     @staticmethod
     def from_directory_with_components(
         components: Components, directory: Path, min_frames: int = 2
-    ) -> List[FileSequence]:
+    ) -> list[FileSequence]:
         """Matches components against a directory's contents."""
         return SequenceParser.filesequences_from_components_in_directory(
             components, min_frames, directory
@@ -1784,10 +1809,10 @@ class SequenceFactory:
     @staticmethod
     def from_filenames_with_sequence_string(
         sequence_string: str,
-        filename_list: List[str],
-        directory: Optional[Path] = None,
+        filename_list: list[str],
+        directory: Path | None = None,
         min_frames: int = 2,
-    ) -> Optional[FileSequence]:
+    ) -> FileSequence | None:
         """Matches a sequence string against a list of filenames."""
         return SequenceParser.match_sequence_string_in_filename_list(
             sequence_string, filename_list, min_frames, directory
@@ -1796,21 +1821,21 @@ class SequenceFactory:
     @staticmethod
     def from_sequence_string_absolute(
         path: str, min_frames: int = 2
-    ) -> Optional[FileSequence]:
+    ) -> FileSequence | None:
         """Parses a combined directory and sequence string."""
         return SequenceParser.match_sequence_string_absolute(path, min_frames)
 
     @staticmethod
     def from_directory_with_sequence_string(
         filename: str, directory: Path, min_frames: int = 2
-    ) -> Optional[FileSequence]:
+    ) -> FileSequence | None:
         """Matches a sequence string against a directory's contents."""
         return SequenceParser.match_sequence_string_in_directory(
             filename, min_frames, directory
         )
 
     @staticmethod
-    def from_nuke_node(node: Any) -> Optional[FileSequence]:
+    def from_nuke_node(node: Any) -> FileSequence | None:
         """Creates a FileSequence from a Nuke node.
 
         Can only be called from a Nuke environment.
@@ -1826,10 +1851,11 @@ class SequenceFactory:
 class SequenceBuilder:
     """
     A fluent wrapper for FileSequence that accumulates operations.
-    
-    Allows chaining multiple operations (rename -> move -> offset) 
+
+    Allows chaining multiple operations (rename -> move -> offset)
     into a single atomic Plan without executing them immediately.
     """
+
     def __init__(self, sequence: FileSequence):
         self._current_sequence = sequence
         self._accumulated_plan = OperationPlan.empty()
@@ -1844,41 +1870,43 @@ class SequenceBuilder:
         """The total accumulated plan so far."""
         return self._accumulated_plan
 
-    def rename(self, new_name: Components) -> "SequenceBuilder":
+    def rename(self, new_name: Components) -> SequenceBuilder:
         """Plan a rename and update internal state."""
         # We rely on your existing SequenceResult class for the logic
         result = self._current_sequence.rename(new_name)
         self._update_state(result)
         return self
 
-    def move(self, new_directory: Path, create_directory: bool = False) -> "SequenceBuilder":
+    def move(
+        self, new_directory: Path, create_directory: bool = False
+    ) -> SequenceBuilder:
         """Plan a move and update internal state."""
         result = self._current_sequence.move(new_directory, create_directory)
         self._update_state(result)
         return self
 
-    def copy(self, 
-             new_name: Optional[Components] = None, 
-             new_directory: Optional[Path] = None,
-             create_directory: bool = False) -> "SequenceBuilder":
+    def copy(self,
+             new_name: Components | None = None,
+             new_directory: Path | None = None,
+             create_directory: bool = False) -> SequenceBuilder:
         """Plan a copy and update internal state."""
         result = self._current_sequence.copy(new_name, new_directory, create_directory)
         self._update_state(result)
         return self
 
-    def offset_frames(self, offset: int, padding: Optional[int] = None) -> "SequenceBuilder":
+    def offset_frames(self, offset: int, padding: int | None = None) -> SequenceBuilder:
         """Plan a frame offset and update internal state."""
         result = self._current_sequence.offset_frames(offset, padding)
         self._update_state(result)
         return self
 
-    def with_padding(self, padding: int) -> "SequenceBuilder":
+    def with_padding(self, padding: int) -> SequenceBuilder:
         """Plan a padding change and update internal state."""
         result = self._current_sequence.with_padding(padding)
         self._update_state(result)
         return self
-    
-    def folderize(self, folder_name: str) -> "SequenceBuilder":
+
+    def folderize(self, folder_name: str) -> SequenceBuilder:
         """Plan moving items into a subfolder."""
         result = self._current_sequence.folderize(folder_name)
         self._update_state(result)
@@ -1886,9 +1914,9 @@ class SequenceBuilder:
 
     def delete(self) -> OperationPlan:
         """
-        Plan a delete. 
-        
-        Note: This is a terminal operation for the builder chain 
+        Plan a delete.
+
+        Note: This is a terminal operation for the builder chain
         because you cannot manipulate a sequence after it is deleted.
         Returns the accumulated plan plus the delete operation.
         """

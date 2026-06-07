@@ -1,11 +1,10 @@
 import re
 
-# from typing import List, Optional, Tuple, Union
-
 
 def extract_shot_from_single_path(file_path: str) -> tuple[str, str]:
     """
-    Extract shot number from a single file path, being careful to distinguish from version numbers.
+    Extract shot number from a single file path, distinguishing it from
+    version numbers.
 
     Args:
         file_path: Absolute or relative path to a file or image sequence
@@ -40,6 +39,21 @@ def extract_shot_from_single_path(file_path: str) -> tuple[str, str]:
     return "000", file_path
 
 
+def _rank_number_positions(path_parts: list[list[str]]) -> list[tuple[int, int]]:
+    """Rank path-segment positions by how often they contain a number,
+    most frequent first."""
+    min_length = min(len(parts) for parts in path_parts)
+
+    number_positions = []
+    for i in range(min_length):
+        count = sum(1 for parts in path_parts if re.search(r"\d+", parts[i]))
+        if count:
+            number_positions.append((i, count))
+
+    number_positions.sort(key=lambda x: x[1], reverse=True)
+    return number_positions
+
+
 def extract_shots_from_project_paths(file_paths: list[str]) -> list[tuple[str, str]]:
     """
     Extract shot numbers from a list of paths known to be from the same project.
@@ -56,20 +70,7 @@ def extract_shots_from_project_paths(file_paths: list[str]) -> list[tuple[str, s
 
     # Find common path structure
     path_parts = [path.replace("\\", "/").split("/") for path in file_paths]
-    min_length = min(len(parts) for parts in path_parts)
-
-    # Find positions where numbers commonly appear
-    number_positions = []
-    for i in range(min_length):
-        numbers_at_pos = []
-        for parts in path_parts:
-            if re.search(r"\d+", parts[i]):
-                numbers_at_pos.append(parts[i])
-        if numbers_at_pos:
-            number_positions.append((i, len(numbers_at_pos)))
-
-    # Sort by frequency of number occurrence
-    number_positions.sort(key=lambda x: x[1], reverse=True)
+    number_positions = _rank_number_positions(path_parts)
 
     results = []
     for path in file_paths:
@@ -114,7 +115,7 @@ def extract_shots_from_mixed_paths(file_paths: list[str]) -> list[tuple[str, str
         return "_".join(str(bool(re.search(r"\d+", part))) for part in parts)
 
     # Group paths by signature
-    path_groups = {}
+    path_groups: dict[str, list[str]] = {}
     for path in file_paths:
         sig = get_path_signature(path)
         path_groups.setdefault(sig, []).append(path)

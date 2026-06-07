@@ -1,2 +1,2 @@
 class NukeRead:
-    pass 
+    pass

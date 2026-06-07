@@ -15,7 +15,7 @@ Classes:
 
 # from typing import List, type
 
-__version__ = "0.1.1"
+__version__ = "0.2.0"
 
 # from .crawl import Node, visualize_tree
 from . import crawl
@@ -25,12 +25,12 @@ from .file_sequence import (
     FileSequence,
     Item,
     ItemParser,
+    ItemResult,
     OperationPlan,
     SequenceBuilder,
     SequenceFactory,
     SequenceParser,
     SequenceResult,
-    ItemResult,
 )
 from .file_types import MOVIE_FILE_TYPES
 

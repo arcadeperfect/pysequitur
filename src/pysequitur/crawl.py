@@ -1,51 +1,8 @@
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Optional
-
 
 from .file_sequence import FileSequence, SequenceParser
 from .file_types import MOVIE_FILE_TYPES
-
-# MOVIE_FILE_TYPES = {
-#     "webm",
-#     "mkv",
-#     "flv",
-#     "vob",
-#     "ogv",
-#     "ogg",
-#     "rrc",
-#     "gifv",
-#     "mng",
-#     "mov",
-#     "avi",
-#     "qt",
-#     "wmv",
-#     "yuv",
-#     "rm",
-#     "asf",
-#     "amv",
-#     "mp4",
-#     "m4p",
-#     "m4v",
-#     "mpg",
-#     "mp2",
-#     "mpeg",
-#     "mpe",
-#     "mpv",
-#     "m4v",
-#     "svi",
-#     "3gp",
-#     "3g2",
-#     "mxf",
-#     "roq",
-#     "nsv",
-#     "flv",
-#     "f4v",
-#     "f4p",
-#     "f4a",
-#     "f4b",
-#     "mod",
-# }
 
 DEFAULT_ALLOWED_EXTENSIONS = {
     "jpg",
@@ -63,9 +20,9 @@ DEFAULT_ALLOWED_EXTENSIONS = {
 @dataclass
 class Results:
     dir: Path
-    sequences: List[FileSequence]
-    movs: List[Path]
-    rogues: List[Path]
+    sequences: list[FileSequence]
+    movs: list[Path]
+    rogues: list[Path]
     depth: int
 
 
@@ -74,7 +31,7 @@ class Node:
         self,
         path: Path,
         allowed_extensions: set[str] = DEFAULT_ALLOWED_EXTENSIONS,
-        max_depth: Optional[int] = None,
+        max_depth: int | None = None,
         current_depth: int = 0,
     ):
         self.path: Path = path
@@ -115,25 +72,35 @@ class Node:
             self.rogues = []
 
         # Process subdirectories with depth control
+        self.nodes: list[Node] = []
         if max_depth is None or current_depth < max_depth:
-            self.nodes: list[Node] = [
+            self.nodes = [
                 Node(d, allowed_extensions, max_depth, current_depth + 1)
                 for d in self.dirs
             ]
-        else:
-            self.nodes: list[Node] = []
 
 
-def recursive_scan(path: Path, max_depth: Optional[int] = None) -> Node:
+def recursive_scan(path: Path, max_depth: int | None = None) -> Node:
     return Node(path, max_depth=max_depth)
+
+
+def _print_node_files(node: Node, new_prefix: str) -> None:
+    """Print the sequence, movie, and rogue rows for a single node."""
+    file_items = [f"[SEQ] {seq}" for seq in node.sequences]
+    file_items += [f"[MOV] {movie.name}" for movie in sorted(node.movies)]
+    file_items += [f"[ROG] {rogue}" for rogue in node.rogues]
+
+    for i, item in enumerate(file_items):
+        is_last_file = i == len(file_items) - 1
+        print(new_prefix + ("└── " if is_last_file else "├── ") + item)
 
 
 def visualize_tree(
     node: Node, prefix="", is_last=True, max_level=None, level=0, counts=None
 ):
     """
-    Visualize the directory tree with sequences, movies, and rogues in a tree-like format.
-    Similar to the 'tree' command output.
+    Visualize the directory tree with sequences, movies, and rogues in a
+    tree-like format. Similar to the 'tree' command output.
 
     Args:
         node: The node to visualize
@@ -144,11 +111,9 @@ def visualize_tree(
         counts: Dictionary to track counts of different item types
     """
 
+    is_root = counts is None
     if counts is None:
         counts = {"dirs": 0, "sequences": 0, "movies": 0, "rogues": 0}
-        is_root = True
-    else:
-        is_root = False
 
     if max_level is not None and level > max_level:
         print(prefix + ("└── " if is_last else "├── ") + "...")
@@ -176,32 +141,20 @@ def visualize_tree(
     counts["movies"] += len(node.movies)
     counts["rogues"] += len(node.rogues)
 
-    file_items = []
-
-    for seq in node.sequences:
-        file_items.append((f"[SEQ] {seq}", "sequence"))
-
-    for movie in sorted(node.movies):
-        file_items.append((f"[MOV] {movie.name}", "movie"))
-
-    for rogue in node.rogues:
-        file_items.append((f"[ROG] {rogue}", "rogue"))
-
-    for i, (item, item_type) in enumerate(file_items):
-        is_last_file = i == len(file_items) - 1
-        print(new_prefix + ("└── " if is_last_file else "├── ") + item)
+    _print_node_files(node, new_prefix)
 
     if is_root:
         total_files = counts["sequences"] + counts["movies"] + counts["rogues"]
         print(f"\n{counts['dirs']} directories, {total_files} files")
         print(
-            f"  {counts['sequences']} sequences, {counts['movies']} movies, {counts['rogues']} rogues"
+            f"  {counts['sequences']} sequences, {counts['movies']} movies, "
+            f"{counts['rogues']} rogues"
         )
 
     return counts
 
 
-def traverse_nodes(node: Node, depth: int = 0) -> List[Results]:
+def traverse_nodes(node: Node, depth: int = 0) -> list[Results]:
     """
     Traverse all nodes in the tree and return a flat list of Results objects.
 

@@ -45,6 +45,10 @@ def generate_file_sequence(
     suffix = components.suffix or ""
 
     for frame_number in range(first_frame, last_frame + 1):
-        this_frame = f"{components.prefix}{components.delimiter}{str(frame_number).zfill(padding)}{suffix}.{components.extension}"
+        frame = str(frame_number).zfill(padding)
+        this_frame = (
+            f"{components.prefix}{components.delimiter}{frame}{suffix}"
+            f".{components.extension}"
+        )
         p = Path(Path(directory) / this_frame)
         p.touch()

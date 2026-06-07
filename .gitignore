@@ -6,6 +6,11 @@
 # Unit test / coverage reports
 .coverage
 .pytest_cache
+coverage.xml
+
+# Editor / tooling backups
+*.bak
+*.backup
 
 .DS_Store
 .idea/*
