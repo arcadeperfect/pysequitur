@@ -1,4 +1,4 @@
-from pysequitur import FileSequence, Components
+from pysequitur import FileSequence, Components, SequenceFactory
 
 def test_match_components_in_filename_list():
 
@@ -58,29 +58,29 @@ def test_match_components_in_filename_list():
     print("\n")
 
     components = Components(prefix="file")
-    sequences = FileSequence.match_components_in_filename_list(components, files)
+    sequences = SequenceFactory.from_filenames_with_components(components, files)
     assert len(sequences) == 4
 
     components = Components(suffix="_suffix")
-    sequences = FileSequence.match_components_in_filename_list(components, files)
+    sequences = SequenceFactory.from_filenames_with_components(components, files)
     assert len(sequences) == 2
 
     components = Components(prefix = "file", suffix="_suffix")
-    sequences = FileSequence.match_components_in_filename_list(components, files)
+    sequences = SequenceFactory.from_filenames_with_components(components, files)
     assert len(sequences) == 1
 
     components = Components(extension = "exr")
-    sequences = FileSequence.match_components_in_filename_list(components, files)
+    sequences = SequenceFactory.from_filenames_with_components(components, files)
     assert len(sequences) == 4
     
     components = Components(padding = 4)
-    sequences = FileSequence.match_components_in_filename_list(components, files)
+    sequences = SequenceFactory.from_filenames_with_components(components, files)
     assert len(sequences) == 5
     
     components = Components(padding = 4, extension = "exr", suffix = "")
-    sequences = FileSequence.match_components_in_filename_list(components, files)
+    sequences = SequenceFactory.from_filenames_with_components(components, files)
     assert len(sequences) == 2
     
     components = Components(prefix = "another_file", delimiter= "_")
-    sequences = FileSequence.match_components_in_filename_list(components, files)
+    sequences = SequenceFactory.from_filenames_with_components(components, files)
     assert len(sequences) == 1

@@ -13,19 +13,46 @@ Classes:
     Components: Configuration class for specifying filename components
 """
 
-from typing import List, Type
+# from typing import List, type
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
-from .file_sequence import Item, FileSequence, Components  # type: ignore
+# from .crawl import Node, visualize_tree
+from . import crawl
+from .file_sequence import (
+    Components,
+    ExecutionResult,
+    FileSequence,
+    Item,
+    ItemParser,
+    ItemResult,
+    OperationPlan,
+    SequenceBuilder,
+    SequenceFactory,
+    SequenceParser,
+    SequenceResult,
+)
+from .file_types import MOVIE_FILE_TYPES
+
+# from . import integrations  # Add this line
 
 # Type definitions for better IDE support
-ItemType = Type[Item]
-FileSequenceType = Type[FileSequence]
-ComponentsType = Type[Components]
+ItemType = type[Item]
+FileSequenceType = type[FileSequence]
+ComponentsType = type[Components]
 
-__all__: List[str] = [
+__all__: list[str] = [
     "Item",
     "FileSequence",
     "Components",
+    "ItemParser",
+    "SequenceParser",
+    "crawl",
+    "SequenceFactory",
+    "SequenceBuilder",
+    "SequenceResult",
+    "ItemResult",
+    "OperationPlan",
+    "ExecutionResult",
+    "MOVIE_FILE_TYPES",
 ]
