@@ -22,8 +22,8 @@ classifiers = [
 [tool.poetry.dependencies]
 python = ">=3.10"
 
-
-
+[tool.poetry.scripts]
+lsq = "pysequitur.cli:main"
 
 
 [tool.poetry.group.dev.dependencies]
