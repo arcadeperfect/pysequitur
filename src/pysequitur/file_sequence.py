@@ -25,6 +25,18 @@ logger = logging.getLogger("pysequitur")
 logger.addHandler(logging.NullHandler())
 
 
+def _paths_same_file(a: Path, b: Path) -> bool:
+    """True if both paths exist and point at the same file.
+
+    Handles case-insensitive filesystems, where a case-only rename targets
+    what is really the same file (source and destination differ only in case).
+    """
+    try:
+        return a.exists() and b.exists() and a.samefile(b)
+    except OSError:
+        return False
+
+
 # =============================================================================
 # Operation Infrastructure
 # =============================================================================
@@ -121,8 +133,42 @@ class OperationPlan:
 
     @property
     def conflicts(self) -> list[FileOperation]:
-        """Operations that would overwrite existing files."""
-        return [op for op in self.operations if op.would_overwrite]
+        """Operations that would destroy data if the plan executed.
+
+        An operation conflicts when either:
+          * two operations in the plan write the same destination, or
+          * the destination already exists on disk and the plan does not
+            itself vacate that path (via a rename/move away) and the
+            destination is not the operation's own source (a case-only
+            rename on a case-insensitive filesystem).
+
+        Internal shuffles such as ``offset_frames(1)`` on a contiguous
+        sequence are therefore not reported as conflicts, while a genuine
+        external overwrite or two operations colliding on one target are.
+        """
+        vacated = {
+            str(op.source)
+            for op in self.operations
+            if op.operation in (OperationType.RENAME, OperationType.MOVE)
+        }
+        seen: set[str] = set()
+        conflicts: list[FileOperation] = []
+        for op in self.operations:
+            if op.destination is None:
+                continue
+            dest_key = str(op.destination)
+            if dest_key in seen:
+                conflicts.append(op)  # two operations target the same file
+                continue
+            seen.add(dest_key)
+            if not op.destination.exists():
+                continue
+            if dest_key in vacated:
+                continue  # another operation frees this path
+            if _paths_same_file(op.source, op.destination):
+                continue  # renaming a file onto itself (e.g. case-only)
+            conflicts.append(op)
+        return conflicts
 
     @property
     def has_conflicts(self) -> bool:
@@ -233,8 +279,11 @@ class ItemResult:
 
         Raises:
             FileExistsError: If conflicts exist and force=False.
+            Exception: Re-raises the first per-operation failure, if any.
         """
-        self.plan.execute(force=force)
+        result = self.plan.execute(force=force)
+        if result.failed:
+            raise result.failed[0][1]
         return self.item
 
     def __iter__(self) -> Iterator:
@@ -277,8 +326,11 @@ class SequenceResult:
 
         Raises:
             FileExistsError: If conflicts exist and force=False.
+            Exception: Re-raises the first per-operation failure, if any.
         """
-        self.plan.execute(force=force)
+        result = self.plan.execute(force=force)
+        if result.failed:
+            raise result.failed[0][1]
         return self.sequence
 
     def __iter__(self) -> Iterator:
@@ -335,8 +387,8 @@ class Components:
         new_padding = self.padding
         if new_padding is not None:
             new_padding = max(new_padding, len(str(frame_number)))
-        else:
-            new_padding = len(str(frame_number))
+        # When padding is None it stays None, so the merge downstream falls
+        # back to each item's own padding instead of collapsing it.
 
         return Components(
             prefix=self.prefix,
@@ -727,6 +779,9 @@ class Item:
             frame_number=self.frame_number,
         )
 
+        if filled.frame_number is not None and filled.frame_number < 0:
+            raise ValueError("frame_number cannot be negative")
+
         new_padding = max(filled.padding or 1, len(str(filled.frame_number or 0)))
         new_frame_string = f"{filled.frame_number:0{new_padding}d}"
 
@@ -771,6 +826,8 @@ class FileSequence:
     items: tuple[Item, ...]
 
     def __repr__(self) -> str:
+        if not self.items:
+            return "FileSequence(empty)"
         return f"{self.sequence_string} {self.first_frame}-{self.last_frame}"
 
     def __getitem__(self, key: int | slice) -> Item | FileSequence:
@@ -928,9 +985,10 @@ class FileSequence:
         return str(self._validate_property_consistency(prop_name="extension"))
 
     @property
-    def delimiter(self) -> str:
+    def delimiter(self) -> str | None:
         """Returns the delimiter. Validates consistency across all items."""
-        return str(self._validate_property_consistency(prop_name="delimiter"))
+        value = self._validate_property_consistency(prop_name="delimiter")
+        return value if value is None else str(value)
 
     @property
     def suffix(self) -> str | None:
@@ -979,8 +1037,9 @@ class FileSequence:
     def sequence_string(self) -> str:
         """Returns the sequence string pattern (e.g., 'render_####.exr')."""
         padding = "#" * self.padding
+        delimiter = self.delimiter if self.delimiter is not None else ""
         suffix = self.suffix if self.suffix is not None else ""
-        return f"{self.prefix}{self.delimiter}{padding}{suffix}.{self.extension}"
+        return f"{self.prefix}{delimiter}{padding}{suffix}.{self.extension}"
 
     @property
     def absolute_file_name(self) -> str:
@@ -1470,7 +1529,7 @@ class SequenceParser:
         rogues: list[Path] = []
 
         for file in filename_list:
-            if file[0] == ".":
+            if not file or file[0] == ".":
                 continue
 
             if allowed_extensions:
@@ -1526,6 +1585,9 @@ class SequenceParser:
 
         for seq in sequence_dict.values():
             if len(seq["items"]) < min_frames:
+                # Too few frames to be a sequence, but the files still exist:
+                # report them as rogues rather than silently dropping them.
+                rogues.extend(item.absolute_path for item in seq["items"])
                 continue
 
             sorted_items = tuple(sorted(seq["items"], key=lambda i: i.frame_number))
@@ -1918,10 +1980,12 @@ class SequenceBuilder:
 
         Note: This is a terminal operation for the builder chain
         because you cannot manipulate a sequence after it is deleted.
-        Returns the accumulated plan plus the delete operation.
+        The delete is recorded on the builder, so build()/execute() include
+        it. Returns the accumulated plan plus the delete operation.
         """
         delete_plan = self._current_sequence.delete()
-        return self._accumulated_plan + delete_plan
+        self._accumulated_plan = self._accumulated_plan + delete_plan
+        return self._accumulated_plan
 
     def build(self) -> SequenceResult:
         """Return the final proposed state and the total plan."""

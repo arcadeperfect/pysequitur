@@ -127,10 +127,12 @@ def test_offset_frames_partial_collisions(tmp_path):
 
 def test_offset_frames_internal_collision_avoidance(tmp_path):
     """Test that offset_frames handles internal collisions correctly.
-    
-    When offsetting consecutive frames, the plan will detect an "internal collision"
-    (target file exists because it's one of our source files). The execution handles
-    this by processing files in the correct order (high to low for positive offsets).
+
+    When offsetting consecutive frames, a target may already exist because it
+    is one of the plan's own source files. That is an internal shuffle, not a
+    real conflict: the plan vacates those paths, so has_conflicts is False and
+    the plan executes without force. The execution order (high to low for
+    positive offsets) keeps it correct.
     """
     # Setup
     original_dir = tmp_path / "original"
@@ -149,20 +151,19 @@ def test_offset_frames_internal_collision_avoidance(tmp_path):
     sequence = FileSequence(items)
 
     # Test offset: 1001->1002, 1002->1003
-    # The plan detects "test.1002.exr" as a conflict (it exists as source file)
+    # Target 1002 exists only because it is one of our own source files.
     new_sequence, plan = sequence.offset_frames(1)
 
     # Should return new sequence (frozen)
     assert new_sequence is not sequence
-    
-    # Plan shows internal collision as conflict
-    # (target 1002 exists because it's one of our source files)
-    assert plan.has_conflicts
-    assert len(plan.conflicts) == 1
 
-    # Execute with force=True to handle internal collisions
+    # An internal shuffle is not a conflict — the plan vacates those paths.
+    assert not plan.has_conflicts
+    assert len(plan.conflicts) == 0
+
+    # Executes without force because there is no real overwrite.
     # The execution order (1002->1003 first, then 1001->1002) ensures correctness
-    result = plan.execute(force=True)
+    result = plan.execute()
 
     # Should succeed
     assert result.success

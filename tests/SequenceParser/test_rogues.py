@@ -38,7 +38,9 @@ def test_allowed_extensions(parse_sequence_yaml):
         data, 2, allowed_extensions=allowed_extensions
     )
 
-    assert len(results.rogues) == 2
+    # single_frame.1000.dpx is below min_frames=2, so it is now reported as a
+    # rogue rather than silently dropped: rogue_A, rogue_B, single_frame.
+    assert len(results.rogues) == 3
 
     data = [
         "file_001.exr",
@@ -57,4 +59,6 @@ def test_allowed_extensions(parse_sequence_yaml):
         data, 2, allowed_extensions=allowed_extensions
     )
 
-    assert len(results.rogues) == 1
+    # tif is not allowed (rogue_B skipped); rogue_A plus the below-min_frames
+    # single_frame.1000.dpx remain as rogues.
+    assert len(results.rogues) == 2

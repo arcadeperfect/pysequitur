@@ -29,8 +29,13 @@ def extract_shot_from_single_path(file_path: str) -> tuple[str, str]:
             # Pad to at least 3 digits
             return shot_num.zfill(3), file_path
 
-    # If no clear shot number found, look for any number not preceded by 'v'
-    numbers = re.findall(r"(?<!v)\d+", file_path)
+    # If no clear shot number found, look for any whole number that is not a
+    # version (a run of digits immediately preceded by 'v', e.g. v25).
+    numbers = [
+        m.group()
+        for m in re.finditer(r"\d+", file_path)
+        if not (m.start() > 0 and file_path[m.start() - 1].lower() == "v")
+    ]
     if numbers:
         # Take the first number that's not clearly a version
         return numbers[0].zfill(3), file_path
